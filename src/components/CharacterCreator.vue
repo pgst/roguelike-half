@@ -80,8 +80,8 @@ function handleCreate() {
 
     <div class="divider"></div>
 
-    <div class="submit-section" style="display: flex; gap: 15px; justify-content: center;">
-      <button @click="currentScreen = 'scenario_select'" class="btn-ink btn-large btn-back" style="background: rgba(0,0,0,0.05);">
+    <div class="submit-section">
+      <button @click="currentScreen = 'scenario_select'" class="btn-ink btn-large btn-back">
         🔙 シナリオ選択に戻る
       </button>
       <button @click="handleCreate" class="btn-ink btn-large">
@@ -238,13 +238,38 @@ function handleCreate() {
 }
 
 .submit-section {
-  text-align: center;
+  display: flex;
+  gap: 15px;
+  justify-content: center;
   margin-top: 20px;
+}
+
+.btn-back {
+  background: rgba(0,0,0,0.05);
 }
 
 .btn-large {
   padding: 15px 30px;
   font-size: 1.2rem;
   font-weight: bold;
+}
+
+@media (max-width: 600px) {
+  .creator-card {
+    padding: 20px 15px;
+  }
+  .archetype-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .submit-section {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .btn-large {
+    width: 100%;
+    font-size: 1.05rem;
+    padding: 12px 20px;
+  }
 }
 </style>

@@ -612,4 +612,34 @@ function closeRangedRound() {
   background: var(--ink-light) !important;
   box-shadow: 3px 3px 0 rgba(0,0,0,0.3) !important;
 }
+
+@media (max-width: 600px) {
+  .combat-card {
+    padding: 20px 15px;
+  }
+  .combat-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .enemies-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .button-group, .spell-buttons, .reaction-bribe-group {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  .button-group .btn-ink, .spell-buttons .btn-ink, .reaction-bribe-group .btn-ink {
+    width: 100%;
+  }
+  .assign-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .btn-primary-ink {
+    width: 100%;
+  }
+}
 </style>

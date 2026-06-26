@@ -772,4 +772,64 @@ function startAdventure() {
   background: #fffff0 !important;
   box-shadow: 3px 3px 0 #b8860b !important;
 }
+
+/* Responsive Styles for Mobile Viewports */
+@media (max-width: 900px) {
+  .desktop-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .market-grid-container {
+    grid-template-columns: 1fr !important;
+    gap: 15px !important;
+  }
+
+  .shop-column, .recruiter-column {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .tabletop-container {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .levelup-card {
+    padding: 15px;
+  }
+
+  .ledger-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .row-label {
+    min-width: auto;
+  }
+
+  /* Override inline grid style for spell learning buttons */
+  .levelup-card div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .gameover-card, .victory-card {
+    padding: 20px 15px;
+  }
+
+  .dead-title, .victory-title {
+    font-size: 1.6rem;
+  }
+
+  .dead-stats, .victory-stats {
+    padding: 10px 15px;
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
 </style>

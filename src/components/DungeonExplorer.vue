@@ -661,4 +661,31 @@ function startGoblinFight() {
   background: var(--ink-light) !important;
   box-shadow: 3px 3px 0 rgba(0,0,0,0.3) !important;
 }
+
+@media (max-width: 600px) {
+  .explorer-card {
+    padding: 20px 15px;
+  }
+  .explorer-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .merch-grid {
+    grid-template-columns: 1fr;
+  }
+  .button-group {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  .button-group .btn-ink {
+    width: 100%;
+  }
+  .btn-explore {
+    padding: 12px 25px;
+    font-size: 1.05rem;
+    width: 100%;
+  }
+}
 </style>

@@ -162,4 +162,30 @@ function selectScenario(scenario: Scenario) {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+@media (max-width: 600px) {
+  .scenario-selector {
+    padding: 20px 15px;
+  }
+  .game-title {
+    font-size: 1.6rem;
+  }
+  .scenario-card {
+    padding: 15px;
+  }
+  .scenario-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .scenario-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+    text-align: center;
+  }
+  .btn-select {
+    width: 100%;
+  }
+}
 </style>

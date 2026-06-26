@@ -441,4 +441,30 @@ const currentBackpackCount = computed(() => {
   display: block;
   margin-left: auto;
 }
+
+@media (max-width: 900px) {
+  .adventure-sheet {
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+@media (max-width: 600px) {
+  .adventure-sheet {
+    padding: 15px;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-card {
+    padding: 6px;
+  }
+  .stat-icon {
+    font-size: 1.1rem;
+  }
+  .stat-value {
+    font-size: 1rem;
+  }
+}
 </style>
