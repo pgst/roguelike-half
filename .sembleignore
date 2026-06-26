@@ -1,0 +1,37 @@
+# Semble Ignore file
+# Uses standard gitignore syntax to prevent AI agents from indexing/reading useless files
+
+# Dependencies and build outputs
+node_modules/
+dist/
+build/
+coverage/
+
+# Test reports and outputs
+playwright-report/
+test-results/
+.nyc_output/
+
+# Agent caches and logs
+.antigravitycli/
+.serena/
+.gemini/
+*.log
+
+# Editor and IDE configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Lock files and configuration files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# OS metadata
+.DS_Store
+Thumbs.db

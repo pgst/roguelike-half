@@ -1,0 +1,37 @@
+{
+  "name": "Vue 3 Dev Environment (Node 24)",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24-bookworm",
+  "features": {},
+  "customizations": {
+    "vscode": {
+      "settings": {},
+      "extensions": [
+        "Vue.volar",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "forwardPorts": [5173],
+  "networkMode": "host",
+  "mounts": [
+    "source=${localEnv:HOME}/.local/bin/agy,target=/usr/local/bin/agy,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.gemini,target=/home/node/.gemini,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.antigravitycli,target=/home/node/.antigravitycli,type=bind,consistency=cached"
+  ],
+  "containerEnv": {
+    "GEMINI_CLI_IDE_SERVER_PORT": "${localEnv:GEMINI_CLI_IDE_SERVER_PORT}",
+    "GEMINI_CLI_IDE_AUTH_TOKEN": "${localEnv:GEMINI_CLI_IDE_AUTH_TOKEN}",
+    "ANTIGRAVITY_LS_ADDRESS": "${localEnv:ANTIGRAVITY_LS_ADDRESS}",
+    "ANTIGRAVITY_PROJECT_ID": "${localEnv:ANTIGRAVITY_PROJECT_ID}"
+  },
+  "remoteEnv": {
+    "GEMINI_CLI_IDE_SERVER_PORT": "${localEnv:GEMINI_CLI_IDE_SERVER_PORT}",
+    "GEMINI_CLI_IDE_AUTH_TOKEN": "${localEnv:GEMINI_CLI_IDE_AUTH_TOKEN}",
+    "ANTIGRAVITY_LS_ADDRESS": "${localEnv:ANTIGRAVITY_LS_ADDRESS}",
+    "ANTIGRAVITY_PROJECT_ID": "${localEnv:ANTIGRAVITY_PROJECT_ID}"
+  },
+  "postCreateCommand": "sudo ln -s /home/node /home/pgst || true && npm install",
+  "remoteUser": "node"
+}
+

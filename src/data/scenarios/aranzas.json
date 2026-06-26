@@ -1,0 +1,323 @@
+{
+  "id": "aranzas",
+  "title": "魔将アラザスの迷宮",
+  "description": "アランツァの地底深くに築かれた、悪魔の軍勢が蠢く暗黒の迷宮。数多のトラップと魔物の包囲網を突破し、最深部に君臨する魔将アラザスを討て。",
+  "difficulty": "★★★☆☆",
+  "totalRoomsToClear": 8,
+  "d66EventTable": {
+    "11": {
+      "title": "ゴブリンの斥候部隊",
+      "d66Code": "11",
+      "description": "通路の先から、武器を持ったゴブリンが3体現れました！敵意を剥き出しにしています。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "ゴブリン斥候 A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "ゴブリン斥候 B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "ゴブリン斥候 C", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "12": {
+      "title": "崩落する天井トラップ",
+      "d66Code": "12",
+      "description": "足元のスイッチを踏んだ瞬間、天井の巨大な岩が崩れてきました！器用さを活かして避ける必要があります。",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "13": {
+      "title": "忘れられた礼拝堂",
+      "d66Code": "13",
+      "description": "古い静かな礼拝堂です。神聖な空気が満ちており、休息を取ることで怪我を癒やすか、精神（副能力値）を休めることができます。",
+      "type": "rest"
+    },
+    "14": {
+      "title": "兵士の亡骸",
+      "d66Code": "14",
+      "description": "先遣隊と思われる兵士の白骨死体を見つけました。身につけていた遺品を調べることができそうです。",
+      "type": "treasure",
+      "lootModifier": 0
+    },
+    "15": {
+      "title": "暗黒の魔法陣",
+      "d66Code": "15",
+      "description": "怪しく紫に輝く魔法陣が行く手を阻んでいます。魔術の知識で無効化するか、運を天に任せて通り抜ける必要があります。",
+      "type": "trap",
+      "trapStat": "magic",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "16": {
+      "title": "動き出した骸骨",
+      "d66Code": "16",
+      "description": "ガラガラと音を立てて、骨剣を持ったスケルトンが3体立ち上がりました！【アンデッド】のクリーチャーです。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "スケルトン剣士 A", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1 },
+        { "name": "スケルトン剣士 B", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1 },
+        { "name": "スケルトン剣士 C", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1 }
+      ]
+    },
+    "21": {
+      "title": "地下の行商人",
+      "d66Code": "21",
+      "description": "アランツァの地下迷宮を探索する命知らずな行商人に出会いました。金貨と物資の取引が可能です。",
+      "type": "npc",
+      "npcType": "merchant"
+    },
+    "22": {
+      "title": "絡みつく肉食植物",
+      "d66Code": "22",
+      "description": "急に壁や床から太い蔦が伸び、主人公や従者たちに巻き付いてきました！筋力で引きちぎる必要があります。",
+      "type": "trap",
+      "trapStat": "strength",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "23": {
+      "title": "魔力の源泉",
+      "d66Code": "23",
+      "description": "かすかに輝く澄んだ冷水が湧き出ています。この神秘的な水を飲むことで、魔力や精神力（副能力値）が完全に回復します。",
+      "type": "rest"
+    },
+    "24": {
+      "title": "古い木箱の山",
+      "d66Code": "24",
+      "description": "ホコリの被った古い木箱が積まれています。罠があるかもしれませんが、中に何か入っているかもしれません。",
+      "type": "treasure",
+      "lootModifier": -1
+    },
+    "25": {
+      "title": "ゴブリンの交渉人",
+      "d66Code": "25",
+      "description": "賢そうなゴブリンが手を挙げて交渉を求めてきました。金貨5枚の【ワイロ】を支払えば見逃してくれそうです。",
+      "type": "npc",
+      "npcType": "bribe"
+    },
+    "26": {
+      "title": "アラバスター・ゴーレム",
+      "d66Code": "26",
+      "description": "白い大理石で造られた堅牢なからくり人形が動き出しました！生命力が高く頑丈な【ゴーレム】です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "アラバスター・ゴーレム", "level": 4, "lifeMax": 3, "lifeCurrent": 3, "attackCount": 1, "tags": ["strong", "golem"], "count": 1 }
+      ]
+    },
+    "31": {
+      "title": "傷ついた傭兵",
+      "d66Code": "31",
+      "description": "壁に背を預けて息を荒げている戦士がいます。金貨を払って治療してやれば、従者として同行してくれるかもしれません。",
+      "type": "npc",
+      "npcType": "mercenary"
+    },
+    "32": {
+      "title": "飛び出る毒矢の罠",
+      "d66Code": "32",
+      "description": "壁の隙間から、毒の塗られた鋭い矢が発射されました！素早く身をかがめる必要があります。",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 5,
+      "trapDamage": 1
+    },
+    "33": {
+      "title": "幸運の彫像",
+      "d66Code": "33",
+      "description": "慈愛に満ちた女神の石造です。祈りを捧げることで、幸運があなたの味方をするのを感じます（幸運点が全回復します）。",
+      "type": "rest"
+    },
+    "34": {
+      "title": "大蜘蛛の巣窟",
+      "d66Code": "34",
+      "description": "粘着質な白い糸に囲まれたエリアに入ってしまいました。影から大きなクモが4体這い出してきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "大蜘蛛 A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "大蜘蛛 B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "大蜘蛛 C", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "大蜘蛛 D", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "35": {
+      "title": "オークの精鋭戦士",
+      "d66Code": "35",
+      "description": "巨大な斧を手にした筋骨隆々のオークが咆哮を上げながら襲いかかってきました！強力な敵です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "オークの戦士", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong"], "count": 1 }
+      ]
+    },
+    "36": {
+      "title": "囚われた聖職者",
+      "d66Code": "36",
+      "description": "牢に閉じ込められた巡礼中の僧侶を発見しました。助け出すと、お礼に傷の治療か「聖水」を譲ってくれます。",
+      "type": "npc",
+      "npcType": "priest"
+    },
+    "41": {
+      "title": "大コウモリの急襲",
+      "d66Code": "41",
+      "description": "天井から無数の目が赤く光り、凶暴なコウモリが5体一斉に飛びかかってきました！数は多いですが弱いです。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "吸血大コウモリ A", "level": 1, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "吸血大コウモリ B", "level": 1, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "吸血大コウモリ C", "level": 1, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "吸血大コウモリ D", "level": 1, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "吸血大コウモリ E", "level": 1, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "42": {
+      "title": "深い落とし穴",
+      "d66Code": "42",
+      "description": "突然足元の床板が割れ、槍の敷き詰められた底深い落とし穴へと落下しそうになりました！筋力で耐える必要があります。",
+      "type": "trap",
+      "trapStat": "strength",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "43": {
+      "title": "隠された宝箱",
+      "d66Code": "43",
+      "description": "レンガの隙間に、金細工が施された豪華な金属チェストが残されていました。宝物表をロールできます！",
+      "type": "treasure",
+      "lootModifier": 1
+    },
+    "44": {
+      "title": "ロスト・リビングアーマー",
+      "d66Code": "44",
+      "description": "中身のないはずの巨大なフルプレート鎧が、青い幻火を宿して動き出しました！頑丈な鉄の【ゴーレム】です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "リビングアーマー", "level": 5, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong", "golem"], "count": 1 }
+      ]
+    },
+    "45": {
+      "title": "呪詛の石碑",
+      "d66Code": "45",
+      "description": "悍ましい顔が彫られた黒石碑から、精神を汚染する波動が放たれました！幸運の力で呪いをそらす必要があります。",
+      "type": "trap",
+      "trapStat": "luck",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "46": {
+      "title": "コボルドの略奪部隊",
+      "d66Code": "46",
+      "description": "犬の頭部を持つ亜人、コボルドの略奪団4体が、ゴミをあさりながら通路を進んできました。戦闘は避けられません！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "コボルド歩兵 A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "コボルド歩兵 B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "コボルド歩兵 C", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "コボルド歩兵 D", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "51": {
+      "title": "癒やしの泉",
+      "d66Code": "51",
+      "description": "清らかな淡水が満ちた泉に辿り着きました。体を休め、泉の水を飲むことで、すべての傷（生命力）が完全に癒やされます。",
+      "type": "rest"
+    },
+    "52": {
+      "title": "噴出する猛毒ガス",
+      "d66Code": "52",
+      "description": "壁のバルブから黄色い猛毒ガスが噴出しました！肺活量と肺の頑丈さ（筋力）で耐える必要があります。",
+      "type": "trap",
+      "trapStat": "strength",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "53": {
+      "title": "幽霊兵の亡霊",
+      "d66Code": "53",
+      "description": "壁からすり抜けて、冷気をまとった幽霊兵士が現れました！武器が効きにくい【アンデッド】です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "さまよう亡霊", "level": 4, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["undead"], "count": 1 }
+      ]
+    },
+    "54": {
+      "title": "古代の石門のパズル",
+      "d66Code": "54",
+      "description": "奇妙な記号が並んだ謎めいた石門があります。頭脳（技量）を駆使してパズルを解けば、隠された小部屋の財宝を入手できます。",
+      "type": "trap",
+      "trapStat": "skill",
+      "trapTarget": 5,
+      "trapDamage": 0
+    },
+    "55": {
+      "title": "逃亡中の捕虜",
+      "d66Code": "55",
+      "description": "足を縛られ、転がっているゴブリンの捕虜を見つけました。ロープがあれば、捕虜として無理やり「戦わない従者」にできます。",
+      "type": "npc",
+      "npcType": "captive"
+    },
+    "56": {
+      "title": "古代のミイラ男",
+      "d66Code": "56",
+      "description": "石棺から、乾いた包帯に包まれたミイラが這い出してきました！非常にしぶとい【アンデッド】の強敵です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "古代のミイラ", "level": 3, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong", "undead"], "count": 1 }
+      ]
+    },
+    "61": {
+      "title": "地底トロールの巣",
+      "d66Code": "61",
+      "description": "手強い怪力と高い生命力を誇る地底トロールが、むしゃむしゃと骨をかじっています。こちらに気づきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "地底トロール", "level": 5, "lifeMax": 4, "lifeCurrent": 4, "attackCount": 1, "tags": ["strong"], "count": 1 }
+      ]
+    },
+    "62": {
+      "title": "魔力火炎の噴出",
+      "d66Code": "62",
+      "description": "石壁の彫像の口から突然、超高温の炎が噴き出してきました！素早く横っ飛びで避ける必要があります。",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "63": {
+      "title": "大精霊の祝福",
+      "d66Code": "63",
+      "description": "大精霊の意思が具現化したかのような光が舞っています。主人公の生命力が1回復し、すべての副能力値が全回復します。",
+      "type": "rest"
+    },
+    "64": {
+      "title": "放棄された武器庫",
+      "d66Code": "64",
+      "description": "昔の衛兵所と思われる部屋に、錆びかけてはいるものの実用可能な装備が残されています。",
+      "type": "treasure",
+      "lootModifier": 0
+    },
+    "65": {
+      "title": "異端審問の狂信者",
+      "d66Code": "65",
+      "description": "黒い装束をまとったアランツァの狂信的な審問官が立ちはだかります。邪悪な敵対心に満ちています。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "異端審問官", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong"], "count": 1 }
+      ]
+    },
+    "66": {
+      "title": "デーモンの石像",
+      "d66Code": "66",
+      "description": "呪術的な瘴気を放つ魔神の石像です。通り抜けるだけで邪悪な呪いが襲いかかります！幸運で耐えてください。",
+      "type": "trap",
+      "trapStat": "luck",
+      "trapTarget": 5,
+      "trapDamage": 1
+    }
+  },
+  "bossEvent": {
+    "title": "【決戦】魔将アラザス",
+    "d66Code": "Boss",
+    "description": "深奥の広間で、巨大な黒角を持った悪魔の将軍「魔将アラザス」が待ち構えていました！凄まじいプレッシャーです。これが最後の戦いです！",
+    "type": "encounter",
+    "enemies": [
+      { "name": "魔将アラザス", "level": 6, "lifeMax": 5, "lifeCurrent": 5, "attackCount": 2, "tags": ["strong", "undead"], "count": 1 }
+    ]
+  }
+}

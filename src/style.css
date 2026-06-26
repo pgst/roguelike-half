@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Outfit:wght@400;700;900&display=swap');
+
+:root {
+  --wood-bg: #22140a;
+  --paper-bg: #f6ebd2; /* Parchment cream */
+  --ink-dark: #1b1612; /* Deep charcoal ink */
+  --ink-light: #5c4b3d; /* Lighter vintage brown ink */
+  --gold-accent: #b8860b;
+  --card-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
+  --inset-shadow: inset 0 0 15px rgba(139, 69, 19, 0.15);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--wood-bg);
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0) 50%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0) 50%);
+  background-size: 4px 4px;
+  color: var(--ink-dark);
+  min-height: 100vh;
+}
+
+/* Beautiful Paper Sheet Texture & Stylings */
+.paper-sheet {
+  background: var(--paper-bg);
+  background-image: radial-gradient(rgba(0,0,0,0.02) 20%, transparent 20%),
+                    radial-gradient(rgba(0,0,0,0.02) 20%, transparent 20%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+  border: 3px double var(--ink-dark);
+  box-shadow: var(--card-shadow);
+  position: relative;
+}
+
+.paper-sheet::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  box-shadow: var(--inset-shadow);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Calligraphic Vintage Buttons */
+.btn-ink {
+  font-family: 'Noto Serif JP', serif;
+  font-weight: bold;
+  background: transparent;
+  color: var(--ink-dark);
+  border: 2px solid var(--ink-dark);
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--ink-dark);
+  transition: all 0.1s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.btn-ink:hover:not(:disabled) {
+  background: rgba(27, 22, 18, 0.05);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--ink-dark);
+}
+
+.btn-ink:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink-dark);
+}
+
+.btn-ink:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: 1px 1px 0 var(--ink-dark);
+}
+
+.btn-secondary {
+  border-color: var(--ink-light);
+  color: var(--ink-light);
+  box-shadow: 2px 2px 0 var(--ink-light);
+}
+
+.btn-secondary:hover {
+  background: rgba(92, 75, 61, 0.05);
+  box-shadow: 3px 3px 0 var(--ink-light);
+}
+
+.btn-mini {
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  border-width: 1px;
+  box-shadow: 1px 1px 0 var(--ink-dark);
+}
+
+.btn-mini:hover {
+  box-shadow: 2px 2px 0 var(--ink-dark);
+}

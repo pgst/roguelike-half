@@ -1,0 +1,317 @@
+{
+  "id": "black_serpent",
+  "title": "黒蛇の洞窟",
+  "description": "猛毒を帯びた蜘蛛や大蛇が蠢き、湿った空気が肌を刺す底無しの洞窟。数々の毒ガスや落とし穴を潜り抜け、最深部でとぐろを巻く巨大黒蛇獣「オロチ」を討ち滅ぼせ。",
+  "difficulty": "★★☆☆☆",
+  "totalRoomsToClear": 6,
+  "d66EventTable": {
+    "11": {
+      "title": "小さな毒蛇の群れ",
+      "d66Code": "11",
+      "description": "岩の隙間から、這い出てきた3体の毒蛇が牙を剥いて飛びかかってきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "毒蛇 A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "毒蛇 B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "毒蛇 C", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "12": {
+      "title": "吹き出す強酸ガス",
+      "d66Code": "12",
+      "description": "足元のフイゴ板を踏んでしまい、勢いよく強酸性のガスが噴出しました！器用に身をかわす必要があります。",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "13": {
+      "title": "苔むした休息所",
+      "d66Code": "13",
+      "description": "ふかふかした光る苔に囲まれた穏やかな空間です。一時的に休息を取り、傷を癒やすか副能力値を回復させることができます。",
+      "type": "rest"
+    },
+    "14": {
+      "title": "朽ち果てた薬調合台",
+      "d66Code": "14",
+      "description": "かつて探検家や薬術師が使っていた調合台の跡です。未回収の薬草や便利な道具が残されていないか調べることができます。",
+      "type": "treasure",
+      "lootModifier": 0
+    },
+    "15": {
+      "title": "這い寄る毒蜘蛛",
+      "d66Code": "15",
+      "description": "天井から太い糸を伝って、粘性の高い毒蜘蛛が2体静かに降りてきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "毒蜘蛛 A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "毒蜘蛛 B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "16": {
+      "title": "粘着質の糸罠",
+      "d66Code": "16",
+      "description": "見えにくい半透明の頑丈な蜘蛛の巣に行く手を塞がれました！体に絡みつく前に、筋力で引きちぎって強行突破する必要があります。",
+      "type": "trap",
+      "trapStat": "strength",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "21": {
+      "title": "洞窟のキノコ狩り職人",
+      "d66Code": "21",
+      "description": "地底キノコを採取して地上へ卸している命知らずな採取家に遭遇しました。金貨での取引が可能です。",
+      "type": "npc",
+      "npcType": "merchant"
+    },
+    "22": {
+      "title": "落石トラップ",
+      "d66Code": "22",
+      "description": "崩れやすい天井の下を通りかかった瞬間、ガラガラと大岩が崩落してきました！身軽に横へ飛び退く必要があります。",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "23": {
+      "title": "清澄な地底湖",
+      "d66Code": "23",
+      "description": "暗闇で青く澄んだ光を放つ小さな地底湖です。神秘の水を飲むことで、魔力や精神力（副能力値）が完全に潤い、回復します。",
+      "type": "rest"
+    },
+    "24": {
+      "title": "苔むした古びた石櫃",
+      "d66Code": "24",
+      "description": "頑丈な石造りの小箱が苔に半分埋もれています。簡単な罠の可能性はありますが、開ければ宝物が期待できそうです。",
+      "type": "treasure",
+      "lootModifier": -1
+    },
+    "25": {
+      "title": "知性あるコボルドの隠者",
+      "d66Code": "25",
+      "description": "年老いたコボルドの呪術師が、こちらを値踏みするように見つめています。金貨5枚の【ワイロ】を支払えば穏便に道を通してくれそうです。",
+      "type": "npc",
+      "npcType": "bribe"
+    },
+    "26": {
+      "title": "ストーン・ガード・スネーク",
+      "d66Code": "26",
+      "description": "岩を削って作られた大きな蛇の像が、魔法の光を宿して動き出しました！極めて強固な【ゴーレム】です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "ガード・スネーク", "level": 4, "lifeMax": 3, "lifeCurrent": 3, "attackCount": 1, "tags": ["strong", "golem"], "count": 1 }
+      ]
+    },
+    "31": {
+      "title": "迷い込んだ盗賊",
+      "d66Code": "31",
+      "description": "洞窟内で迷子になり、飢えて怯えている若者に出会いました。金貨を払って助けてやれば、従者として同行してくれるかもしれません。",
+      "type": "npc",
+      "npcType": "mercenary"
+    },
+    "32": {
+      "title": "底無しの沼地",
+      "d66Code": "32",
+      "description": "足元のぬかるみが、泥深い底無しの沼となって引きずり込もうとしてきます！自らの腕力（筋力）で脱出する必要があります。",
+      "type": "trap",
+      "trapStat": "strength",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "33": {
+      "title": "蛇神の祠",
+      "d66Code": "33",
+      "description": "古き脱皮する蛇を祀った小さな祭壇です。祈りを捧げることで、邪気を払い、幸運点がすべて回復します。",
+      "type": "rest"
+    },
+    "34": {
+      "title": "巣窟の親蜘蛛",
+      "d66Code": "34",
+      "description": "背丈ほどもある巨大な蜘蛛が、子蜘蛛を引き連れて奥から這い出してきました！非常に強力なクリーチャーです。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "マザー・スパイダー", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong"], "count": 1 }
+      ]
+    },
+    "35": {
+      "title": "鱗殻のリザードマン",
+      "d66Code": "35",
+      "description": "全身を硬いウロコで覆い、毒の槍を構えたリザードマンの戦士が襲いかかってきました！侮れない強敵です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "リザードマン槍兵", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong"], "count": 1 }
+      ]
+    },
+    "36": {
+      "title": "囚われた探検家",
+      "d66Code": "36",
+      "description": "蜘蛛の巣でぐるぐる巻きにされ、天井から吊り下げられている探検家を見つけました。救助すれば、傷を治すか貴重な「聖水」を分けてくれます。",
+      "type": "npc",
+      "npcType": "priest"
+    },
+    "41": {
+      "title": "羽音うなる毒虫の群れ",
+      "d66Code": "41",
+      "description": "羽音とともに、鋭い針を持つ蜂のような魔虫4体が天井から群れを成して襲撃してきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "地底蜂 A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "地底蜂 B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "地底蜂 C", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "地底蜂 D", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "42": {
+      "title": "仕掛けられた毒矢",
+      "d66Code": "42",
+      "description": "張られた極細の糸に足が触れ、壁から黒光りする毒矢が発射されました！間一髪で屈んで避ける必要があります。",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 5,
+      "trapDamage": 1
+    },
+    "43": {
+      "title": "探検隊の残置リュック",
+      "d66Code": "43",
+      "description": "何者かが放棄した、革製のしっかりしたバックパックが残されています。中身は手つかずのようです！",
+      "type": "treasure",
+      "lootModifier": 1
+    },
+    "44": {
+      "title": "魔導仕掛けの蛇頭像",
+      "d66Code": "44",
+      "description": "台座に設置された蛇の首像がゆっくりと向きを変え、敵意を宿してエネルギー球を放ち始めました！壊さなければ進めません！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "蛇の魔導像", "level": 5, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong", "golem"], "count": 1 }
+      ]
+    },
+    "45": {
+      "title": "精神を蝕む霧",
+      "d66Code": "45",
+      "description": "甘い匂いとともに、精神を掻き乱す悪夢の霧が通路を満たしています。強い精神の防護力（幸運）で耐えねばなりません。",
+      "type": "trap",
+      "trapStat": "luck",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "46": {
+      "title": "洞窟トカゲの急襲",
+      "d66Code": "46",
+      "description": "鋭い爪を持つ小さなトカゲの群れ3体が、不気味な鳴き声を上げながら突進してきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "洞窟トカゲ A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "洞窟トカゲ B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "洞窟トカゲ C", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "51": {
+      "title": "地熱の温泉",
+      "d66Code": "51",
+      "description": "洞窟の隅に、地熱で温められた温泉が湧き出しています。ゆっくり湯に浸かることで、すべての怪我（生命力）が完治します。",
+      "type": "rest"
+    },
+    "52": {
+      "title": "幻覚キノコの胞子",
+      "d66Code": "52",
+      "description": "色鮮やかなキノコを踏み潰してしまい、濃厚な胞子が舞い上がりました！強靭な肺と体力（筋力）で毒性を耐えなければなりません。",
+      "type": "trap",
+      "trapStat": "strength",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "53": {
+      "title": "大蛇の生霊",
+      "d66Code": "53",
+      "description": "かつてこの地で朽ち果てた大蛇の死霊が、執念によって実体化しました！肉体の武器が効きにくい【アンデッド】です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "大蛇の亡霊", "level": 4, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["undead"], "count": 1 }
+      ]
+    },
+    "54": {
+      "title": "毒霧噴出装置のパズル",
+      "d66Code": "54",
+      "description": "毒ガスを噴射する古い仕掛けが道を塞いでいます。慎重にレバーとギアを操作（技量）して、罠を無効化すれば隠された財宝が得られます。",
+      "type": "trap",
+      "trapStat": "skill",
+      "trapTarget": 5,
+      "trapDamage": 0
+    },
+    "55": {
+      "title": "縛られたゴブリンの密猟者",
+      "d66Code": "55",
+      "description": "蛇の巣の近くで身動きが取れなくなっているゴブリンの密猟者です。ロープを使えば、捕虜として無理やり従わせることができます。",
+      "type": "npc",
+      "npcType": "captive"
+    },
+    "56": {
+      "title": "湿地のゾンビ",
+      "d66Code": "56",
+      "description": "洞窟の湿地帯から、ドロドロの泥をまとった死体が這い出してきました！しぶとい【アンデッド】です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "沼ゾンビ", "level": 3, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong", "undead"], "count": 1 }
+      ]
+    },
+    "61": {
+      "title": "洞窟の番人ベヒモス蛇",
+      "d66Code": "61",
+      "description": "岩をも噛み砕く巨体を持つ、洞窟の主の片腕とも言えるベヒモス蛇が牙を剥きます！すさまじい巨漢です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "ベヒモス・スネーク", "level": 5, "lifeMax": 4, "lifeCurrent": 4, "attackCount": 1, "tags": ["strong"], "count": 1 }
+      ]
+    },
+    "62": {
+      "title": "高圧毒液スプレー",
+      "d66Code": "62",
+      "description": "壁から超高圧の強酸毒液がスプレー状に射出されました！敏捷な動き（器用）で避けてください。",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "63": {
+      "title": "大いなる地母神の加護",
+      "d66Code": "63",
+      "description": "古い地母神の慈愛に満ちた波動を感じます。生命力が1点回復し、さらにすべての副能力値が満ちあふれます。",
+      "type": "rest"
+    },
+    "64": {
+      "title": "放棄された鉱員の備蓄",
+      "d66Code": "64",
+      "description": "かつてこの洞窟を掘り進めていた採掘者たちが遺したチェストです。中には役立つ資源が入っています。",
+      "type": "treasure",
+      "lootModifier": 0
+    },
+    "65": {
+      "title": "邪教の暗殺者",
+      "d66Code": "65",
+      "description": "オロチを信仰し、侵入者を殺戮する邪蛇教の暗殺者が影から忍び寄ってきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "蛇神教暗殺者", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong"], "count": 1 }
+      ]
+    },
+    "66": {
+      "title": "呪いの蛇頭骨",
+      "d66Code": "66",
+      "description": "台座に置かれた不気味な大蛇の頭骨です。呪いの眼差しがあなたに降りかかります！運命の力（幸運）で呪いを打ち消してください。",
+      "type": "trap",
+      "trapStat": "luck",
+      "trapTarget": 5,
+      "trapDamage": 1
+    }
+  },
+  "bossEvent": {
+    "title": "【決戦】巨大黒蛇獣オロチ",
+    "d66Code": "Boss",
+    "description": "地底深く、毒霧が渦巻く暗闇の巨大空洞。青く冷たい眼光を放ち、四本の牙を持つ巨大な黒蛇獣「オロチ」が鎌首を持ち上げて襲いかかってきます！これぞ最終決戦！",
+    "type": "encounter",
+    "enemies": [
+      { "name": "巨大黒蛇獣オロチ", "level": 5, "lifeMax": 6, "lifeCurrent": 6, "attackCount": 2, "tags": ["strong"], "count": 1 }
+    ]
+  }
+}
