@@ -33,7 +33,7 @@ jobs:
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
           username: ${{ secrets.SFTP_USERNAME }}
-          host: ${{ secrets.SFTP_HOST }}
+          server: ${{ secrets.SFTP_HOST }}
           port: 10022 # シンフリーサーバー専用のSSHポート
           ssh_private_key: ${{ secrets.SFTP_PRIVATE_KEY }}
           local_path: './dist/*' # Vueのビルド成果物が入るディレクトリ
