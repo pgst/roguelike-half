@@ -53,10 +53,13 @@ const learnableSpells = computed(() => {
 });
 
 const canLearnSpells = computed(() => {
+  if (character.value.subStatType !== 'magic' && character.value.subStatType !== 'luck') {
+    return false;
+  }
   const allowed = Math.floor(character.value.subStatMax / 2);
   const currentCount = character.value.subStatType === 'magic' 
     ? character.value.spells.length 
-    : (character.value.subStatType === 'luck' ? character.value.miracles.length : 0);
+    : character.value.miracles.length;
   return currentCount < allowed;
 });
 
