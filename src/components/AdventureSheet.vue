@@ -15,7 +15,8 @@ const {
   sellItem,
   useFood,
   useHealingPotion,
-  dismissFollower
+  dismissFollower,
+  currentBackpackCount
 } = useGameState();
 
 const { activateWarDoll } = useCombat();
@@ -27,19 +28,7 @@ const maxBackpackSlots = computed(() => {
   return character.value.lifeMax + porterBonus;
 });
 
-const currentBackpackCount = computed(() => {
-  const currentItems = character.value.weapons.length + 
-                       character.value.armors.length + 
-                       character.value.shields.length + 
-                       character.value.items.length;
-  // Exclude equipped items
-  let equippedCount = 0;
-  if (character.value.equippedWeapon) equippedCount++;
-  if (character.value.equippedArmor) equippedCount++;
-  if (character.value.equippedShield) equippedCount++;
 
-  return currentItems - equippedCount;
-});
 </script>
 
 <template>
@@ -154,6 +143,16 @@ const currentBackpackCount = computed(() => {
           <button v-if="i.type === 'magic_doll'" @click="activateWarDoll(i.id)" class="btn-ink btn-mini">起動(1EXP)</button>
           <button v-if="i.value > 0 && currentScreen === 'levelup'" @click="sellItem(i.id)" class="btn-ink btn-mini sell-btn">売却</button>
         </div>
+      </div>
+
+      <!-- Gold and Food slot weight indicators (Rule 27) -->
+      <div v-if="Math.floor(character.gold / 100) > 0" class="bag-item system-item" style="color: #705844; border-color: rgba(112, 88, 68, 0.2); font-style: italic;">
+        <span class="item-name">🪙 金貨の重み ({{ Math.floor(character.gold / 100) }} スロット分)</span>
+        <span style="font-size: 0.8rem; opacity: 0.8;">※金貨100枚ごとに1スロット</span>
+      </div>
+      <div v-if="Math.floor(character.food / 10) > 0" class="bag-item system-item" style="color: #705844; border-color: rgba(112, 88, 68, 0.2); font-style: italic;">
+        <span class="item-name">🍞 食料の重み ({{ Math.floor(character.food / 10) }} スロット分)</span>
+        <span style="font-size: 0.8rem; opacity: 0.8;">※食料10個ごとに1スロット</span>
       </div>
 
       <div v-if="currentBackpackCount === 0" class="empty-text">背負い袋は空です。</div>

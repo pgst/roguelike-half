@@ -192,6 +192,12 @@ export function useCombat() {
     if (enemyIndex === -1) return;
     const enemy = combatState.enemies[enemyIndex];
 
+    if (combatState.round === 0) {
+      combatState.hasRangedFired = true;
+      combatState.playerHasFiredRanged = true;
+      addLog('第0ラウンドの射撃攻撃が完了しました。', 'info');
+    }
+
     addLog(`⚔️ ${enemy.name} への攻撃ロール！`, 'combat');
     
     // Choose stat
@@ -313,12 +319,61 @@ export function useCombat() {
         continue;
       }
 
+      // Archer specific rules (Rule 271)
+      if (follower.type === 'archer') {
+        if (combatState.round === 0) {
+          addLog(`🏹 従者の弓兵 ${follower.name} が弓矢で射撃攻撃を行います！ (目標: ${target.name})`, 'combat');
+          combatState.archerHasFiredRanged = true;
+          const roll = await rollD6(true);
+          let modifier = 1; // Ranged bonus
+          if (!carriesLantern.value) {
+            modifier -= 2;
+            addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
+          }
+          const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + follower.skill + modifier;
+          const hit = roll === 6 || (roll !== 1 && total >= target.level);
+          if (hit) {
+            target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
+            addLog(`🎯 従者弓兵の射撃が命中！ ${target.name} に1点のダメージ。(ロール計: ${roll === 6 ? 'クリティカル' : total})`, 'success');
+            if (target.lifeCurrent <= 0) {
+              addLog(`💀 ${target.name} は撃破されました。`, 'success');
+              combatState.enemies.shift();
+            }
+          } else {
+            addLog(`💨 従者弓兵の射撃は外れた。(ロール計: ${roll === 1 ? 'ファンブル' : total})`, 'info');
+          }
+        } else if (combatState.round === 1 && combatState.archerHasFiredRanged) {
+          addLog(`⚔️ 従者の弓兵 ${follower.name} は、接近戦用武器への持ち替え中のため、このラウンドは攻撃できません。`, 'info');
+        } else {
+          addLog(`🛡️ 従者の弓兵 ${follower.name} が接近戦用の軽い武器で攻撃します！ (目標: ${target.name})`, 'combat');
+          const roll = await rollD6(true);
+          let modifier = -1; // Light weapon penalty
+          if (!carriesLantern.value) {
+            modifier -= 2;
+            addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
+          }
+          const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + follower.skill + modifier;
+          const hit = roll === 6 || (roll !== 1 && total >= target.level);
+          if (hit) {
+            target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
+            addLog(`🎯 従者の攻撃が命中！ ${target.name} に1点のダメージ。(ロール計: ${roll === 6 ? 'クリティカル' : total})`, 'success');
+            if (target.lifeCurrent <= 0) {
+              addLog(`💀 ${target.name} は撃破されました。`, 'success');
+              combatState.enemies.shift();
+            }
+          } else {
+            addLog(`💨 従者の攻撃は外れた。(ロール計: ${roll === 1 ? 'ファンブル' : total})`, 'info');
+          }
+        }
+        continue;
+      }
+
       addLog(`🛡️ 従者 ${follower.name} の援護攻撃！ (目標: ${target.name})`, 'combat');
       const roll = await rollD6(true);
       let modifier = 0;
 
-      // Archer or Mage light weapon penalty (-1)
-      if (follower.type === 'archer' || follower.type === 'mage') {
+      // Mage light weapon penalty (-1)
+      if (follower.type === 'mage') {
         modifier -= 1;
       }
       if (!carriesLantern.value) {
@@ -1009,6 +1064,25 @@ export function useCombat() {
     addLog('✨ 経験点1を注ぎ込み、ウォー・ドールを起動しました！ 「戦う従者」としてパーティに加入。', 'success');
   }
 
+  // Weapon switching resolution (costs 1 round)
+  async function resolveWeaponSwitch() {
+    addLog('主人公は弓矢から接近戦用武器への持ち替えに1ラウンドを費やしました。', 'info');
+    combatState.playerHasFiredRanged = false; // switch completed
+
+    // Archer also skips if they shot in Round 0
+    await executeFollowerAttacks();
+
+    // Check retreats
+    checkEnemyRetreat();
+    if (combatState.enemies.length === 0) {
+      endCombat(true);
+      return;
+    }
+
+    // Enemies attack
+    await executeEnemyAttacks();
+  }
+
   // Confirm combat and move back or forward in the dungeon
   function confirmCombatResult() {
     clearDiceTray();
@@ -1054,5 +1128,6 @@ export function useCombat() {
     activateWarDoll,
     confirmCombatResult,
     confirmReactionResult,
+    resolveWeaponSwitch,
   };
 }

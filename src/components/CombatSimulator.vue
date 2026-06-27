@@ -10,7 +10,8 @@ const {
   addLog,
   logs,
   dungeonDepth,
-  totalRoomsToClear
+  totalRoomsToClear,
+  isSwitchingWeapons
 } = useGameState();
 
 const isBossRoom = computed(() => dungeonDepth.value >= totalRoomsToClear.value);
@@ -25,7 +26,8 @@ const {
   resolveDefense,
   resolveLoot,
   confirmCombatResult,
-  confirmReactionResult
+  confirmReactionResult,
+  resolveWeaponSwitch
 } = useCombat();
 
 const activeAttacks = computed(() => (combatState as any).activeAttacks || []);
@@ -84,17 +86,31 @@ function closeRangedRound() {
 
           <!-- Melee Attack Controls -->
           <div v-if="combatState.round > 0 && activeAttacks.length === 0" class="combat-actions">
-            <button @click="playerAttack(enemy.id)" class="btn-ink btn-mini">⚔️ 通常攻撃</button>
-            <button 
-              v-if="character.subStatType === 'strength' && character.subStatCurrent > 0"
-              @click="playerAttack(enemy.id, true)" 
-              class="btn-ink btn-mini btn-strength"
-            >
-              🏋️ 全力攻撃 (筋力1)
-            </button>
+            <template v-if="isSwitchingWeapons">
+              <span class="badge-switching" style="font-size: 0.85rem; color: #8c1c1c; font-weight: bold; background: rgba(140, 28, 28, 0.05); padding: 5px 10px; border-radius: 4px; border: 1px dashed #f5c6cb; width: 100%; display: block; text-align: center;">
+                ⚔️ 武器の持ち替え中...
+              </span>
+            </template>
+            <template v-else>
+              <button 
+                @click="playerAttack(enemy.id)" 
+                class="btn-ink btn-mini"
+                :disabled="character.equippedWeapon?.type === 'ranged'"
+              >
+                {{ character.equippedWeapon?.type === 'ranged' ? '❌ 飛び道具接近戦使用不可' : '⚔️ 通常攻撃' }}
+              </button>
+              <button 
+                v-if="character.subStatType === 'strength' && character.subStatCurrent > 0"
+                @click="playerAttack(enemy.id, true)" 
+                class="btn-ink btn-mini btn-strength"
+                :disabled="character.equippedWeapon?.type === 'ranged'"
+              >
+                🏋️ 全力攻撃 (筋力1)
+              </button>
+            </template>
             
             <!-- Target-specific Spells -->
-            <div v-if="character.subStatType === 'magic' && character.subStatCurrent > 0" class="spell-targets">
+            <div v-if="!isSwitchingWeapons && character.subStatType === 'magic' && character.subStatCurrent > 0" class="spell-targets">
               <button 
                 v-if="character.spells.includes('気絶') && enemy.tags.includes('weak')"
                 @click="castSpell('気絶', enemy.id)" 
@@ -264,81 +280,94 @@ function closeRangedRound() {
         </template>
       </div>
 
-      <!-- Spells & Miracles (Magic / Luck archetypes) -->
-      <div v-if="character.subStatCurrent > 0 && activeAttacks.length === 0" class="magic-phase">
-        <h3 class="section-title">🔮 魔法・奇跡の詠唱 (残り魔力/幸運: {{ character.subStatCurrent }})</h3>
-        
-        <div class="spell-buttons">
-          <!-- Magic spells -->
-          <template v-if="character.subStatType === 'magic'">
-            <button 
-              v-if="character.spells.includes('炎球')"
-              @click="castSpell('炎球')" 
-              class="btn-ink btn-spell"
-              :disabled="combatState.round === 0 && combatState.hasRangedFired"
-            >
-              🔮 炎球 (全体攻撃)
-            </button>
-            <button 
-              v-if="character.spells.includes('武具創造') && !hasWeaponEquipped"
-              @click="castSpell('武具創造')" 
-              class="btn-ink btn-spell"
-            >
-              🔮 武具創造 (光の剣)
-            </button>
-            <button 
-              v-if="character.spells.includes('速撃')"
-              @click="castSpell('速撃')" 
-              class="btn-ink btn-spell"
-            >
-              🔮 速撃 (先制攻撃)
-            </button>
-          </template>
-
-          <!-- Luck miracles -->
-          <template v-if="character.subStatType === 'luck'">
-            <button 
-              v-if="character.miracles.includes('防衛')"
-              @click="castMiracle('防衛')" 
-              class="btn-ink btn-miracle"
-              :disabled="combatState.round === 0 && combatState.hasRangedFired"
-            >
-              🕊️ 防衛 (+1防御バフ)
-            </button>
-            <button 
-              v-if="character.miracles.includes('そらし')"
-              @click="castMiracle('そらし')" 
-              class="btn-ink btn-miracle"
-            >
-              🕊️ そらし (射撃無効)
-            </button>
-            <button 
-              v-if="character.miracles.includes('聖洗脳') && combatState.enemies.length === 1"
-              @click="castMiracle('聖洗脳')" 
-              class="btn-ink btn-miracle"
-              :disabled="combatState.round === 0 && combatState.hasRangedFired"
-            >
-              🕊️ 聖洗脳 (従者にする)
-            </button>
-            <button 
-              v-if="character.miracles.includes('招天')"
-              @click="castMiracle('招天')" 
-              class="btn-ink btn-miracle"
-              :disabled="combatState.round === 0 && combatState.hasRangedFired"
-            >
-              🕊️ 招天 (アンデッド光矢)
-            </button>
-          </template>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="flee-section">
-        <button @click="escapeCombat" class="btn-ink btn-flee">
-          🏃 戦闘から逃走する (無防備な一撃を受ける)
+      <!-- Round >= 1 Melee Phase Actions (e.g. Weapon Switch) -->
+      <div v-else-if="isSwitchingWeapons" class="weapon-switch-box" style="border: 2px dashed #8c1c1c; padding: 20px; background: rgba(140, 28, 28, 0.05); border-radius: 6px; text-align: center; margin-bottom: 20px;">
+        <p style="font-size: 1rem; font-weight: bold; color: #8c1c1c; margin-bottom: 15px; font-family: 'Noto Serif JP', serif;">
+          🏹 遠距離武器を使用したため、接近戦武器への持ち替えに1ラウンド必要です。<br>
+          <span style="font-size: 0.85rem; opacity: 0.9; font-weight: normal;">※「太刀持ち従者」がいれば、この持ち替え時間を省略できます。</span>
+        </p>
+        <button @click="resolveWeaponSwitch" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
+          ⚔️ 武器を持ち替える (1ラウンド消費して手番終了)
         </button>
       </div>
+
+      <!-- Spells & Miracles (Magic / Luck archetypes) & Flee Section -->
+      <template v-if="!isSwitchingWeapons">
+        <div v-if="character.subStatCurrent > 0 && activeAttacks.length === 0" class="magic-phase">
+          <h3 class="section-title">🔮 魔法・奇跡の詠唱 (残り魔力/幸運: {{ character.subStatCurrent }})</h3>
+          
+          <div class="spell-buttons">
+            <!-- Magic spells -->
+            <template v-if="character.subStatType === 'magic'">
+              <button 
+                v-if="character.spells.includes('炎球')"
+                @click="castSpell('炎球')" 
+                class="btn-ink btn-spell"
+                :disabled="combatState.round === 0 && combatState.hasRangedFired"
+              >
+                🔮 炎球 (全体攻撃)
+              </button>
+              <button 
+                v-if="character.spells.includes('武具創造') && !hasWeaponEquipped"
+                @click="castSpell('武具創造')" 
+                class="btn-ink btn-spell"
+              >
+                🔮 武具創造 (光の剣)
+              </button>
+              <button 
+                v-if="character.spells.includes('速撃')"
+                @click="castSpell('速撃')" 
+                class="btn-ink btn-spell"
+              >
+                🔮 速撃 (先制攻撃)
+              </button>
+            </template>
+
+            <!-- Luck miracles -->
+            <template v-if="character.subStatType === 'luck'">
+              <button 
+                v-if="character.miracles.includes('防衛')"
+                @click="castMiracle('防衛')" 
+                class="btn-ink btn-miracle"
+                :disabled="combatState.round === 0 && combatState.hasRangedFired"
+              >
+                🕊️ 防衛 (+1防御バフ)
+              </button>
+              <button 
+                v-if="character.miracles.includes('そらし')"
+                @click="castMiracle('そらし')" 
+                class="btn-ink btn-miracle"
+              >
+                🕊️ そらし (射撃無効)
+              </button>
+              <button 
+                v-if="character.miracles.includes('聖洗脳') && combatState.enemies.length === 1"
+                @click="castMiracle('聖洗脳')" 
+                class="btn-ink btn-miracle"
+                :disabled="combatState.round === 0 && combatState.hasRangedFired"
+              >
+                🕊️ 聖洗脳 (従者にする)
+              </button>
+              <button 
+                v-if="character.miracles.includes('招天')"
+                @click="castMiracle('招天')" 
+                class="btn-ink btn-miracle"
+                :disabled="combatState.round === 0 && combatState.hasRangedFired"
+              >
+                🕊️ 招天 (アンデッド光矢)
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="flee-section">
+          <button @click="escapeCombat" class="btn-ink btn-flee">
+            🏃 戦闘から逃走する (無防備な一撃を受ける)
+          </button>
+        </div>
+      </template>
     </div>
   </div>
 </template>

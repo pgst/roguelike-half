@@ -100,6 +100,8 @@ const combatState = reactive({
   round: 0,
   log: [] as string[],
   hasRangedFired: false,
+  playerHasFiredRanged: false,
+  archerHasFiredRanged: false,
   buffs: {
     defenseBonus: 0, // from Protection miracle
     damageIgnoreCount: 0, // War Doll trait
@@ -236,24 +238,38 @@ const getRollModifier = computed(() => {
   return 0;
 });
 
-const isBackpackFull = computed(() => {
-  const currentItems = character.value.weapons.length + 
-                       character.value.armors.length + 
-                       character.value.shields.length + 
-                       character.value.items.length;
-  // Subtract actively equipped items from backpack limit
+const currentBackpackCount = computed(() => {
+  const baseItems = character.value.weapons.length + 
+                     character.value.armors.length + 
+                     character.value.shields.length + 
+                     character.value.items.length;
+  // Exclude equipped items
   let equippedCount = 0;
   if (character.value.equippedWeapon) equippedCount++;
   if (character.value.equippedArmor) equippedCount++;
   if (character.value.equippedShield) equippedCount++;
 
-  const inventoryCount = currentItems - equippedCount;
-  
+  const equipmentCount = baseItems - equippedCount;
+
+  // Gold and Food weight rules:
+  // 金貨100枚につき1スロット、食料10個につき1スロット
+  const goldSlots = Math.floor(character.value.gold / 100);
+  const foodSlots = Math.floor(character.value.food / 10);
+
+  return equipmentCount + goldSlots + foodSlots;
+});
+
+const isBackpackFull = computed(() => {
   // Follower Porter gives +3 slots
   const porterBonus = followers.value.filter(f => f.type === 'porter').length * 3;
   const maxSlots = character.value.lifeMax + porterBonus;
 
-  return inventoryCount >= maxSlots;
+  return currentBackpackCount.value >= maxSlots;
+});
+
+const hasSwordbearer = computed(() => followers.value.some(f => f.type === 'swordbearer'));
+const isSwitchingWeapons = computed(() => {
+  return combatState.round === 1 && combatState.playerHasFiredRanged && !hasSwordbearer.value;
 });
 
 // Follower purchasing logic
@@ -807,6 +823,9 @@ export function useGameState() {
     carriesLantern,
     getRollModifier,
     isBackpackFull,
+    currentBackpackCount,
+    hasSwordbearer,
+    isSwitchingWeapons,
 
     // Utility functions
     addLog,
