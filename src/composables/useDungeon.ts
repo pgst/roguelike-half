@@ -4,7 +4,6 @@ import type { Enemy } from '../types';
 export function useDungeon() {
   const { 
     character, 
-    followers, 
     activeEvent, 
     dungeonDepth, 
     totalRoomsToClear, 
@@ -14,7 +13,8 @@ export function useDungeon() {
     combatState,
     currentScreen,
     clearDiceTray,
-    activeScenario
+    activeScenario,
+    carriesLantern
   } = useGameState();
 
   // Action: Explore next room
@@ -107,8 +107,7 @@ export function useDungeon() {
     let modifier = 0;
 
     // Lantern penalty
-    const carries = followers.value.some(f => f.type === 'lantern') || character.value.items.some(i => i.type === 'lantern');
-    if (!carries) {
+    if (!carriesLantern.value) {
       modifier -= 2;
       addLog('暗闇での探索により判定に -2 のペナルティ！', 'error');
     }

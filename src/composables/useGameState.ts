@@ -56,7 +56,7 @@ export const DEFAULT_SHIELDS = {
 };
 
 export const DEFAULT_ITEMS = {
-  lantern: { id: 'lantern', name: 'ランタン', type: 'lantern', goldCost: 2, value: 0, description: '暗闇を照らす。所持していないと全判定に-2の修正を受ける。片手が塞がる。' } as Omit<GeneralItem, 'id'>,
+  lantern: { id: 'lantern', name: 'ランタン', type: 'lantern', goldCost: 2, value: 0, description: '暗闇を照らす。手元に明かりがない（ランタンを手に持っていない、かつランタン持ちの従者がいない）と全判定に-2の修正を受ける。使用する（手に持つ）場合は片手が塞がる。' } as Omit<GeneralItem, 'id'>,
   rope: { id: 'rope', name: 'ロープ', type: 'rope', goldCost: 3, value: 0, description: '気絶した弱い敵を【捕虜】として拘束するのに使用する。' } as Omit<GeneralItem, 'id'>,
   holywater: { id: 'holywater', name: '聖水', type: 'holywater', goldCost: 10, value: 0, description: 'アンデッドや強い敵に2ダメージ、弱い敵なら2体を一撃で倒す消耗品。' } as Omit<GeneralItem, 'id'>,
   potion: { id: 'potion', name: '治療のポーション', type: 'healingpotion', goldCost: 50, value: 0, description: '生命力を最大値まで回復する。1回の冒険で1個のみ使用可能。' } as Omit<GeneralItem, 'id'>,
@@ -197,12 +197,36 @@ async function rollD3(): Promise<number> {
   return val;
 }
 
+// Helper to count hands occupied by equipment
+function getHandsUsed(weapon: Weapon | null, shield: Shield | null): number {
+  let hands = 0;
+  if (weapon) {
+    if (weapon.type === 'two-handed') {
+      hands += 2;
+    } else {
+      hands += 1;
+    }
+  }
+  if (shield) {
+    hands += 1;
+  }
+  return hands;
+}
+
 // State helpers
 const carriesLantern = computed(() => {
-  // Main character holds lantern if equipped, or follower has lantern type
-  const followerHasLantern = followers.value.some(f => f.type === 'lantern');
-  const heroHasLantern = character.value.items.some(i => i.type === 'lantern');
-  return heroHasLantern || followerHasLantern;
+  // 1. If any follower is a lantern bearer, we have active light
+  if (followers.value.some(f => f.type === 'lantern')) {
+    return true;
+  }
+  // 2. If the hero doesn't have a lantern in their inventory, we have no light
+  const hasLanternItem = character.value.items.some(i => i.type === 'lantern');
+  if (!hasLanternItem) {
+    return false;
+  }
+  // 3. If the hero carries a lantern, they need at least 1 free hand to hold it
+  const handsUsed = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+  return handsUsed < 2;
 });
 
 const getRollModifier = computed(() => {
@@ -376,6 +400,9 @@ function buyFollower(type: Follower['type'], attrib: 'strike' | 'slash' = 'strik
   });
 
   addLog(`${followerData.name}を雇用しました。 (金貨${cost}枚消費)`, 'success');
+  if (followerData.type === 'lantern') {
+    addLog('ランタン持ちを雇ったため、両手が塞がっていても周囲が照らされます！', 'success');
+  }
   return true;
 }
 
@@ -385,15 +412,38 @@ function dismissFollower(id: string) {
     const f = followers.value[index];
     followers.value.splice(index, 1);
     addLog(`${f.name}を解雇しました。`, 'info');
+
+    // Check if we lost light because the lantern bearer left and hands are full
+    const hasLantern = character.value.items.some(i => i.type === 'lantern');
+    const handsUsed = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    if (f.type === 'lantern' && hasLantern && handsUsed === 2) {
+      addLog('ランタン持ちがいなくなり、両手が塞がっているため暗闇状態になりました（全判定に-2の修正を受けます）。', 'error');
+    }
   }
 }
 
 // Gear management
 function equipWeapon(w: Weapon | null) {
+  const hasLantern = character.value.items.some(i => i.type === 'lantern');
+  const hasBearer = followers.value.some(f => f.type === 'lantern');
+  const checkLanternLog = (handsBefore: number, handsAfter: number) => {
+    if (hasLantern && !hasBearer) {
+      if (handsBefore < 2 && handsAfter === 2) {
+        addLog('両手が塞がったため、ランタンを手に持てず暗闇状態になりました（全判定に-2の修正を受けます）。', 'error');
+      } else if (handsBefore === 2 && handsAfter < 2) {
+        addLog('片手が空いたため、ランタンを手に持って周囲を照らしました。', 'success');
+      }
+    }
+  };
+
+  const handsBefore = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+
   if (w && character.value.equippedWeapon?.name === w.name) {
     // Unequip
     character.value.equippedWeapon = null;
     addLog(`${w.name}を装備解除しました。`, 'info');
+    const handsAfter = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    checkLanternLog(handsBefore, handsAfter);
     return;
   }
   
@@ -404,16 +454,15 @@ function equipWeapon(w: Weapon | null) {
         addLog('両手武器は盾と同時に装備できません。', 'error');
         return;
       }
-      // If holding lantern and no lantern bearer, we can equip it but it blocks lantern
-      if (character.value.items.some(i => i.type === 'lantern') && !followers.value.some(f => f.type === 'lantern')) {
-        addLog('ランタンを持っているため両手武器は装備できません（ランタン持ちがいれば可）。', 'error');
-        return;
-      }
     }
     character.value.equippedWeapon = w;
     addLog(`${w.name}を装備しました。`, 'success');
+    const handsAfter = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    checkLanternLog(handsBefore, handsAfter);
   } else {
     character.value.equippedWeapon = null;
+    const handsAfter = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    checkLanternLog(handsBefore, handsAfter);
   }
 }
 
@@ -448,6 +497,20 @@ function equipArmor(a: Armor | null) {
 }
 
 function equipShield(s: Shield | null) {
+  const hasLantern = character.value.items.some(i => i.type === 'lantern');
+  const hasBearer = followers.value.some(f => f.type === 'lantern');
+  const checkLanternLog = (handsBefore: number, handsAfter: number) => {
+    if (hasLantern && !hasBearer) {
+      if (handsBefore < 2 && handsAfter === 2) {
+        addLog('両手が塞がったため、ランタンを手に持てず暗闇状態になりました（全判定に-2の修正を受けます）。', 'error');
+      } else if (handsBefore === 2 && handsAfter < 2) {
+        addLog('片手が空いたため、ランタンを手に持って周囲を照らしました。', 'success');
+      }
+    }
+  };
+
+  const handsBefore = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+
   if (s && character.value.equippedShield?.name === s.name) {
     // Unequip
     const oldShield = character.value.equippedShield;
@@ -457,6 +520,8 @@ function equipShield(s: Shield | null) {
       character.value.lifeCurrent = Math.max(1, Math.min(character.value.lifeMax, character.value.lifeCurrent - oldShield.modLife));
       addLog(`${oldShield.name}を装備解除しました。生命力最大値 -${oldShield.modLife}`, 'info');
     }
+    const handsAfter = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    checkLanternLog(handsBefore, handsAfter);
     return;
   }
 
@@ -472,16 +537,16 @@ function equipShield(s: Shield | null) {
       addLog('両手武器を装備しているため盾を装備できません。', 'error');
       return;
     }
-    if (character.value.items.some(i => i.type === 'lantern') && !followers.value.some(f => f.type === 'lantern')) {
-      addLog('ランタンを持っているため盾を装備できません（ランタン持ちがいれば可）。', 'error');
-      return;
-    }
     character.value.equippedShield = s;
     character.value.lifeMax += s.modLife;
     character.value.lifeCurrent += s.modLife;
     addLog(`${s.name}を装備しました。生命力最大値 +${s.modLife}`, 'success');
+    const handsAfter = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    checkLanternLog(handsBefore, handsAfter);
   } else {
     character.value.equippedShield = null;
+    const handsAfter = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    checkLanternLog(handsBefore, handsAfter);
   }
 }
 

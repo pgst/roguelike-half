@@ -13,7 +13,8 @@ export function useCombat() {
     dungeonDepth,
     totalRoomsToClear,
     handleDeath,
-    clearDiceTray
+    clearDiceTray,
+    carriesLantern
   } = useGameState();
 
   // Helper: check if enemy group is Undead, Golem, etc.
@@ -158,6 +159,10 @@ export function useCombat() {
         let modifier = 0;
         if (character.value.equippedArmor) modifier += character.value.equippedArmor.modDef;
         if (character.value.equippedShield) modifier += 1; // general shield mod
+        if (!carriesLantern.value) {
+          modifier -= 2;
+          addLog('暗闇での戦闘により防御判定に -2 のペナルティ！', 'error');
+        }
 
         const total = defRoll === 6 ? 99 : defRoll === 1 ? -99 : defRoll + skill + modifier;
         if (defRoll !== 6 && (defRoll === 1 || total < enemy.level)) {
@@ -206,6 +211,12 @@ export function useCombat() {
 
     const roll = await rollD6(true);
     let modifier = 0;
+
+    // Lantern penalty
+    if (!carriesLantern.value) {
+      modifier -= 2;
+      addLog('暗闇での戦闘により攻撃判定に -2 のペナルティ！', 'error');
+    }
 
     // Weapon modifiers
     if (character.value.equippedWeapon) {
@@ -281,7 +292,12 @@ export function useCombat() {
         addLog(`🔮 従者の魔術師 ${follower.name} が呪文 [炎球] を唱えた！ (魔術点消費。残り: ${follower.magicCurrent})`, 'success');
         
         const spellRoll = await rollD6(true);
-        const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0;
+        let modifier = 0;
+        if (!carriesLantern.value) {
+          modifier -= 2;
+          addLog('暗闇のため従者の魔術判定に -2 のペナルティ！', 'error');
+        }
+        const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0 + modifier;
         const spellHit = spellRoll === 6 || (spellRoll !== 1 && spellTotal >= target.level);
         
         if (spellHit) {
@@ -304,6 +320,10 @@ export function useCombat() {
       // Archer or Mage light weapon penalty (-1)
       if (follower.type === 'archer' || follower.type === 'mage') {
         modifier -= 1;
+      }
+      if (!carriesLantern.value) {
+        modifier -= 2;
+        addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
       }
 
       const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + follower.skill + modifier;
@@ -385,6 +405,10 @@ export function useCombat() {
       // Protection Miracle buff
       modifier += combatState.buffs.defenseBonus;
     }
+    if (!carriesLantern.value) {
+      modifier -= 2;
+      addLog(`暗闇のため${defName}の防御判定に -2 のペナルティ！`, 'error');
+    }
 
     const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + skill + modifier;
     const defSuccess = roll === 6 || (roll !== 1 && total >= enemy.level);
@@ -461,7 +485,12 @@ export function useCombat() {
       addLog(`眠りの呪文を放ちます！魔術判定ロール...`, 'info');
       const roll = await rollD6(true);
       const val = character.value.skillCurrent; // Casts with skill or magic stat if using.
-      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val;
+      let modifier = 0;
+      if (!carriesLantern.value) {
+        modifier -= 2;
+        addLog('暗闇のため魔術判定に -2 のペナルティ！', 'error');
+      }
+      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
       const success = roll === 6 || (roll !== 1 && total >= target.level);
 
       if (success) {
@@ -500,7 +529,12 @@ export function useCombat() {
 
       const roll = await rollD6(true);
       const val = character.value.skillCurrent;
-      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val;
+      let modifier = 0;
+      if (!carriesLantern.value) {
+        modifier -= 2;
+        addLog('暗闇のため魔術判定に -2 のペナルティ！', 'error');
+      }
+      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
 
       if (isNarrow) {
         // Deals 1 damage to each enemy whose level is <= total
@@ -540,7 +574,12 @@ export function useCombat() {
       addLog(`氷の槍を放ちます！魔術判定ロール...`, 'info');
       const roll = await rollD6(true);
       const val = character.value.skillCurrent;
-      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val;
+      let modifier = 0;
+      if (!carriesLantern.value) {
+        modifier -= 2;
+        addLog('暗闇のため魔術判定に -2 のペナルティ！', 'error');
+      }
+      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
 
       if (roll === 6 || (roll !== 1 && total >= target.level)) {
         target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
@@ -636,7 +675,12 @@ export function useCombat() {
       addLog(`洗脳の念を送ります！幸運判定ロール...`, 'info');
       const roll = await rollD6(true);
       const val = character.value.skillCurrent;
-      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val;
+      let modifier = 0;
+      if (!carriesLantern.value) {
+        modifier -= 2;
+        addLog('暗闇のため幸運判定に -2 のペナルティ！', 'error');
+      }
+      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
 
       if (roll === 6 || (roll !== 1 && total >= target.level)) {
         addLog(`🕊️ 成功！ ${target.name} は改心し、【捕虜】の従者として同行することになりました！`, 'success');
@@ -676,7 +720,12 @@ export function useCombat() {
         
         const roll = await rollD6(true);
         const val = character.value.skillCurrent;
-        const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val;
+        let modifier = 0;
+        if (!carriesLantern.value) {
+          modifier -= 2;
+          addLog('暗闇のため判定に -2 のペナルティ！', 'error');
+        }
+        const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
         const success = roll === 6 || (roll !== 1 && total >= target.level);
 
         if (success) {
