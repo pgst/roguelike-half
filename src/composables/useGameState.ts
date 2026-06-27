@@ -1,4 +1,4 @@
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import type { Character, Follower, Enemy, Weapon, Armor, Shield, GeneralItem, DungeonEvent, Scenario } from '../types';
 
 // Load Scenarios
@@ -92,6 +92,23 @@ const character = ref<Character>({
 
 const followers = ref<Follower[]>([]);
 const activeEvent = ref<DungeonEvent | null>(null);
+
+// Level-up stats checkpoints (to support refund/undo of allocation before finalization)
+const checkpointSkillMax = ref(0);
+const checkpointLifeMax = ref(0);
+const checkpointSubStatMax = ref(0);
+const checkpointFollowerMax = ref(0);
+const checkpointExp = ref(0);
+
+watch(currentScreen, (newScreen) => {
+  if (newScreen === 'levelup') {
+    checkpointSkillMax.value = character.value.skillMax;
+    checkpointLifeMax.value = character.value.lifeMax;
+    checkpointSubStatMax.value = character.value.subStatMax;
+    checkpointFollowerMax.value = character.value.followerMax;
+    checkpointExp.value = character.value.exp;
+  }
+});
 
 // Combat state
 const combatState = reactive({
@@ -710,6 +727,74 @@ function spendExpForStat(stat: 'skill' | 'life' | 'sub' | 'follower'): boolean {
   return false;
 }
 
+// Refund/Undo allocated EXP
+function refundExpForStat(stat: 'skill' | 'life' | 'sub' | 'follower'): boolean {
+  if (stat === 'skill') {
+    if (character.value.skillMax <= checkpointSkillMax.value) {
+      addLog('この画面で上昇させた値より下げることはできません。', 'error');
+      return false;
+    }
+    character.value.skillMax -= 1;
+    character.value.skillCurrent = character.value.skillMax;
+    character.value.exp += 4;
+    addLog('技量点の割り振りをキャンセルし、4経験点を払い戻しました。', 'info');
+    return true;
+  }
+
+  if (stat === 'life') {
+    if (character.value.lifeMax <= checkpointLifeMax.value) {
+      addLog('この画面で上昇させた値より下げることはできません。', 'error');
+      return false;
+    }
+    character.value.lifeMax -= 1;
+    character.value.lifeCurrent = character.value.lifeMax;
+    character.value.exp += 1;
+    addLog('生命力最大値の割り振りをキャンセルし、1経験点を払い戻しました。', 'info');
+    return true;
+  }
+
+  if (stat === 'sub') {
+    if (character.value.subStatMax <= checkpointSubStatMax.value) {
+      addLog('この画面で上昇させた値より下げることはできません。', 'error');
+      return false;
+    }
+    
+    // Check if we need to remove learned spells/miracles to fit the new allowed limit
+    const allowed = Math.floor((character.value.subStatMax - 1) / 2);
+    if (character.value.subStatType === 'magic') {
+      while (character.value.spells.length > allowed) {
+        const removed = character.value.spells.pop();
+        addLog(`制限数超過のため、魔術 【${removed}】 の習得を取り消しました。`, 'info');
+      }
+    } else if (character.value.subStatType === 'luck') {
+      while (character.value.miracles.length > allowed) {
+        const removed = character.value.miracles.pop();
+        addLog(`制限数超過のため、奇跡 【${removed}】 の習得を取り消しました。`, 'info');
+      }
+    }
+
+    character.value.subStatMax -= 1;
+    character.value.subStatCurrent = character.value.subStatMax;
+    character.value.exp += 1;
+    addLog('副能力値の最大値の割り振りをキャンセルし、1経験点を払い戻しました。', 'info');
+    return true;
+  }
+
+  if (stat === 'follower') {
+    if (character.value.followerMax <= checkpointFollowerMax.value) {
+      addLog('この画面で上昇させた値より下げることはできません。', 'error');
+      return false;
+    }
+    character.value.followerMax -= 1;
+    character.value.followerCurrent = character.value.followerMax;
+    character.value.exp += 2;
+    addLog('従者点(最大同行可能数)の割り振りをキャンセルし、2経験点を払い戻しました。', 'info');
+    return true;
+  }
+
+  return false;
+}
+
 // Game lifecycle
 function initNewCharacter(name: string, subStat: Character['subStatType']) {
   character.value = {
@@ -826,6 +911,10 @@ export function useGameState() {
     currentBackpackCount,
     hasSwordbearer,
     isSwitchingWeapons,
+    checkpointSkillMax,
+    checkpointLifeMax,
+    checkpointSubStatMax,
+    checkpointFollowerMax,
 
     // Utility functions
     addLog,
@@ -849,6 +938,7 @@ export function useGameState() {
     useHealingPotion,
     restoreStatsAfterAdventure,
     spendExpForStat,
+    refundExpForStat,
 
     // Lifecycle
     initNewCharacter,

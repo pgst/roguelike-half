@@ -18,6 +18,11 @@ const {
   totalRoomsToClear,
   logs,
   spendExpForStat,
+  refundExpForStat,
+  checkpointSkillMax,
+  checkpointLifeMax,
+  checkpointSubStatMax,
+  checkpointFollowerMax,
   restoreStatsAfterAdventure,
   buyFollower,
   equipArmor,
@@ -308,52 +313,92 @@ function startAdventure() {
             <div class="ledger-row">
               <span class="row-label">🎓 <b>技量点 (Skill):</b></span>
               <span class="row-val">{{ character.skillMax }} / 2 (限界値)</span>
-              <button 
-                @click="spendExpForStat('skill')" 
-                class="btn-ink btn-mini" 
-                :disabled="character.exp < 4 || character.skillMax >= 2"
-              >
-                +1上昇 (4 EXP)
-              </button>
+              <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
+                <button 
+                  @click="refundExpForStat('skill')" 
+                  class="btn-ink btn-mini" 
+                  :disabled="character.skillMax <= checkpointSkillMax"
+                  style="border-color: #8c1c1c; color: #8c1c1c;"
+                >
+                  - 戻す
+                </button>
+                <button 
+                  @click="spendExpForStat('skill')" 
+                  class="btn-ink btn-mini" 
+                  :disabled="character.exp < 4 || character.skillMax >= 2"
+                >
+                  +1上昇 (4 EXP)
+                </button>
+              </div>
             </div>
 
             <!-- Life -->
             <div class="ledger-row">
               <span class="row-label">❤️ <b>生命点 (Life):</b></span>
               <span class="row-val">{{ character.lifeMax }} / 8 (限界値)</span>
-              <button 
-                @click="spendExpForStat('life')" 
-                class="btn-ink btn-mini" 
-                :disabled="character.exp < 1 || character.lifeMax >= 8"
-              >
-                +1上昇 (1 EXP)
-              </button>
+              <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
+                <button 
+                  @click="refundExpForStat('life')" 
+                  class="btn-ink btn-mini" 
+                  :disabled="character.lifeMax <= checkpointLifeMax"
+                  style="border-color: #8c1c1c; color: #8c1c1c;"
+                >
+                  - 戻す
+                </button>
+                <button 
+                  @click="spendExpForStat('life')" 
+                  class="btn-ink btn-mini" 
+                  :disabled="character.exp < 1 || character.lifeMax >= 8"
+                >
+                  +1上昇 (1 EXP)
+                </button>
+              </div>
             </div>
 
             <!-- Sub-stat -->
             <div class="ledger-row">
               <span class="row-label">🔮 <b>副能力値 (Sub-stat):</b></span>
               <span class="row-val">{{ character.subStatMax }} / 6 (限界値)</span>
-              <button 
-                @click="spendExpForStat('sub')" 
-                class="btn-ink btn-mini" 
-                :disabled="character.exp < 1 || character.subStatMax >= 6"
-              >
-                +1上昇 (1 EXP)
-              </button>
+              <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
+                <button 
+                  @click="refundExpForStat('sub')" 
+                  class="btn-ink btn-mini" 
+                  :disabled="character.subStatMax <= checkpointSubStatMax"
+                  style="border-color: #8c1c1c; color: #8c1c1c;"
+                >
+                  - 戻す
+                </button>
+                <button 
+                  @click="spendExpForStat('sub')" 
+                  class="btn-ink btn-mini" 
+                  :disabled="character.exp < 1 || character.subStatMax >= 6"
+                >
+                  +1上昇 (1 EXP)
+                </button>
+              </div>
             </div>
 
             <!-- Follower slots -->
             <div class="ledger-row">
               <span class="row-label">👥 <b>従者点 (Followers):</b></span>
               <span class="row-val">{{ character.followerMax }} / 9 (限界値)</span>
-              <button 
-                @click="spendExpForStat('follower')" 
-                class="btn-ink btn-mini" 
-                :disabled="character.exp < 2 || character.followerMax >= 9"
-              >
-                +1上昇 (2 EXP)
-              </button>
+              <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
+                <button 
+                  @click="refundExpForStat('follower')" 
+                  class="btn-ink btn-mini" 
+                  :disabled="character.followerMax <= checkpointFollowerMax"
+                  style="border-color: #8c1c1c; color: #8c1c1c;"
+                >
+                  - 戻す
+                </button>
+                <button 
+                  @click="spendExpForStat('follower')" 
+                  class="btn-ink btn-mini" 
+                  :disabled="character.exp < 2 || character.followerMax >= 9"
+                >
+                  +1上昇 (2 EXP)
+                </button>
+              </div>
             </div>
           </div>
 
