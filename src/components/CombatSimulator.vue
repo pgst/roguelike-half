@@ -181,7 +181,7 @@ function closeRangedRound() {
         </template>
 
         <template v-else>
-          <h3 class="alert-title">🚨 クリーチャーの猛攻！ 防御しなさい！</h3>
+          <h3 class="alert-title">🚨 クリーチャーの猛攻を防御しろ！</h3>
           <p class="alert-desc">未適用の攻撃回数: <b>{{ activeAttacks.length }}</b> 回。味方を選択してダイスを振り、防御ロールを解決してください。</p>
           
           <div class="active-attack-row">
@@ -322,15 +322,25 @@ function closeRangedRound() {
 
           <div class="divider"></div>
 
-          <div class="button-group">
+          <div class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button 
               @click="playerAttack(combatState.enemies[0]?.id)" 
               class="btn-ink" 
+              style="flex: 1; min-width: 150px;"
               :disabled="!isRangedAvailable || combatState.hasRangedFired"
             >
               🎯 弓・スリングで射撃攻撃
             </button>
-            <button @click="closeRangedRound" class="btn-ink btn-secondary">
+            <button 
+              v-if="character.subStatType === 'dexterity' && character.subStatCurrent > 0"
+              @click="playerAttack(combatState.enemies[0]?.id, true)" 
+              class="btn-ink btn-strength" 
+              style="flex: 1; min-width: 150px;"
+              :disabled="!isRangedAvailable || combatState.hasRangedFired"
+            >
+              🎯 全力射撃 (器用1消費)
+            </button>
+            <button @click="closeRangedRound" class="btn-ink btn-secondary" style="flex: 1; min-width: 150px;">
               ⚔️ 接近戦へ移行する
             </button>
           </div>

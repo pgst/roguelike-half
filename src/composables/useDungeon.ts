@@ -14,7 +14,8 @@ export function useDungeon() {
     currentScreen,
     clearDiceTray,
     activeScenario,
-    carriesLantern
+    carriesLantern,
+    followers
   } = useGameState();
 
   // Action: Explore next room
@@ -35,18 +36,88 @@ export function useDungeon() {
     }
 
     addLog('次の部屋へ向けて通路を進みます...', 'info');
-    const { value } = await rollD66();
-    let event = activeScenario.value.d66EventTable[value.toString()];
 
-    if (!event) {
-      // Fallback
-      event = activeScenario.value.d66EventTable['11'] || Object.values(activeScenario.value.d66EventTable)[0];
+    let rollValue = 0;
+    let event: any = null;
+    let searchCompleted = false;
+
+    while (!searchCompleted) {
+      const { value } = await rollD66();
+      rollValue = value;
+      event = activeScenario.value.d66EventTable[rollValue.toString()];
+      if (!event) {
+        event = activeScenario.value.d66EventTable['11'] || Object.values(activeScenario.value.d66EventTable)[0];
+      }
+
+      addLog(`部屋発見: [d66: ${rollValue}] ${event.title}`, 'info');
+
+      // Check if player can and wants to use Perception (察知) (Rule 25 & Scout Follower)
+      const hasScout = followers.value.some(f => f.type === 'scout');
+      const hasDexPerception = character.value.subStatType === 'dexterity' && character.value.subStatCurrent > 0;
+
+      let usedPerception = false;
+      let perceptionSuccess = false;
+
+      if (hasScout) {
+        const useScout = confirm(`従者の斥候が同行しています。【察知】を依頼して出目を振り直しますか？\n発見した部屋: [${event.title}]\n(器用点消費なし。d6を振り、4以上でd66を振り直せます)`);
+        if (useScout) {
+          usedPerception = true;
+          addLog('従者の斥候が【察知】を行います！ (目標値: 4)', 'info');
+          const roll = await rollD6(true);
+          let modifier = 0;
+          if (!carriesLantern.value) {
+            modifier -= 2;
+            addLog('暗闇のため斥候の察知判定に -2 のペナルティ！', 'error');
+          }
+          const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + modifier; // scout skill = 0
+          perceptionSuccess = roll === 6 || (roll !== 1 && total >= 4);
+
+          if (perceptionSuccess) {
+            addLog(`🧭 斥候の察知成功！危険を感知し、別の進路（d66振り直し）を選びました。(ロール計: ${roll === 6 ? 'クリティカル' : total} >= 4)`, 'success');
+          } else {
+            addLog(`💥 斥候の察知失敗！安全な別ルートを見つけられませんでした。(ロール計: ${roll === 1 ? 'ファンブル' : total} < 4)`, 'error');
+          }
+        }
+      }
+
+      // If scout was not used, or failed, they can still use hero's own dexterity perception
+      if (!perceptionSuccess && hasDexPerception) {
+        const useHero = confirm(`器用点【察知】を使用しますか？\n発見した部屋: [${event.title}]\n(器用点1消費。d6を振り、4以上でd66を振り直せます)`);
+        if (useHero) {
+          usedPerception = true;
+          addLog('主人公が器用点【察知】を行います！ (目標値: 4)', 'info');
+          const roll = await rollD6(true);
+          let modifier = 0;
+          if (!carriesLantern.value) {
+            modifier -= 2;
+            addLog('暗闇のため主人公の察知判定に -2 のペナルティ！', 'error');
+          }
+          const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + character.value.subStatCurrent + modifier;
+          perceptionSuccess = roll === 6 || (roll !== 1 && total >= 4);
+
+          // Consume 1 dexterity point
+          character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
+          addLog(`察知により器用点を1点消費しました。(残り: ${character.value.subStatCurrent}点)`, 'info');
+
+          if (perceptionSuccess) {
+            addLog(`🧭 主人公の察知成功！危険を感知し、別の進路（d66振り直し）を選びました。(ロール計: ${roll === 6 ? 'クリティカル' : total} >= 4)`, 'success');
+          } else {
+            addLog(`💥 主人公の察知失敗！安全な別ルートを見つけられませんでした。(ロール計: ${roll === 1 ? 'ファンブル' : total} < 4)`, 'error');
+          }
+        }
+      }
+
+      if (usedPerception && perceptionSuccess) {
+        addLog('進路を変更し、次の部屋を再度探索します。', 'info');
+      } else {
+        searchCompleted = true;
+      }
     }
 
     // Clone event to avoid editing global state
     activeEvent.value = JSON.parse(JSON.stringify(event));
 
-    addLog(`部屋発見: [d66: ${value}] ${activeEvent.value!.title}`, 'info');
+    addLog(`探索対象決定: ${activeEvent.value!.title}`, 'info');
 
     // Trigger event effect
     if (activeEvent.value!.type === 'encounter') {

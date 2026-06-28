@@ -210,14 +210,19 @@ export function useCombat() {
     // Choose stat
     let attackStat = character.value.skillCurrent;
     let isStrengthAttack = false;
+    let isDexterityAttack = false;
 
     if (isAllOut) {
       if (character.value.subStatType === 'strength' && character.value.subStatCurrent > 0) {
         attackStat = character.value.subStatCurrent;
         isStrengthAttack = true;
         addLog('筋力点を使用した【全力攻撃】を発動！', 'success');
+      } else if (character.value.subStatType === 'dexterity' && character.value.subStatCurrent > 0) {
+        attackStat = character.value.subStatCurrent;
+        isDexterityAttack = true;
+        addLog('器用点を使用した【全力射撃】を発動！', 'success');
       } else {
-        addLog('全力攻撃を発動できません！(筋力点が不足しています)', 'error');
+        addLog('全力攻撃/全力射撃を発動できません！(能力値が不足しています)', 'error');
         return;
       }
     }
@@ -251,6 +256,10 @@ export function useCombat() {
     if (isStrengthAttack) {
       character.value.subStatCurrent--;
       addLog(`全力攻撃により、筋力点を1点消費。(残り: ${character.value.subStatCurrent})`, 'info');
+    }
+    if (isDexterityAttack) {
+      character.value.subStatCurrent--;
+      addLog(`全力射撃により、器用点を1点消費。(残り: ${character.value.subStatCurrent})`, 'info');
     }
 
     if (hit) {
