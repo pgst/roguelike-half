@@ -78,6 +78,8 @@ export function useDungeon() {
     combatState.buffs.damageIgnoreCount = 0;
     combatState.isEscaping = false;
     combatState.combatType = 'melee';
+    combatState.hasCoveredInRound = false;
+    combatState.pendingCover = null;
     combatState.hasReactionChecked = false;
     combatState.isBribeAllowed = false;
     combatState.reactionResult = null;

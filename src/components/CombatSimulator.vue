@@ -28,7 +28,9 @@ const {
   resolveLoot,
   confirmCombatResult,
   confirmReactionResult,
-  resolveWeaponSwitch
+  resolveWeaponSwitch,
+  executeCover,
+  cancelCover
 } = useCombat();
 
 const activeAttacks = computed(() => (combatState as any).activeAttacks || []);
@@ -135,41 +137,72 @@ function closeRangedRound() {
     <!-- DEFENSE ASSIGNMENT PANEL (High Priority overlay/warning) -->
     <div v-if="activeAttacks.length > 0 && !combatState.isOver" class="defense-overlay">
       <div class="defense-box">
-        <h3 class="alert-title">🚨 クリーチャーの猛攻！ 防御しなさい！</h3>
-        <p class="alert-desc">未適用の攻撃回数: <b>{{ activeAttacks.length }}</b> 回。味方を選択してダイスを振り、防御ロールを解決してください。</p>
-        
-        <div class="active-attack-row">
-          <div class="attacker-desc">
-            👾 <b>{{ activeAttacks[0].source.name }}</b> の攻撃 
-            (防御目標値: <b>{{ activeAttacks[0].source.level }}</b>)
-          </div>
+        <template v-if="combatState.pendingCover">
+          <h3 class="alert-title">🛡️ 従者をかばう！</h3>
+          <p class="alert-desc">
+            従者 <b>{{ combatState.pendingCover.followerName }}</b> が被弾しました！主人公は「かばう」を使用できます。
+          </p>
 
-          <div class="assign-buttons">
-            <!-- Hero Defends -->
-            <div class="assign-group">
-              <button @click="resolveDefense(activeAttacks[0].id, 'hero')" class="btn-ink btn-def">
-                🛡️ 主人公が防御する (技量: {{ character.skillCurrent }})
+          <div class="active-attack-row" style="flex-direction: column; align-items: stretch; gap: 15px;">
+            <div class="attacker-desc" style="text-align: center; border-bottom: 1px dashed rgba(92,75,61,0.2); padding-bottom: 10px; margin-bottom: 5px;">
+              👾 <b>{{ combatState.pendingCover.enemyName }}</b> の攻撃 (防御目標値: <b>{{ combatState.pendingCover.enemyLevel }}</b>)
+            </div>
+            
+            <p style="font-size: 0.85rem; color: var(--ink-light); text-align: center; margin: 0; font-style: italic;">
+              ※「かばう」と、主人公が代わりに防御判定を行います。成否に関わらず筋力点を1点消費します。(残り筋力点: <b>{{ character.subStatCurrent }}</b>)
+            </p>
+
+            <div class="assign-buttons" style="display: flex; flex-direction: column; width: 100%; gap: 10px;">
+              <button @click="executeCover(false)" class="btn-ink btn-large btn-def" style="width: 100%; justify-content: center;">
+                🛡️ 技量点 (値: {{ character.skillCurrent }}) を基準にしてかばう
               </button>
-              <button 
-                v-if="character.subStatType === 'strength' && character.subStatCurrent > 0"
-                @click="resolveDefense(activeAttacks[0].id, 'hero', true)" 
-                class="btn-ink btn-def btn-strength"
-              >
-                🏋️ 全力防御 (筋力1消費)
+              <button v-if="character.subStatCurrent >= 1" @click="executeCover(true)" class="btn-ink btn-large btn-def btn-strength" style="width: 100%; justify-content: center;">
+                🏋️ 筋力点 (値: {{ character.subStatCurrent }}) を基準にしてかばう
+              </button>
+              <button @click="cancelCover" class="btn-ink btn-large btn-secondary" style="width: 100%; justify-content: center; background: rgba(0,0,0,0.05);">
+                😢 かばうのを見送る (従者は死亡)
               </button>
             </div>
-
-            <!-- Followers Defend -->
-            <button 
-              v-for="fol in activeCombatFollowers" 
-              :key="fol.id"
-              @click="resolveDefense(activeAttacks[0].id, fol.id)" 
-              class="btn-ink btn-def btn-secondary"
-            >
-              👤 従者 [{{ fol.name }}] が受ける (技量: {{ fol.skill }})
-            </button>
           </div>
-        </div>
+        </template>
+
+        <template v-else>
+          <h3 class="alert-title">🚨 クリーチャーの猛攻！ 防御しなさい！</h3>
+          <p class="alert-desc">未適用の攻撃回数: <b>{{ activeAttacks.length }}</b> 回。味方を選択してダイスを振り、防御ロールを解決してください。</p>
+          
+          <div class="active-attack-row">
+            <div class="attacker-desc">
+              👾 <b>{{ activeAttacks[0].source.name }}</b> の攻撃 
+              (防御目標値: <b>{{ activeAttacks[0].source.level }}</b>)
+            </div>
+
+            <div class="assign-buttons">
+              <!-- Hero Defends -->
+              <div class="assign-group">
+                <button @click="resolveDefense(activeAttacks[0].id, 'hero')" class="btn-ink btn-def">
+                  🛡️ 主人公が防御する (技量: {{ character.skillCurrent }})
+                </button>
+                <button 
+                  v-if="character.subStatType === 'strength' && character.subStatCurrent > 0"
+                  @click="resolveDefense(activeAttacks[0].id, 'hero', true)" 
+                  class="btn-ink btn-def btn-strength"
+                >
+                  🏋️ 全力防御 (筋力1消費)
+                </button>
+              </div>
+
+              <!-- Followers Defend -->
+              <button 
+                v-for="fol in activeCombatFollowers" 
+                :key="fol.id"
+                @click="resolveDefense(activeAttacks[0].id, fol.id)" 
+                class="btn-ink btn-def btn-secondary"
+              >
+                👤 従者 [{{ fol.name }}] が受ける (技量: {{ fol.skill }})
+              </button>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 

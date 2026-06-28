@@ -407,6 +407,7 @@ export function useCombat() {
   // Enemy Attacks Turn - distributes and asks player to assign
   async function executeEnemyAttacks() {
     combatState.round++;
+    combatState.hasCoveredInRound = false;
     addLog(`--- ラウンド ${combatState.round}: クリーチャーの反撃フェーズ ---`, 'info');
 
     // Gather all enemy attacks
@@ -498,11 +499,28 @@ export function useCombat() {
             return;
           }
         } else {
-          // Followers have only 1 HP and immediately die (Rule 33)
-          const fIdx = followers.value.findIndex(fol => fol.id === defenderId);
-          if (fIdx !== -1) {
-            addLog(`💀 従者 ${followers.value[fIdx].name} は致命傷を受け、息絶えました...`, 'error');
-            followers.value.splice(fIdx, 1);
+          // Check if Strength cover skill can be triggered (Rule 22)
+          const canCover = character.value.subStatType === 'strength' &&
+                            character.value.subStatCurrent >= 1 &&
+                            !combatState.hasCoveredInRound;
+
+          if (canCover) {
+            combatState.pendingCover = {
+              attackId,
+              followerId: defenderId,
+              followerName: defName,
+              enemyName: enemy.name,
+              enemyLevel: enemy.level
+            };
+            addLog(`🛡️ 従者 ${defName} が被弾！ 主人公は「かばう」を使用できます。`, 'warning');
+            return;
+          } else {
+            // Followers have only 1 HP and immediately die (Rule 33)
+            const fIdx = followers.value.findIndex(fol => fol.id === defenderId);
+            if (fIdx !== -1) {
+              addLog(`💀 従者 ${followers.value[fIdx].name} は致命傷を受け、息絶えました...`, 'error');
+              followers.value.splice(fIdx, 1);
+            }
           }
         }
       }
@@ -1123,6 +1141,80 @@ export function useCombat() {
     }
   }
 
+  async function executeCover(useStrength: boolean) {
+    const pending = combatState.pendingCover;
+    if (!pending) return;
+
+    const { attackId, followerId, followerName, enemyName, enemyLevel } = pending;
+    const queue = (combatState as any).activeAttacks || [];
+    const idx = queue.findIndex((a: any) => a.id === attackId);
+
+    // Roll defense for hero
+    addLog(`🛡️ 主人公が身を挺して 従者 ${followerName} をかばいます！ (目標値: ${enemyLevel})`, 'combat');
+    const roll = await rollD6(true);
+    let modifier = 0;
+    
+    if (character.value.equippedArmor) modifier += character.value.equippedArmor.modDef;
+    if (character.value.equippedShield) modifier += 1;
+    modifier += combatState.buffs.defenseBonus;
+    if (!carriesLantern.value) {
+      modifier -= 2;
+      addLog(`暗闇のため主人公の防御判定に -2 のペナルティ！`, 'error');
+    }
+
+    const baseSkill = useStrength ? character.value.subStatCurrent : character.value.skillCurrent;
+    const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + baseSkill + modifier;
+    const coverSuccess = roll === 6 || (roll !== 1 && total >= enemyLevel);
+
+    // Consume 1 Strength point
+    character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
+    combatState.hasCoveredInRound = true;
+    addLog(`かばうにより筋力点を1点消費。(残り: ${character.value.subStatCurrent})`, 'info');
+
+    if (coverSuccess) {
+      addLog(`🛡️ かばう成功！ 主人公が攻撃を防ぎきり、従者 ${followerName} は無傷です。(ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${enemyLevel})`, 'success');
+    } else {
+      addLog(`💥 かばう失敗！ 主人公は攻撃を防げませんでした。(ロール計: ${roll === 1 ? 'ファンブル' : total} < ${enemyLevel})`, 'error');
+      // Follower dies
+      const fIdx = followers.value.findIndex(fol => fol.id === followerId);
+      if (fIdx !== -1) {
+        addLog(`💀 従者 ${followers.value[fIdx].name} は致命傷を受け、息絶えました...`, 'error');
+        followers.value.splice(fIdx, 1);
+      }
+    }
+
+    // Clear pending state and remove attack from queue
+    combatState.pendingCover = null;
+    if (idx !== -1) {
+      queue.splice(idx, 1);
+      (combatState as any).activeAttacks = queue;
+    }
+  }
+
+  function cancelCover() {
+    const pending = combatState.pendingCover;
+    if (!pending) return;
+
+    const { attackId, followerId, followerName } = pending;
+    const queue = (combatState as any).activeAttacks || [];
+    const idx = queue.findIndex((a: any) => a.id === attackId);
+
+    addLog(`主人公はかばうのを見送りました。`, 'info');
+    // Follower dies
+    const fIdx = followers.value.findIndex(fol => fol.id === followerId);
+    if (fIdx !== -1) {
+      addLog(`💀 従者 ${followers.value[fIdx].name} は致命傷を受け、息絶えました...`, 'error');
+      followers.value.splice(fIdx, 1);
+    }
+
+    // Clear pending state and remove attack from queue
+    combatState.pendingCover = null;
+    if (idx !== -1) {
+      queue.splice(idx, 1);
+      (combatState as any).activeAttacks = queue;
+    }
+  }
+
   return {
     rollReactionCheck,
     payBribe,
@@ -1137,5 +1229,7 @@ export function useCombat() {
     confirmCombatResult,
     confirmReactionResult,
     resolveWeaponSwitch,
+    executeCover,
+    cancelCover,
   };
 }

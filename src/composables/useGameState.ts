@@ -116,6 +116,14 @@ const combatState = reactive({
   enemies: [] as Enemy[],
   round: 0,
   log: [] as string[],
+  hasCoveredInRound: false,
+  pendingCover: null as {
+    attackId: string;
+    followerId: string;
+    followerName: string;
+    enemyName: string;
+    enemyLevel: number;
+  } | null,
   hasRangedFired: false,
   playerHasFiredRanged: false,
   archerHasFiredRanged: false,

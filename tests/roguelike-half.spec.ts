@@ -140,6 +140,8 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
 
     // 5. Combat Simulator Screen
     if (await page.locator('.combat-card').isVisible()) {
+      const coverBtn = page.locator('button:has-text("を基準にしてかばう")');
+      const cancelCoverBtn = page.locator('button:has-text("かばうのを見送る")');
       const defendBtn = page.locator('button:has-text("主人公が防御する")');
       const lootRollBtn = page.locator('button:has-text("宝箱を開ける (ダイスを振る)")');
       const confirmCombatBtn = page.locator('button:has-text("結果を承認")');
@@ -150,7 +152,11 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       const switchWeaponBtn = page.locator('button:has-text("武器を持ち替える")');
       const attackBtn = page.locator('button:has-text("通常攻撃")');
 
-      if (await defendBtn.isVisible()) {
+      if (await coverBtn.first().isVisible()) {
+        if (await safeClick(coverBtn.first(), 'Perform cover action')) actionCount++;
+      } else if (await cancelCoverBtn.isVisible()) {
+        if (await safeClick(cancelCoverBtn, 'Decline cover action')) actionCount++;
+      } else if (await defendBtn.isVisible()) {
         let defenseCount = 0;
         // Resolve all pending defense rolls in one step iteration loop to prevent running out of maxSteps
         while (await defendBtn.isVisible() && defenseCount < 10) {
