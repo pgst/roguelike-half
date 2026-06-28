@@ -81,9 +81,17 @@ const maxBackpackSlots = computed(() => {
       <div class="supply-item">
         <span>🪙 <b>金貨:</b> {{ character.gold }} 枚</span>
       </div>
-      <div class="supply-item">
+      <div class="supply-item" style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
         <span>🍞 <b>食料:</b> {{ character.food }} 食分</span>
-        <button @click="useFood" class="btn-ink btn-mini" :disabled="character.food <= 0">食べる (+2回復)</button>
+        <button @click="useFood(false)" class="btn-ink btn-mini" :disabled="character.food <= 0">食べる (+2回復)</button>
+        <button 
+          v-if="character.subStatType === 'luck' && character.miracles.includes('聖餐') && character.subStatCurrent >= 1"
+          @click="useFood(true)" 
+          class="btn-ink btn-mini btn-strength" 
+          :disabled="character.food <= 0"
+        >
+          🕊️ 聖餐 (+3回復, 幸運1)
+        </button>
       </div>
       <div class="supply-item alert-supply">
         <span>💡 <b>明かり:</b> {{ carriesLantern ? '🕯️ 点灯中' : '❌ 暗闇 (判定-2)' }}</span>

@@ -124,6 +124,12 @@ const combatState = reactive({
     enemyName: string;
     enemyLevel: number;
   } | null,
+  pendingPerception: null as {
+    rollValue: number;
+    event: any;
+    hasScout: boolean;
+    hasHero: boolean;
+  } | null,
   hasRangedFired: false,
   playerHasFiredRanged: false,
   archerHasFiredRanged: false,
@@ -611,7 +617,7 @@ function sellItem(itemId: string) {
 }
 
 // Consumption functions
-function useFood() {
+function useFood(useHolyFeast = false) {
   if (character.value.food <= 0) {
     addLog('食料がありません！', 'error');
     return;
@@ -627,8 +633,13 @@ function useFood() {
 
   character.value.food--;
   let heal = 2;
-  // Check Holy Feast (聖餐) miracle - increase food healing by 1
-  // We can apply it if player manually used a spell/miracle slot, or check if player has miracle active
+  
+  if (useHolyFeast) {
+    character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
+    heal = 3;
+    addLog('🕊️ 奇跡【聖餐】を発動！ 幸運点1を消費し、食料の回復量が3になりました。', 'success');
+  }
+
   character.value.lifeCurrent = Math.min(character.value.lifeMax, character.value.lifeCurrent + heal);
   addLog(`食料を食べました。生命力が${heal}回復。 (残り食料: ${character.value.food}個)`, 'success');
 }

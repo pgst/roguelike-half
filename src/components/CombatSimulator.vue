@@ -30,7 +30,8 @@ const {
   confirmReactionResult,
   resolveWeaponSwitch,
   executeCover,
-  cancelCover
+  cancelCover,
+  applyFriendshipReaction
 } = useCombat();
 
 const activeAttacks = computed(() => (combatState as any).activeAttacks || []);
@@ -293,15 +294,46 @@ function closeRangedRound() {
           <div style="font-size: 1rem; margin-bottom: 15px; color: var(--ink-dark);">
             判定ダイスの出目: <span style="font-weight: 900; font-size: 1.4rem; color: #8c1c1c;">🎲 {{ combatState.reactionResult.roll }}</span>
           </div>
+
+          <!-- Friendship (友情) Adjust Buttons -->
+          <div 
+            v-if="character.subStatType === 'magic' && character.spells.includes('友情') && character.subStatCurrent >= 1" 
+            class="friendship-adjust-group" 
+            style="margin-bottom: 15px; border-bottom: 1px dashed rgba(92,75,61,0.2); padding-bottom: 15px;"
+          >
+            <p style="font-size: 0.85rem; color: var(--ink-light); margin: 0 0 10px 0; font-style: italic;">
+              🔮 魔法【友情】（魔術点1消費）で反応出目を調整できます：
+            </p>
+            <div style="display: flex; gap: 8px;">
+              <button @click="applyFriendshipReaction(1)" class="btn-ink btn-mini btn-spell" style="flex: 1;" :disabled="combatState.reactionResult.roll >= 6">
+                出目+1 (上限6)
+              </button>
+              <button @click="applyFriendshipReaction(-1)" class="btn-ink btn-mini btn-spell" style="flex: 1;" :disabled="combatState.reactionResult.roll <= 1">
+                出目-1 (下限1)
+              </button>
+            </div>
+          </div>
+
           <p style="font-size: 1rem; line-height: 1.6; color: #8c1c1c; font-weight: bold; background: rgba(0,0,0,0.03); padding: 12px; border-radius: 4px; border: 1px dashed #c2b09a; margin-bottom: 20px; text-align: left;">
             {{ combatState.reactionResult.text }}
           </p>
           
-          <div v-if="combatState.reactionResult.actionType === 'bribe'" class="bribe-choice-group" style="display: flex; gap: 10px;">
-            <button @click="payBribe" class="btn-ink btn-large" style="flex: 1;" :disabled="character.gold < 5">
-              🪙 ワイロを支払う (金貨5枚{{ character.gold < 5 ? '不足' : '' }})
-            </button>
-            <button @click="refuseBribeAndFight" class="btn-ink btn-large btn-danger-ink" style="flex: 1; background: #8c1c1c; color: white; border-color: #8c1c1c;">
+          <div v-if="combatState.reactionResult.actionType === 'bribe'" class="bribe-choice-group" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+            <div style="display: flex; gap: 10px; width: 100%;">
+              <button @click="payBribe(false)" class="btn-ink btn-large" style="flex: 1;" :disabled="character.gold < 5">
+                🪙 ワイロを支払う (金貨5枚)
+              </button>
+              <button 
+                v-if="character.subStatType === 'magic' && character.spells.includes('友情') && character.subStatCurrent >= 1"
+                @click="payBribe(true)" 
+                class="btn-ink btn-large btn-spell" 
+                style="flex: 1;" 
+                :disabled="character.gold < 1"
+              >
+                🔮 友情で支払う (金貨1枚, 魔術1)
+              </button>
+            </div>
+            <button @click="refuseBribeAndFight" class="btn-ink btn-large btn-danger-ink" style="width: 100%; background: #8c1c1c; color: white; border-color: #8c1c1c;">
               ⚔️ 拒否して戦闘する (敵先制)
             </button>
           </div>

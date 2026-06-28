@@ -19,7 +19,13 @@ const {
   clearDiceTray
 } = useGameState();
 
-const { exploreNextRoom, resolveTrapCheck } = useDungeon();
+const { 
+  exploreNextRoom, 
+  resolveTrapCheck, 
+  confirmPerceptionSkip, 
+  executePerceptionScout, 
+  executePerceptionHero 
+} = useDungeon();
 const { resolveLoot } = useCombat();
 
 const showMerchant = ref(false);
@@ -441,6 +447,41 @@ function startGoblinFight() {
           <button @click="confirmEventResolution" class="btn-ink">次の小部屋へ進む</button>
         </div>
       </div>
+      </div>
+    </div>
+
+    <!-- Perception Choice Panel -->
+    <div v-else-if="combatState.pendingPerception" class="exploration-deck paper-sheet" style="border: 2px dashed var(--ink-dark); padding: 20px; background: rgba(92, 75, 61, 0.05); border-radius: 6px; text-align: center; margin-top: 15px;">
+      <div class="adventure-text" style="margin-bottom: 15px;">
+        <h3 style="font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0 0 10px 0;">🧭 危険を察知しました！</h3>
+        <p style="font-size: 0.95rem; margin: 0;">
+          発見した小部屋: <b>{{ combatState.pendingPerception.event.title }}</b> (d66出目: {{ combatState.pendingPerception.rollValue }})
+        </p>
+        <p style="font-size: 0.85rem; color: var(--ink-light); margin-top: 5px; font-style: italic;">
+          ※「察知」を試みて成功（目標値4）すれば、この部屋を避けてd66を振り直すことができます。
+        </p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+        <button 
+          v-if="combatState.pendingPerception.hasScout"
+          @click="executePerceptionScout" 
+          class="btn-ink btn-large btn-spell"
+          style="justify-content: center;"
+        >
+          🧭 従者の斥候に【察知】を依頼する (器用点消費なし)
+        </button>
+        <button 
+          v-if="combatState.pendingPerception.hasHero && character.subStatCurrent >= 1"
+          @click="executePerceptionHero" 
+          class="btn-ink btn-large btn-strength"
+          style="justify-content: center;"
+        >
+          🧭 主人公が【察知】を行う (器用点1消費, 残り: {{ character.subStatCurrent }})
+        </button>
+        <button @click="confirmPerceptionSkip" class="btn-ink btn-large btn-primary-ink" style="background: var(--ink-dark); color: white; justify-content: center;">
+          🚪 察知せずに部屋に入る
+        </button>
       </div>
     </div>
 

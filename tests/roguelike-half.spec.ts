@@ -114,6 +114,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       const npcMercenaryBtn = page.locator('button:has-text("無視して進む")');
       const npcPriestBtn = page.locator('button:has-text("傷の癒やしを乞う")');
       const leaveMerchantBtn = page.locator('button:has-text("部屋を立ち去る"), button:has-text("取引を終えて部屋を進む")');
+      const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
       const exploreBtn = page.locator('button:has-text("d66を振って次の部屋を探索する")');
 
       if (await proceedBtn.isVisible()) {
@@ -132,6 +133,8 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
         if (await safeClick(npcMercenaryBtn.first(), 'Ignore NPC (mercenary/captive)')) actionCount++;
       } else if (await leaveMerchantBtn.first().isVisible()) {
         if (await safeClick(leaveMerchantBtn.first(), 'Leave merchant/market')) actionCount++;
+      } else if (await skipPerceptionBtn.isVisible()) {
+        if (await safeClick(skipPerceptionBtn, 'Skip perception check and enter room')) actionCount++;
       } else if (await exploreBtn.isVisible()) {
         if (await safeClick(exploreBtn, 'Roll d66 to explore next room')) actionCount++;
       }
