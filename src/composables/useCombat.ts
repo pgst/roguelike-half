@@ -1094,6 +1094,16 @@ export function useCombat() {
     addLog('主人公は弓矢から接近戦用武器への持ち替えに1ラウンドを費やしました。', 'info');
     combatState.playerHasFiredRanged = false; // switch completed
 
+    // Find the first melee weapon in inventory and equip it
+    const meleeWeapon = character.value.weapons.find(w => w.type !== 'ranged');
+    if (meleeWeapon) {
+      character.value.equippedWeapon = meleeWeapon;
+      addLog(`⚔️ 武器を【${meleeWeapon.name}】に持ち替えました。`, 'success');
+    } else {
+      character.value.equippedWeapon = null;
+      addLog('⚔️ 接近戦用の武器が他にないため、素手になりました。', 'warning');
+    }
+
     // Archer also skips if they shot in Round 0
     await executeFollowerAttacks();
 

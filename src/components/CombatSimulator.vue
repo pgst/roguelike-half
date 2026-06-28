@@ -51,6 +51,20 @@ const hasWeaponEquipped = computed(() => {
 function closeRangedRound() {
   combatState.round = 1;
   addLog('🏹 遠距離戦闘フェーズ(第0ラウンド)を終了し、接近戦へ移行します。', 'info');
+
+  const hasSwordbearer = followers.value.some(f => f.type === 'swordbearer');
+  const freeSwitch = !combatState.playerHasFiredRanged || hasSwordbearer;
+
+  if (freeSwitch && character.value.equippedWeapon?.type === 'ranged') {
+    const meleeWeapon = character.value.weapons.find(w => w.type !== 'ranged');
+    if (meleeWeapon) {
+      character.value.equippedWeapon = meleeWeapon;
+      addLog(`⚔️ 瞬時に武器を【${meleeWeapon.name}】に持ち替えました！`, 'success');
+    } else {
+      character.value.equippedWeapon = null;
+      addLog('⚔️ 接近戦用の武器が他にないため、素手になりました。', 'warning');
+    }
+  }
 }
 </script>
 
