@@ -13,6 +13,8 @@ jobs:
       # 1. コードのチェックアウト
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       # 2. Node.js環境のセットアップ
       - name: Set up Node.js
