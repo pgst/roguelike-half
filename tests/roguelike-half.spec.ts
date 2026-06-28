@@ -82,7 +82,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
     // 3. Level Up / Town Market Screen
     if (await page.locator('.levelup-card').isVisible()) {
       // Spend starting exp for Life if possible
-      const lifeBtn = page.locator('.ledger-row:has-text("生命点") button');
+      const lifeBtn = page.locator('.ledger-row:has-text("生命点") button:has-text("+1上昇")');
       let clickedLife = false;
       
       // Keep clicking Life increase as long as it's active in this step
@@ -146,6 +146,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       const reactionConfirmBtn = page.locator('button:has-text("結果を承認して進む")');
       const reactionRollBtn = page.locator('button:has-text("反応チェックを行う")');
       const closeRangedBtn = page.locator('button:has-text("接近戦へ移行する")');
+      const switchWeaponBtn = page.locator('button:has-text("武器を持ち替える")');
       const attackBtn = page.locator('button:has-text("通常攻撃")');
 
       if (await defendBtn.isVisible()) {
@@ -156,6 +157,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
           if (!success) break;
           defenseCount++;
           actionCount++;
+          await page.waitForTimeout(50);
         }
       } else if (await lootRollBtn.isVisible()) {
         if (await safeClick(lootRollBtn, 'Roll combat victory loot')) actionCount++;
@@ -167,6 +169,8 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
         if (await safeClick(reactionRollBtn, 'Roll reaction check')) actionCount++;
       } else if (await closeRangedBtn.isVisible()) {
         if (await safeClick(closeRangedBtn, 'Transition to melee combat')) actionCount++;
+      } else if (await switchWeaponBtn.isVisible()) {
+        if (await safeClick(switchWeaponBtn, 'Perform weapon switching transition')) actionCount++;
       } else if (await attackBtn.first().isVisible()) {
         if (await safeClick(attackBtn.first(), 'Attack first enemy in close combat')) actionCount++;
       }
