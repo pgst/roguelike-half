@@ -221,7 +221,7 @@ const maxBackpackSlots = computed(() => {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-bottom: 20px;
 }
@@ -229,7 +229,7 @@ const maxBackpackSlots = computed(() => {
 .stat-card {
   border: 1px solid #c2b09a;
   background: rgba(255, 255, 255, 0.4);
-  padding: 8px;
+  padding: 6px;
   border-radius: 4px;
   display: flex;
   flex-direction: column;
@@ -254,19 +254,19 @@ const maxBackpackSlots = computed(() => {
 }
 
 .stat-icon {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   margin-bottom: 2px;
 }
 
 .stat-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #705844;
   font-family: 'Noto Serif JP', serif;
   font-weight: bold;
 }
 
 .stat-value {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: bold;
   color: var(--ink-dark);
 }
