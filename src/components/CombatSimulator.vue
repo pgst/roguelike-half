@@ -206,7 +206,7 @@ function closeRangedRound() {
           </p>
           
           <button @click="confirmCombatResult" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
-            🚪 結果を承認して次の部屋へ進む (Acknowledge & Proceed)
+            🚪 結果を承認して次の部屋へ進む
           </button>
         </div>
       </div>
@@ -217,7 +217,7 @@ function closeRangedRound() {
           敵の追撃を受け流し、無事安全な場所まで退却しました。
         </p>
         <button @click="confirmCombatResult" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
-          🚪 結果を承認して1つ前の部屋に戻る (Acknowledge & Retreat)
+          🚪 結果を承認して1つ前の部屋に戻る
         </button>
       </div>
 
@@ -227,7 +227,7 @@ function closeRangedRound() {
           {{ combatState.peacefulText || '敵と争うことなく、穏便に交渉（中立/歓待/ワイロ）するか、敵の撤退に成功しました。' }}
         </p>
         <button @click="confirmCombatResult" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
-          🚪 結果を承認して次の部屋へ進む (Acknowledge & Proceed)
+          🚪 結果を承認して次の部屋へ進む
         </button>
       </div>
     </div>
@@ -259,7 +259,7 @@ function closeRangedRound() {
             </button>
           </div>
           <button v-else @click="confirmReactionResult" class="btn-ink btn-large" style="width: 100%;">
-            結果を承認して進む (Proceed)
+            結果を承認して進む
           </button>
         </div>
 

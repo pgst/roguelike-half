@@ -304,7 +304,7 @@ function startGoblinFight() {
           {{ (activeEvent as any).resolutionText }}
         </p>
         <button @click="confirmEventResolution" class="btn-ink btn-large btn-primary-ink" style="margin-top: 15px; width: 100%;">
-          🚪 次の小部屋へ進む (Proceed to Next Room)
+          🚪 次の小部屋へ進む
         </button>
       </div>
 
