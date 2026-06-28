@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useGameState } from '../composables/useGameState';
 
 const { initNewCharacter, currentScreen } = useGameState();
@@ -7,8 +7,48 @@ const { initNewCharacter, currentScreen } = useGameState();
 const name = ref('');
 const subStat = ref<'magic' | 'luck' | 'strength' | 'dexterity'>('magic');
 
+const ALL_SPELLS = [
+  { name: '気絶', desc: '弱い敵を眠らせて無力化する。アンデッド等には無効。' },
+  { name: '炎球', desc: '敵全体への攻撃魔法。狭い場所ほど威力が上がる。' },
+  { name: '氷槍', desc: '敵1体に2点ダメージを与える強力な氷の槍。' },
+  { name: '速撃', desc: '先制呪文。反応確認後でもプレイヤーが先制攻撃できる。' },
+  { name: '武具創造', desc: '武器・防具を創造する（両手武器や盾など。冒険終了時消失）。' },
+  { name: '友情', desc: 'ワイロ金額を10分の1にするか、反応チェックの出目を±1する。' },
+];
+
+const ALL_MIRACLES = [
+  { name: '防衛', desc: '戦闘中、味方全体の防御ロールに+1の修正を与える。' },
+  { name: 'そらし', desc: '受けた飛び道具（矢や石）のダメージを無効化する。' },
+  { name: '聖洗脳', desc: '弱い敵が1体だけになった時、幸運判定で捕虜にする。' },
+  { name: '招天', desc: 'アンデッドのみに効く光の矢（弱敵は即死、強敵は1ダメージ）を2回放つ。' },
+  { name: '聖餐', desc: '食料で回復する生命力をさらに+1点増やす。' },
+  { name: '祝福', desc: '呪い・石化・麻痺の状態異常を1つ即座に解除する。' },
+];
+
+const selectedSpellOrMiracle = ref('気絶');
+
+// When subStat changes, update default selected spell/miracle
+watch(subStat, (newVal) => {
+  if (newVal === 'magic') {
+    selectedSpellOrMiracle.value = '気絶';
+  } else if (newVal === 'luck') {
+    selectedSpellOrMiracle.value = '防衛';
+  } else {
+    selectedSpellOrMiracle.value = '';
+  }
+});
+
+const availableItems = computed(() => {
+  if (subStat.value === 'magic') {
+    return ALL_SPELLS;
+  } else if (subStat.value === 'luck') {
+    return ALL_MIRACLES;
+  }
+  return [];
+});
+
 function handleCreate() {
-  initNewCharacter(name.value.trim(), subStat.value);
+  initNewCharacter(name.value.trim(), subStat.value, selectedSpellOrMiracle.value);
 }
 </script>
 
@@ -43,7 +83,7 @@ function handleCreate() {
           <div class="arch-header">🔮 魔術点 (Magic)</div>
           <div class="arch-desc">魔法を操る者。呪文を詠唱可能。</div>
           <div class="arch-gear">【初期装備】軽い武器、布鎧</div>
-          <div class="arch-skill">【初期技能】魔術【気絶】【炎球】</div>
+          <div class="arch-skill">【初期技能】魔術（任意の1種を修得）</div>
         </label>
 
         <!-- Luck Option -->
@@ -53,7 +93,7 @@ function handleCreate() {
           <div class="arch-header">🕊️ 幸運点 (Luck)</div>
           <div class="arch-desc">奇跡と言祝ぎを賜る者。危機をそらす。</div>
           <div class="arch-gear">【初期装備】片手武器、鎖鎧、木盾</div>
-          <div class="arch-skill">【初期技能】奇跡【防衛】【祝福】</div>
+          <div class="arch-skill">【初期技能】奇跡（任意の1種を修得）</div>
         </label>
 
         <!-- Strength Option -->
@@ -76,6 +116,18 @@ function handleCreate() {
           <div class="arch-skill">【初期技能】全力射撃、宝物獲得、察知</div>
         </label>
       </div>
+    </div>
+
+    <!-- 呪文・奇跡の選択UI -->
+    <div v-if="subStat === 'magic' || subStat === 'luck'" class="form-section spell-selection">
+      <label for="spell-select" class="label-style">
+        🔮 初期習得する{{ subStat === 'magic' ? '魔術' : '奇跡' }}を選択せよ（6種類のうち1つ）:
+      </label>
+      <select id="spell-select" v-model="selectedSpellOrMiracle" class="input-ink select-ink">
+        <option v-for="item in availableItems" :key="item.name" :value="item.name">
+          【{{ item.name }}】 - {{ item.desc }}
+        </option>
+      </select>
     </div>
 
     <div class="divider"></div>
@@ -161,6 +213,16 @@ function handleCreate() {
   outline: none;
   background: rgba(255, 255, 255, 0.7);
   box-shadow: 0 0 5px var(--ink-dark);
+}
+
+.select-ink {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233e2723' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  background-size: 15px;
+  padding-right: 40px;
+  cursor: pointer;
 }
 
 .archetype-grid {

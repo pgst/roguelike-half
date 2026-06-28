@@ -815,7 +815,7 @@ function refundExpForStat(stat: 'skill' | 'life' | 'sub' | 'follower'): boolean 
 }
 
 // Game lifecycle
-function initNewCharacter(name: string, subStat: Character['subStatType']) {
+function initNewCharacter(name: string, subStat: Character['subStatType'], selectedSpellOrMiracle?: string) {
   character.value = {
     name: name || '無名の冒険者',
     level: 10,
@@ -853,7 +853,7 @@ function initNewCharacter(name: string, subStat: Character['subStatType']) {
     character.value.armors.push({ ...DEFAULT_ARMORS.cloth });
     character.value.equippedWeapon = character.value.weapons[0];
     character.value.equippedArmor = character.value.armors[0];
-    character.value.spells = ['気絶']; // start with 1 spell (Rule 18 compliance: max = subStat / 2)
+    character.value.spells = [selectedSpellOrMiracle || '気絶']; // start with 1 spell (Rule 18 compliance: max = subStat / 2)
   } else if (subStat === 'luck') {
     character.value.weapons.push({ ...DEFAULT_WEAPONS.oneHanded });
     character.value.armors.push({ ...DEFAULT_ARMORS.chain });
@@ -861,7 +861,7 @@ function initNewCharacter(name: string, subStat: Character['subStatType']) {
     character.value.equippedWeapon = character.value.weapons[0];
     character.value.equippedArmor = character.value.armors[0];
     character.value.equippedShield = character.value.shields[0];
-    character.value.miracles = ['防衛']; // start with 1 miracle (Rule 20 compliance)
+    character.value.miracles = [selectedSpellOrMiracle || '防衛']; // start with 1 miracle (Rule 20 compliance)
   } else if (subStat === 'strength') {
     character.value.weapons.push({ ...DEFAULT_WEAPONS.twoHanded });
     character.value.armors.push({ ...DEFAULT_ARMORS.plate });

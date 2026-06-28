@@ -210,8 +210,8 @@ function handleRetry() {
     subStatCurrent: 2,
     followerMax: 7,
     followerCurrent: 7,
-    spells: subType === 'magic' ? ['気絶'] : [], // Rule 18 compliance (1 spell)
-    miracles: subType === 'luck' ? ['防衛'] : [], // Rule 20 compliance (1 miracle)
+    spells: subType === 'magic' ? (character.value.spells.length > 0 ? [character.value.spells[0]] : ['気絶']) : [], // Rule 18 compliance (1 spell)
+    miracles: subType === 'luck' ? (character.value.miracles.length > 0 ? [character.value.miracles[0]] : ['防衛']) : [], // Rule 20 compliance (1 miracle)
     weapons: [],
     armors: [],
     shields: [],
