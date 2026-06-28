@@ -81,6 +81,17 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
 
     // 3. Level Up / Town Market Screen
     if (await page.locator('.levelup-card').isVisible()) {
+      // Learn spells/miracles if available
+      const spellBtn = page.locator('.spell-learning-section button:not([disabled])');
+      let learnedSpell = false;
+      while (await spellBtn.first().isVisible() && await spellBtn.first().isEnabled()) {
+        const success = await safeClick(spellBtn.first(), 'Learn a spell/miracle', 150);
+        if (!success) break;
+        learnedSpell = true;
+        actionCount++;
+        await page.waitForTimeout(50);
+      }
+
       // Spend starting exp for Life if possible
       const lifeBtn = page.locator('.ledger-row:has-text("生命点") button:has-text("+1上昇")');
       let clickedLife = false;
@@ -94,8 +105,8 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
         await page.waitForTimeout(50);
       }
 
-      if (!clickedLife) {
-        // Start adventure if we cannot click life increase anymore (no exp left or max reached)
+      if (!clickedLife && !learnedSpell) {
+        // Start adventure if we cannot click life increase anymore (no exp left or max reached) and no spells were learned in this step
         const startBtn = page.locator('button:has-text("冒険を開始する")');
         if (await safeClick(startBtn, 'Start adventure button', 500)) {
           actionCount++;

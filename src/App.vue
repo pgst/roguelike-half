@@ -272,6 +272,16 @@ function handleRetry() {
 }
 
 function startAdventure() {
+  if (canLearnSpells.value) {
+    const isMagic = character.value.subStatType === 'magic';
+    const typeName = isMagic ? '魔術' : '奇跡';
+    const allowed = Math.floor(character.value.subStatMax / 2);
+    const currentCount = isMagic ? character.value.spells.length : character.value.miracles.length;
+    const remain = allowed - currentCount;
+    if (!confirm(`未習得の${typeName}スロットが ${remain} つ残っています。習得せずに冒険を開始しますか？`)) {
+      return;
+    }
+  }
   currentScreen.value = 'explore';
   addLog('🧭 さあ、暗い地下迷宮へと歩みを進めましょう！ 生きて宝を持ち帰るのだ。', 'success');
 }
@@ -413,34 +423,36 @@ function startAdventure() {
           </div>
 
           <!-- Spells / Miracles Learning Section (Rule 18 / 20) -->
-          <div v-if="canLearnSpells" class="spell-learning-section" style="margin-top: 25px; padding: 20px; background: rgba(75, 0, 130, 0.05); border: 2px dashed #4b0082; border-radius: 6px;">
-            <h3 style="margin-top: 0; font-family: 'Noto Serif JP', serif; color: var(--ink-dark); font-size: 1.1rem; border-bottom: 1px dashed #4b0082; padding-bottom: 5px;">
-              {{ character.subStatType === 'magic' ? '🔮 新たな魔術の習得' : '🕊️ 新たな奇跡の習得' }} 
-              (空きスロット: {{ Math.floor(character.subStatMax / 2) - (character.subStatType === 'magic' ? character.spells.length : character.miracles.length) }}つ)
-            </h3>
-            <p style="font-size: 0.85rem; color: #555; margin-bottom: 15px;">
-              副能力値の最大値が上昇したため、新たな魔法を修得できます。（最大習得数: 魔術点/幸運点の半分）
-            </p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <button 
-                v-for="spell in learnableSpells" 
-                :key="spell.name" 
-                @click="!spell.isLearned && learnSpell(spell.name)"
-                class="btn-ink btn-mini"
-                :disabled="spell.isLearned"
-                style="justify-content: flex-start; text-align: left; height: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; position: relative;"
-              >
-                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 5px;">
-                  <b style="font-size: 0.9rem;">{{ spell.name }}</b>
-                  <span v-if="spell.isLearned" style="font-size: 0.7rem; background: #e8e0d4; padding: 1px 5px; border-radius: 3px; font-weight: bold; color: var(--ink-dark);">習得済み</span>
-                </div>
-                <span style="font-size: 0.7rem; font-weight: normal; color: #555;">{{ spell.desc }}</span>
-              </button>
+          <div v-if="character.subStatType === 'magic' || character.subStatType === 'luck'" class="spell-learning-section" style="margin-top: 25px; padding: 20px; background: rgba(75, 0, 130, 0.03); border: 1px dashed #4b0082; border-radius: 6px;">
+            <!-- 1. Active learning interface when there are empty slots -->
+            <div v-if="canLearnSpells">
+              <h3 style="margin-top: 0; font-family: 'Noto Serif JP', serif; color: var(--ink-dark); font-size: 1.1rem; border-bottom: 1px dashed #4b0082; padding-bottom: 5px;">
+                {{ character.subStatType === 'magic' ? '🔮 新たな魔術の習得' : '🕊️ 新たな奇跡の習得' }} 
+                (空きスロット: {{ Math.floor(character.subStatMax / 2) - (character.subStatType === 'magic' ? character.spells.length : character.miracles.length) }}つ)
+              </h3>
+              <p style="font-size: 0.85rem; color: #555; margin-bottom: 15px;">
+                初期習得、または副能力値の最大値が上昇したため、新たな魔法を習得できます。（最大習得数: 魔術点/幸運点の半分）
+              </p>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                <button 
+                  v-for="spell in learnableSpells" 
+                  :key="spell.name" 
+                  @click="!spell.isLearned && learnSpell(spell.name)"
+                  class="btn-ink btn-mini"
+                  :disabled="spell.isLearned"
+                  style="justify-content: flex-start; text-align: left; height: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; position: relative;"
+                >
+                  <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 5px;">
+                    <b style="font-size: 0.9rem;">{{ spell.name }}</b>
+                    <span v-if="spell.isLearned" style="font-size: 0.7rem; background: #e8e0d4; padding: 1px 5px; border-radius: 3px; font-weight: bold; color: var(--ink-dark);">習得済み</span>
+                  </div>
+                  <span style="font-size: 0.7rem; font-weight: normal; color: #555;">{{ spell.desc }}</span>
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div v-else-if="character.subStatType === 'magic' || character.subStatType === 'luck'" class="spell-learning-section" style="margin-top: 25px; padding: 20px; background: rgba(0, 0, 0, 0.02); border: 1px dashed #c2b09a; border-radius: 6px;">
-            <h3 style="margin-top: 0; font-family: 'Noto Serif JP', serif; color: var(--ink-dark); font-size: 1.1rem; border-bottom: 1px dashed #c2b09a; padding-bottom: 5px;">
+            <!-- 2. Spells list (always visible if character is mage/priest) -->
+            <h3 :style="{ marginTop: canLearnSpells ? '15px' : '0' }" style="font-family: 'Noto Serif JP', serif; color: var(--ink-dark); font-size: 1.1rem; border-bottom: 1px dashed #4b0082; padding-bottom: 5px; margin-bottom: 10px;">
               {{ character.subStatType === 'magic' ? '🔮 習得済みの魔術一覧' : '🕊️ 習得済みの奇跡一覧' }} 
               ({{ (character.subStatType === 'magic' ? character.spells.length : character.miracles.length) }} / {{ Math.floor(character.subStatMax / 2) }} スロット使用中)
             </h3>
@@ -452,6 +464,12 @@ function startAdventure() {
                 style="background: #e8e0d4; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.85rem;"
               >
                 {{ name }}
+              </span>
+              <span 
+                v-if="(character.subStatType === 'magic' ? character.spells.length : character.miracles.length) === 0"
+                style="font-size: 0.85rem; color: #888; font-style: italic;"
+              >
+                （未習得です。上のリストから選択して習得してください）
               </span>
             </div>
           </div>
