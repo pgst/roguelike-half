@@ -99,6 +99,8 @@ const checkpointLifeMax = ref(0);
 const checkpointSubStatMax = ref(0);
 const checkpointFollowerMax = ref(0);
 const checkpointExp = ref(0);
+const checkpointSpells = ref<string[]>([]);
+const checkpointMiracles = ref<string[]>([]);
 
 watch(currentScreen, (newScreen) => {
   if (newScreen === 'levelup') {
@@ -107,6 +109,8 @@ watch(currentScreen, (newScreen) => {
     checkpointSubStatMax.value = character.value.subStatMax;
     checkpointFollowerMax.value = character.value.followerMax;
     checkpointExp.value = character.value.exp;
+    checkpointSpells.value = [...(character.value.spells || [])];
+    checkpointMiracles.value = [...(character.value.miracles || [])];
   }
 });
 
@@ -899,6 +903,33 @@ function handleDeath() {
   currentScreen.value = 'gameover';
 }
 
+function forgetSpell(name: string) {
+  if (character.value.subStatType === 'magic') {
+    if (checkpointSpells.value.includes(name)) {
+      addLog(`既に以前から習得している魔術 【${name}】 は忘れられません。`, 'error');
+      return false;
+    }
+    const idx = character.value.spells.indexOf(name);
+    if (idx !== -1) {
+      character.value.spells.splice(idx, 1);
+      addLog(`🔮 魔術 【${name}】 を忘れました。`, 'info');
+      return true;
+    }
+  } else if (character.value.subStatType === 'luck') {
+    if (checkpointMiracles.value.includes(name)) {
+      addLog(`既に以前から習得している奇跡 【${name}】 は忘れられません。`, 'error');
+      return false;
+    }
+    const idx = character.value.miracles.indexOf(name);
+    if (idx !== -1) {
+      character.value.miracles.splice(idx, 1);
+      addLog(`🕊️ 奇跡 【${name}】 を忘れました。`, 'info');
+      return true;
+    }
+  }
+  return false;
+}
+
 function clearDiceTray() {
   diceTray.d1 = 0;
   diceTray.d2 = 0;
@@ -934,6 +965,8 @@ export function useGameState() {
     checkpointLifeMax,
     checkpointSubStatMax,
     checkpointFollowerMax,
+    checkpointSpells,
+    checkpointMiracles,
 
     // Utility functions
     addLog,
@@ -963,5 +996,6 @@ export function useGameState() {
     initNewCharacter,
     handleDeath,
     clearDiceTray,
+    forgetSpell,
   };
 }

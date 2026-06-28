@@ -23,11 +23,14 @@ const {
   checkpointLifeMax,
   checkpointSubStatMax,
   checkpointFollowerMax,
+  checkpointSpells,
+  checkpointMiracles,
   restoreStatsAfterAdventure,
   buyFollower,
   equipArmor,
   addLog,
-  clearLogs
+  clearLogs,
+  forgetSpell
 } = useGameState();
 
 const ALL_SPELLS = [
@@ -456,15 +459,23 @@ function startAdventure() {
               {{ character.subStatType === 'magic' ? '🔮 習得済みの魔術一覧' : '🕊️ 習得済みの奇跡一覧' }} 
               ({{ (character.subStatType === 'magic' ? character.spells.length : character.miracles.length) }} / {{ Math.floor(character.subStatMax / 2) }} スロット使用中)
             </h3>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
-              <span 
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; align-items: center;">
+              <div 
                 v-for="name in (character.subStatType === 'magic' ? character.spells : character.miracles)" 
                 :key="name" 
                 class="badge-stat"
-                style="background: #e8e0d4; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.85rem;"
+                style="background: #e8e0d4; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;"
               >
-                {{ name }}
-              </span>
+                <span>{{ name }}</span>
+                <button
+                  v-if="!(character.subStatType === 'magic' ? checkpointSpells.includes(name) : checkpointMiracles.includes(name))"
+                  @click="forgetSpell(name)"
+                  style="background: #8c1c1c; color: white; border: none; border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; padding: 0;"
+                  title="この習得を取り消す"
+                >
+                  ✕
+                </button>
+              </div>
               <span 
                 v-if="(character.subStatType === 'magic' ? character.spells.length : character.miracles.length) === 0"
                 style="font-size: 0.85rem; color: #888; font-style: italic;"
