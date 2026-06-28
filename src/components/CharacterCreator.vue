@@ -41,7 +41,7 @@ function handleCreate() {
         <label class="archetype-card" :class="{ active: subStat === 'magic' }">
           <input type="radio" v-model="subStat" value="magic" class="hidden-radio" />
           <div v-if="subStat === 'magic'" class="active-badge">✓ 選択中</div>
-          <div class="arch-header">🔮 魔術点 (Magic)</div>
+          <div class="arch-header">🔮 魔術点</div>
           <div class="arch-desc">魔法を操る者。呪文を詠唱可能。</div>
           <div class="arch-gear">【初期装備】軽い武器、布鎧</div>
           <div class="arch-skill">【初期技能】魔術（任意の1種を修得）</div>
@@ -51,7 +51,7 @@ function handleCreate() {
         <label class="archetype-card" :class="{ active: subStat === 'luck' }">
           <input type="radio" v-model="subStat" value="luck" class="hidden-radio" />
           <div v-if="subStat === 'luck'" class="active-badge">✓ 選択中</div>
-          <div class="arch-header">🕊️ 幸運点 (Luck)</div>
+          <div class="arch-header">🕊️ 幸運点</div>
           <div class="arch-desc">奇跡と言祝ぎを賜る者。危機をそらす。</div>
           <div class="arch-gear">【初期装備】片手武器、鎖鎧、木盾</div>
           <div class="arch-skill">【初期技能】奇跡（任意の1種を修得）</div>
@@ -61,7 +61,7 @@ function handleCreate() {
         <label class="archetype-card" :class="{ active: subStat === 'strength' }">
           <input type="radio" v-model="subStat" value="strength" class="hidden-radio" />
           <div v-if="subStat === 'strength'" class="active-badge">✓ 選択中</div>
-          <div class="arch-header">💪 筋力点 (Strength)</div>
+          <div class="arch-header">💪 筋力点</div>
           <div class="arch-desc">屈強な肉体を持つ戦士。重い鎧をまとう。</div>
           <div class="arch-gear">【初期装備】両手武器、板金鎧</div>
           <div class="arch-skill">【初期技能】全力攻撃、全力防御、かばう</div>
@@ -71,7 +71,7 @@ function handleCreate() {
         <label class="archetype-card" :class="{ active: subStat === 'dexterity' }">
           <input type="radio" v-model="subStat" value="dexterity" class="hidden-radio" />
           <div v-if="subStat === 'dexterity'" class="active-badge">✓ 選択中</div>
-          <div class="arch-header">🏹 器用点 (Dexterity)</div>
+          <div class="arch-header">🏹 器用点</div>
           <div class="arch-desc">俊敏なレンジャー。弓矢を射ち、罠を外す。</div>
           <div class="arch-gear">【初期装備】軽い武器、弓矢、革鎧</div>
           <div class="arch-skill">【初期技能】全力射撃、宝物獲得、察知</div>

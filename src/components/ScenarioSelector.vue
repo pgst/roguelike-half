@@ -33,7 +33,6 @@ function selectScenario(scenario: Scenario) {
       >
         <div class="scenario-header">
           <h2 class="scenario-title">{{ scenario.title }}</h2>
-          <span class="scenario-difficulty">{{ scenario.difficulty }}</span>
         </div>
         
         <p class="scenario-desc">{{ scenario.description }}</p>
@@ -120,11 +119,7 @@ function selectScenario(scenario: Scenario) {
   margin: 0;
 }
 
-.scenario-difficulty {
-  font-size: 0.9rem;
-  color: #8c1c1c;
-  font-weight: bold;
-}
+
 
 .scenario-desc {
   font-size: 0.95rem;
