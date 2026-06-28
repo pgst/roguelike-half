@@ -30,12 +30,13 @@ jobs:
 
       # 4. シンフリーサーバーへのSFTPデプロイ
       - name: Deploy via SFTP
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        uses: milanmk/actions-file-deployer@master
         with:
-          username: ${{ secrets.SFTP_USERNAME }}
-          server: ${{ secrets.SFTP_HOST }}
-          port: 10022 # シンフリーサーバー専用のSSHポート
-          ssh_private_key: ${{ secrets.SFTP_PRIVATE_KEY }}
-          local_path: './dist/*' # Vueのビルド成果物が入るディレクトリ
+          remote-protocol: "sftp"
+          remote-host: ${{ secrets.SFTP_HOST }}
+          remote-port: 10022 # シンフリーサーバー専用のSSHポート
+          remote-user: ${{ secrets.SFTP_USERNAME }}
+          ssh-private-key: ${{ secrets.SFTP_PRIVATE_KEY }}
+          local-path: './dist' # Vueのビルド成果物が入るディレクトリ
           # リモート（サーバー側）のパス。初期ドメインの場合は以下のような構成になります
-          remote_path: '/home/${{ secrets.SFTP_USERNAME }}/${{ secrets.SFTP_USERNAME }}.cloudfree.jp/public_html'
+          remote-path: '/home/${{ secrets.SFTP_USERNAME }}/${{ secrets.SFTP_USERNAME }}.cloudfree.jp/public_html'
