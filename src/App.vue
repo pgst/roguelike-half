@@ -185,6 +185,10 @@ function handleRetry() {
   const prevLevel = character.value.level;
   const subType = character.value.subStatType;
   
+  // Reset dungeon depth and followers on retry
+  dungeonDepth.value = 0;
+  followers.value = [];
+  
   // Rule 41: starting exp = previous level instead of 10
   const carryExp = prevLevel;
   // Starting gold = 10 + 50 per level above 10
