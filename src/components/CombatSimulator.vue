@@ -55,7 +55,7 @@ function closeRangedRound() {
 <template>
   <div class="combat-card paper-sheet">
     <div class="combat-header">
-      <h2>⚔️ 戦闘シミュレーター (Combat Simulator)</h2>
+      <h2>⚔️ 戦闘シミュレーター</h2>
       <div class="badge-round">
         {{ combatState.round === 0 ? '第 0 ラウンド (遠距離戦)' : `第 ${combatState.round} ラウンド (接近戦)` }}
       </div>
@@ -181,7 +181,7 @@ function closeRangedRound() {
         <span v-else class="clear-stamp warning">和解 CLEAR</span>
       </div>
       <h3 class="event-title resolved-title" style="border-bottom: 1px dashed rgba(92, 75, 61, 0.3); padding-bottom: 8px; margin-bottom: 15px; font-family: 'Noto Serif JP', serif; color: var(--ink-light); font-size: 1.1rem; opacity: 0.8;">
-        📜 戦闘の解決記録 (Combat Ledger)
+        📜 戦闘の解決記録
       </h3>
       
       <!-- Victory Screen -->

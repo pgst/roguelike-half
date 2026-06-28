@@ -50,9 +50,15 @@ const ALL_MIRACLES = [
 
 const learnableSpells = computed(() => {
   if (character.value.subStatType === 'magic') {
-    return ALL_SPELLS.filter(s => !character.value.spells.includes(s.name));
+    return ALL_SPELLS.map(s => ({
+      ...s,
+      isLearned: character.value.spells.includes(s.name)
+    }));
   } else if (character.value.subStatType === 'luck') {
-    return ALL_MIRACLES.filter(m => !character.value.miracles.includes(m.name));
+    return ALL_MIRACLES.map(m => ({
+      ...m,
+      isLearned: character.value.miracles.includes(m.name)
+    }));
   }
   return [];
 });
@@ -271,7 +277,7 @@ function startAdventure() {
   <div class="tabletop-container">
     <!-- TOP ROW: Calligraphic Logbook -->
     <div v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" class="narrative-logbook-container" style="margin-bottom: 5px;">
-      <div class="logbook-header">📜 冒険の足跡 (Log Ledger)</div>
+      <div class="logbook-header">📜 冒険の足跡</div>
       <div class="logbook-entries">
         <div 
           v-for="log in logs" 
@@ -301,7 +307,7 @@ function startAdventure() {
 
         <!-- LEVEL UP STAT ALLOCATOR LEDGER -->
         <div v-else-if="currentScreen === 'levelup'" class="levelup-card paper-sheet">
-          <h2 class="ledger-title">🖋️ 冒険者の強化記録紙 (Level Up Ledger)</h2>
+          <h2 class="ledger-title">🖋️ 冒険者の強化記録紙</h2>
           <p class="ledger-desc">迷宮に入る前に、経験点を消費して能力値の最大値を上昇させることができます。</p>
           
           <div class="exp-pool">
@@ -415,11 +421,15 @@ function startAdventure() {
               <button 
                 v-for="spell in learnableSpells" 
                 :key="spell.name" 
-                @click="learnSpell(spell.name)"
+                @click="!spell.isLearned && learnSpell(spell.name)"
                 class="btn-ink btn-mini"
-                style="justify-content: flex-start; text-align: left; height: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px;"
+                :disabled="spell.isLearned"
+                style="justify-content: flex-start; text-align: left; height: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; position: relative;"
               >
-                <b style="font-size: 0.9rem;">{{ spell.name }}</b>
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 5px;">
+                  <b style="font-size: 0.9rem;">{{ spell.name }}</b>
+                  <span v-if="spell.isLearned" style="font-size: 0.7rem; background: #e8e0d4; padding: 1px 5px; border-radius: 3px; font-weight: bold; color: var(--ink-dark);">習得済み</span>
+                </div>
                 <span style="font-size: 0.7rem; font-weight: normal; color: #555;">{{ spell.desc }}</span>
               </button>
             </div>
@@ -446,7 +456,7 @@ function startAdventure() {
           <div class="divider"></div>
           
           <div class="town-market">
-            <h3 class="ledger-title" style="font-size: 1.1rem; border-bottom: 1px dashed var(--ink-dark); margin-top: 10px;">🛒 街の市場 ＆ 従者スカウト (Town Market & Recruiter)</h3>
+            <h3 class="ledger-title" style="font-size: 1.1rem; border-bottom: 1px dashed var(--ink-dark); margin-top: 10px;">🛒 街の市場 ＆ 従者スカウト</h3>
             <p class="ledger-desc" style="font-size: 0.85rem; margin-bottom: 15px;">
               冒険へ旅立つ前に、初期の金貨を使って基礎的な装備の購入や従者を雇うことができます。
               <br/>

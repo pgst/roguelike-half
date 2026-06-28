@@ -34,7 +34,7 @@ const maxBackpackSlots = computed(() => {
 <template>
   <div class="adventure-sheet paper-sheet">
     <div class="sheet-header">
-      <h2>冒険記録紙 (Adventure Sheet)</h2>
+      <h2>冒険記録紙</h2>
       <p class="hero-name">冒険者: {{ character.name }} (Lv.{{ character.level }})</p>
     </div>
 

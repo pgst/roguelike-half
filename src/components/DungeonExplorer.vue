@@ -281,7 +281,7 @@ function startGoblinFight() {
 <template>
   <div class="explorer-card paper-sheet">
     <div class="explorer-header">
-      <h2>🏰 ダンジョン探索 (Explore Room)</h2>
+      <h2>🏰 ダンジョン探索</h2>
       <div class="badge-depth">{{ depthText }}</div>
     </div>
 
