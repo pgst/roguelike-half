@@ -578,7 +578,7 @@ export function useCombat() {
               enemyName: enemy.name,
               enemyLevel: enemy.level
             };
-            addLog(`🛡️ 従者 ${defName} が被弾！ 主人公は「かばう」を使用できます。`, 'warning');
+            addLog(`🛡️ 従者 ${defName} が被弾！ 主人公は「かばう」を使用できます。`, 'error');
             return;
           } else {
             // Followers have only 1 HP and immediately die (Rule 33)
@@ -1167,7 +1167,7 @@ export function useCombat() {
       addLog(`⚔️ 武器を【${meleeWeapon.name}】に持ち替えました。`, 'success');
     } else {
       character.value.equippedWeapon = null;
-      addLog('⚔️ 接近戦用の武器が他にないため、素手になりました。', 'warning');
+      addLog('⚔️ 接近戦用の武器が他にないため、素手になりました。', 'error');
     }
 
     // Archer also skips if they shot in Round 0
@@ -1221,7 +1221,7 @@ export function useCombat() {
     const pending = combatState.pendingCover;
     if (!pending) return;
 
-    const { attackId, followerId, followerName, enemyName, enemyLevel } = pending;
+    const { attackId, followerId, followerName, enemyLevel } = pending;
     const queue = (combatState as any).activeAttacks || [];
     const idx = queue.findIndex((a: any) => a.id === attackId);
 
@@ -1271,7 +1271,7 @@ export function useCombat() {
     const pending = combatState.pendingCover;
     if (!pending) return;
 
-    const { attackId, followerId, followerName } = pending;
+    const { attackId, followerId } = pending;
     const queue = (combatState as any).activeAttacks || [];
     const idx = queue.findIndex((a: any) => a.id === attackId);
 

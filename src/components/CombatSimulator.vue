@@ -63,7 +63,7 @@ function closeRangedRound() {
       addLog(`⚔️ 瞬時に武器を【${meleeWeapon.name}】に持ち替えました！`, 'success');
     } else {
       character.value.equippedWeapon = null;
-      addLog('⚔️ 接近戦用の武器が他にないため、素手になりました。', 'warning');
+      addLog('⚔️ 接近戦用の武器が他にないため、素手になりました。', 'error');
     }
   }
 }
@@ -349,7 +349,7 @@ function closeRangedRound() {
           </div>
           <div v-else class="reaction-bribe-group">
             <button @click="rollReactionCheck" class="btn-ink" :disabled="combatState.hasReactionChecked">🎲 反応チェックを行う</button>
-            <button @click="payBribe" class="btn-ink btn-secondary" :disabled="!combatState.isBribeAllowed || character.gold < 5">🪙 ワイロで済ませる (金貨5枚)</button>
+            <button @click="payBribe(false)" class="btn-ink btn-secondary" :disabled="!combatState.isBribeAllowed || character.gold < 5">🪙 ワイロで済ませる (金貨5枚)</button>
           </div>
 
           <div class="divider"></div>

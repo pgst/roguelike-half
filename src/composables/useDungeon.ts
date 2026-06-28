@@ -57,7 +57,7 @@ export function useDungeon() {
         hasScout,
         hasHero: hasDexPerception
       };
-      addLog(`🧭 部屋発見：危険を察知して回避（振り直し）を試みることができます。`, 'warning');
+      addLog(`🧭 部屋発見：危険を察知して回避（振り直し）を試みることができます。`, 'error');
     } else {
       // No perception options, proceed immediately to activate the room event
       activateRoomEvent(event);
