@@ -58,7 +58,7 @@ const maxBackpackSlots = computed(() => {
       <div class="stat-card substat-highlight">
         <span class="stat-icon" v-if="character.subStatType === 'magic'">🔮</span>
         <span class="stat-icon" v-else-if="character.subStatType === 'luck'">🕊️</span>
-        <span class="stat-icon" v-else-if="character.subStatType === 'strength'">🏋️</span>
+        <span class="stat-icon" v-else-if="character.subStatType === 'strength'">💪</span>
         <span class="stat-icon" v-else-if="character.subStatType === 'dexterity'">🏹</span>
         
         <span class="stat-label" style="text-transform: capitalize;">

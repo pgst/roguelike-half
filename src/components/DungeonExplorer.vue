@@ -328,7 +328,7 @@ function startGoblinFight() {
         <div v-if="activeEvent.type === 'trap'">
           <div v-if="activeEvent.trapStat && character.subStatType === activeEvent.trapStat && character.subStatCurrent > 0" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button @click="resolveTrapCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;">
-              🏋️ 副能力値【{{ activeEvent.trapStat === 'strength' ? '筋力点' : activeEvent.trapStat === 'dexterity' ? '器用点' : activeEvent.trapStat === 'magic' ? '魔術点' : activeEvent.trapStat === 'luck' ? '幸運点' : activeEvent.trapStat }}】で挑戦 (判定値: {{ character.subStatCurrent }} / 1点消費)
+              {{ activeEvent.trapStat === 'strength' ? '💪' : activeEvent.trapStat === 'dexterity' ? '🏹' : activeEvent.trapStat === 'magic' ? '🔮' : '🕊️' }} 副能力値【{{ activeEvent.trapStat === 'strength' ? '筋力点' : activeEvent.trapStat === 'dexterity' ? '器用点' : activeEvent.trapStat === 'magic' ? '魔術点' : activeEvent.trapStat === 'luck' ? '幸運点' : activeEvent.trapStat }}】で挑戦 (判定値: {{ character.subStatCurrent }} / 1点消費)
             </button>
             <button @click="resolveTrapCheck(false)" class="btn-ink" style="flex: 1; min-width: 200px; justify-content: center;">
               🎲 技量点（Skill）で挑戦 (判定値: {{ character.skillCurrent }} / 消費なし)

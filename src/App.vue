@@ -380,7 +380,13 @@ function startAdventure() {
 
             <!-- Sub-stat -->
             <div class="ledger-row">
-              <span class="row-label">🔮 <b>副能力値:</b></span>
+              <span class="row-label">
+                <span v-if="character.subStatType === 'magic'">🔮</span>
+                <span v-else-if="character.subStatType === 'luck'">🕊️</span>
+                <span v-else-if="character.subStatType === 'strength'">💪</span>
+                <span v-else-if="character.subStatType === 'dexterity'">🏹</span>
+                <b>副能力値:</b>
+              </span>
               <span class="row-val">{{ character.subStatMax }} / 6 (限界値)</span>
               <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
                 <button 

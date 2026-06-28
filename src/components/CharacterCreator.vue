@@ -61,7 +61,7 @@ function handleCreate() {
         <label class="archetype-card" :class="{ active: subStat === 'strength' }">
           <input type="radio" v-model="subStat" value="strength" class="hidden-radio" />
           <div v-if="subStat === 'strength'" class="active-badge">✓ 選択中</div>
-          <div class="arch-header">🏋️ 筋力点 (Strength)</div>
+          <div class="arch-header">💪 筋力点 (Strength)</div>
           <div class="arch-desc">屈強な肉体を持つ戦士。重い鎧をまとう。</div>
           <div class="arch-gear">【初期装備】両手武器、板金鎧</div>
           <div class="arch-skill">【初期技能】全力攻撃、全力防御、かばう</div>

@@ -123,7 +123,7 @@ function closeRangedRound() {
                 class="btn-ink btn-mini btn-strength"
                 :disabled="character.equippedWeapon?.type === 'ranged'"
               >
-                🏋️ 全力攻撃 (筋力1)
+                💪 全力攻撃 (筋力1)
               </button>
             </template>
             
@@ -172,7 +172,7 @@ function closeRangedRound() {
                 🛡️ 技量点 (値: {{ character.skillCurrent }}) を基準にしてかばう
               </button>
               <button v-if="character.subStatCurrent >= 1" @click="executeCover(true)" class="btn-ink btn-large btn-def btn-strength" style="width: 100%; justify-content: center;">
-                🏋️ 筋力点 (値: {{ character.subStatCurrent }}) を基準にしてかばう
+                💪 筋力点 (値: {{ character.subStatCurrent }}) を基準にしてかばう
               </button>
               <button @click="cancelCover" class="btn-ink btn-large btn-secondary" style="width: 100%; justify-content: center; background: rgba(0,0,0,0.05);">
                 😢 かばうのを見送る (従者は死亡)
@@ -202,7 +202,7 @@ function closeRangedRound() {
                   @click="resolveDefense(activeAttacks[0].id, 'hero', true)" 
                   class="btn-ink btn-def btn-strength"
                 >
-                  🏋️ 全力防御 (筋力1消費)
+                  💪 全力防御 (筋力1消費)
                 </button>
               </div>
 
