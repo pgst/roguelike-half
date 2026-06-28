@@ -107,7 +107,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
     // 4. Dungeon Explorer Screen
     if (await page.locator('.explorer-card').isVisible()) {
       const proceedBtn = page.locator('button:has-text("次の小部屋へ進む")');
-      const trapBtn = page.locator('button:has-text("判定ロールに挑戦する")');
+      const trapBtn = page.locator('button:has-text("判定ロールに挑戦する"), button:has-text("で挑戦")');
       const treasureBtn = page.locator('button:has-text("宝物を入手する")');
       const restHealBtn = page.locator('button:has-text("怪我を癒やす")');
       const fightBribeBtn = page.locator('button:has-text("交渉決裂！戦う！")');
@@ -119,8 +119,8 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
 
       if (await proceedBtn.isVisible()) {
         if (await safeClick(proceedBtn, 'Proceed to next room')) actionCount++;
-      } else if (await trapBtn.isVisible()) {
-        if (await safeClick(trapBtn, 'Attempt trap roll')) actionCount++;
+      } else if (await trapBtn.first().isVisible()) {
+        if (await safeClick(trapBtn.first(), 'Attempt trap roll')) actionCount++;
       } else if (await treasureBtn.isVisible()) {
         if (await safeClick(treasureBtn, 'Loot treasure chest')) actionCount++;
       } else if (await restHealBtn.isVisible()) {

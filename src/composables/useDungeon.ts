@@ -177,7 +177,7 @@ export function useDungeon() {
   }
 
   // Handle Trap Roll Resolution
-  async function resolveTrapCheck(): Promise<boolean> {
+  async function resolveTrapCheck(useSubStat = true): Promise<boolean> {
     if (!activeEvent.value || activeEvent.value.type !== 'trap') return false;
 
     const stat = activeEvent.value.trapStat || 'dexterity';
@@ -212,9 +212,9 @@ export function useDungeon() {
     if (stat === 'skill') {
       statVal = character.value.skillCurrent;
     } else {
-      // Check if sub-stat matches
+      // Check if sub-stat matches and player chose to use it
       const isSubMatch = character.value.subStatType === stat;
-      if (isSubMatch) {
+      if (isSubMatch && useSubStat) {
         if (character.value.subStatCurrent > 0) {
           statVal = character.value.subStatCurrent;
           isUsingSubStat = true;
@@ -225,7 +225,11 @@ export function useDungeon() {
         }
       } else {
         statVal = character.value.skillCurrent;
-        addLog(`技量点を使用して判定を行います。(現在値: ${statVal})`, 'info');
+        if (isSubMatch && !useSubStat) {
+          addLog(`副能力値【${stat.toUpperCase()}】を使用せず、技量点を使用して判定を行います。(現在値: ${statVal})`, 'info');
+        } else {
+          addLog(`技量点を使用して判定を行います。(現在値: ${statVal})`, 'info');
+        }
       }
     }
 
