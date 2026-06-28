@@ -40,5 +40,6 @@ jobs:
           remote-user: ${{ secrets.SFTP_USERNAME }}
           ssh-private-key: ${{ secrets.SFTP_PRIVATE_KEY }}
           local-path: './dist' # Vueのビルド成果物が入るディレクトリ
+          sync: 'full'
           # リモート（サーバー側）のパス。初期ドメインの場合は以下のような構成になります
           remote-path: '/home/${{ secrets.SFTP_USERNAME }}/${{ secrets.SFTP_USERNAME }}.cloudfree.jp/public_html'
