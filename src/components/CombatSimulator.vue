@@ -55,7 +55,7 @@ function closeRangedRound() {
 <template>
   <div class="combat-card paper-sheet">
     <div class="combat-header">
-      <h2>⚔️ 戦闘シミュレーター</h2>
+      <h2>⚔️ 戦闘シーン</h2>
       <div class="badge-round">
         {{ combatState.round === 0 ? '第 0 ラウンド (遠距離戦)' : `第 ${combatState.round} ラウンド (接近戦)` }}
       </div>
