@@ -42,7 +42,7 @@ const maxBackpackSlots = computed(() => {
     <div class="stats-grid">
       <!-- Skill (技量点) -->
       <div class="stat-card">
-        <span class="stat-icon">🎓</span>
+        <span class="stat-icon">🧍</span>
         <span class="stat-label">技量点</span>
         <span class="stat-value">{{ character.skillCurrent }} / {{ character.skillMax }}</span>
       </div>

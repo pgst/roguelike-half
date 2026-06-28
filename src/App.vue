@@ -334,7 +334,7 @@ function startAdventure() {
           <div class="ledger-rows">
             <!-- Skill -->
             <div class="ledger-row">
-              <span class="row-label">🎓 <b>技量点 (Skill):</b></span>
+              <span class="row-label">🧍 <b>技量点:</b></span>
               <span class="row-val">{{ character.skillMax }} / 2 (限界値)</span>
               <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
                 <button 
@@ -357,7 +357,7 @@ function startAdventure() {
 
             <!-- Life -->
             <div class="ledger-row">
-              <span class="row-label">❤️ <b>生命点 (Life):</b></span>
+              <span class="row-label">❤️ <b>生命点:</b></span>
               <span class="row-val">{{ character.lifeMax }} / 8 (限界値)</span>
               <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
                 <button 
@@ -380,7 +380,7 @@ function startAdventure() {
 
             <!-- Sub-stat -->
             <div class="ledger-row">
-              <span class="row-label">🔮 <b>副能力値 (Sub-stat):</b></span>
+              <span class="row-label">🔮 <b>副能力値:</b></span>
               <span class="row-val">{{ character.subStatMax }} / 6 (限界値)</span>
               <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
                 <button 
@@ -403,7 +403,7 @@ function startAdventure() {
 
             <!-- Follower slots -->
             <div class="ledger-row">
-              <span class="row-label">👥 <b>従者点 (Followers):</b></span>
+              <span class="row-label">👥 <b>従者点:</b></span>
               <span class="row-val">{{ character.followerMax }} / 9 (限界値)</span>
               <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
                 <button 
