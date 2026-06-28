@@ -19,6 +19,7 @@ const isBossRoom = computed(() => dungeonDepth.value >= totalRoomsToClear.value)
 const {
   rollReactionCheck,
   payBribe,
+  refuseBribeAndFight,
   escapeCombat,
   playerAttack,
   castSpell,
@@ -248,7 +249,16 @@ function closeRangedRound() {
           <p style="font-size: 1rem; line-height: 1.6; color: #8c1c1c; font-weight: bold; background: rgba(0,0,0,0.03); padding: 12px; border-radius: 4px; border: 1px dashed #c2b09a; margin-bottom: 20px; text-align: left;">
             {{ combatState.reactionResult.text }}
           </p>
-          <button @click="confirmReactionResult" class="btn-ink btn-large" style="width: 100%;">
+          
+          <div v-if="combatState.reactionResult.actionType === 'bribe'" class="bribe-choice-group" style="display: flex; gap: 10px;">
+            <button @click="payBribe" class="btn-ink btn-large" style="flex: 1;" :disabled="character.gold < 5">
+              🪙 ワイロを支払う (金貨5枚{{ character.gold < 5 ? '不足' : '' }})
+            </button>
+            <button @click="refuseBribeAndFight" class="btn-ink btn-large btn-danger-ink" style="flex: 1; background: #8c1c1c; color: white; border-color: #8c1c1c;">
+              ⚔️ 拒否して戦闘する (敵先制)
+            </button>
+          </div>
+          <button v-else @click="confirmReactionResult" class="btn-ink btn-large" style="width: 100%;">
             結果を承認して進む (Proceed)
           </button>
         </div>

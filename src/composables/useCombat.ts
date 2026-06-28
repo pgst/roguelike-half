@@ -106,7 +106,7 @@ export function useCombat() {
     };
   }
 
-  function confirmReactionResult() {
+  async function confirmReactionResult() {
     if (!combatState.reactionResult) return;
     const { actionType } = combatState.reactionResult;
 
@@ -115,7 +115,7 @@ export function useCombat() {
 
     // Apply outcome effects
     if (actionType === 'hostile' || actionType === 'outnumbered_hostile') {
-      combatState.round = 1;
+      await executeEnemyAttacks();
     } else if (actionType === 'flee' || actionType === 'outnumbered_flee') {
       endCombat(true);
     } else if (actionType === 'neutral') {
@@ -125,7 +125,6 @@ export function useCombat() {
       followers.value.forEach(f => f.lifeCurrent = 1);
       endCombatPeaceful('歓待：クリーチャーは食事と休息を提供してくれました！全員の生命力が1点回復し、敵は立ち去りました。');
     }
-    // For 'bribe', the user stays in round 0 and can choose to pay the bribe or proceed to melee close combat.
   }
 
   // Pay bribe to escape combat
@@ -140,8 +139,16 @@ export function useCombat() {
       return;
     }
     character.value.gold -= cost;
-    addLog(`金貨 ${cost} 枚のワイロを支払い、安全に離脱しました。`, 'success');
+    addLog(`金貨 ${cost} 枚 of ワイロを支払い、安全に離脱しました。`, 'success');
+    combatState.reactionResult = null;
     endCombatPeaceful('ワイロ：金貨5枚のワイロを支払い、穏便に道を通して（見逃して）もらいました。');
+  }
+
+  // Refuse bribe and fight (Enemy attacks first)
+  async function refuseBribeAndFight() {
+    combatState.reactionResult = null;
+    addLog('ワイロの支払いを拒否しました。敵は敵対的になり、襲いかかってきました！(敵先制攻撃)', 'error');
+    await executeEnemyAttacks();
   }
 
   // Escaping combat manually (Rule 42)
@@ -1119,6 +1126,7 @@ export function useCombat() {
   return {
     rollReactionCheck,
     payBribe,
+    refuseBribeAndFight,
     escapeCombat,
     playerAttack,
     castSpell,

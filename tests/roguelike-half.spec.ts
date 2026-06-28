@@ -144,6 +144,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       const lootRollBtn = page.locator('button:has-text("宝箱を開ける (ダイスを振る)")');
       const confirmCombatBtn = page.locator('button:has-text("結果を承認")');
       const reactionConfirmBtn = page.locator('button:has-text("結果を承認して進む")');
+      const refuseBribeBtn = page.locator('button:has-text("拒否して戦闘する")');
       const reactionRollBtn = page.locator('button:has-text("反応チェックを行う")');
       const closeRangedBtn = page.locator('button:has-text("接近戦へ移行する")');
       const switchWeaponBtn = page.locator('button:has-text("武器を持ち替える")');
@@ -165,6 +166,8 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
         if (await safeClick(confirmCombatBtn, 'Confirm combat result')) actionCount++;
       } else if (await reactionConfirmBtn.isVisible()) {
         if (await safeClick(reactionConfirmBtn, 'Confirm reaction check result')) actionCount++;
+      } else if (await refuseBribeBtn.isVisible()) {
+        if (await safeClick(refuseBribeBtn, 'Refuse bribe and fight')) actionCount++;
       } else if (await reactionRollBtn.isVisible()) {
         if (await safeClick(reactionRollBtn, 'Roll reaction check')) actionCount++;
       } else if (await closeRangedBtn.isVisible()) {
