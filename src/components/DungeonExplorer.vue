@@ -16,7 +16,8 @@ const {
   currentScreen,
   logs,
   combatState,
-  clearDiceTray
+  clearDiceTray,
+  diceTray
 } = useGameState();
 
 const { 
@@ -327,21 +328,21 @@ function startGoblinFight() {
         <!-- Trap Actions -->
         <div v-if="activeEvent.type === 'trap'">
           <div v-if="activeEvent.trapStat && character.subStatType === activeEvent.trapStat && character.subStatCurrent > 0" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button @click="resolveTrapCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;">
+            <button @click="resolveTrapCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
               {{ activeEvent.trapStat === 'strength' ? '💪' : activeEvent.trapStat === 'dexterity' ? '🏹' : activeEvent.trapStat === 'magic' ? '🔮' : '🕊️' }} 副能力値【{{ activeEvent.trapStat === 'strength' ? '筋力点' : activeEvent.trapStat === 'dexterity' ? '器用点' : activeEvent.trapStat === 'magic' ? '魔術点' : activeEvent.trapStat === 'luck' ? '幸運点' : activeEvent.trapStat }}】で挑戦 (判定値: {{ character.subStatCurrent }} / 1点消費)
             </button>
-            <button @click="resolveTrapCheck(false)" class="btn-ink" style="flex: 1; min-width: 200px; justify-content: center;">
+            <button @click="resolveTrapCheck(false)" class="btn-ink" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
               🎲 技量点（Skill）で挑戦 (判定値: {{ character.skillCurrent }} / 消費なし)
             </button>
           </div>
-          <button v-else @click="resolveTrapCheck(true)" class="btn-ink" style="width: 100%; justify-content: center;">
+          <button v-else @click="resolveTrapCheck(true)" class="btn-ink" style="width: 100%; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
             🎲 判定ロールに挑戦する (技量点判定値: {{ character.skillCurrent }} / 目標値: {{ activeEvent.trapTarget }})
           </button>
         </div>
 
         <!-- Treasure Actions -->
         <div v-else-if="activeEvent.type === 'treasure'">
-          <button @click="resolveLootRoom" class="btn-ink">
+          <button @click="resolveLootRoom" class="btn-ink" :disabled="activeEvent.isResolved || diceTray.isRolling">
             💎 宝物を入手する (ダイスを振る)
           </button>
         </div>

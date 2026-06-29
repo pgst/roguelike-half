@@ -42,11 +42,14 @@ const isRound0SpellDisabled = computed(() => {
   
   if (!combatState.hasReactionChecked) return true;
   
-  const isHostile = combatState.reactionResult?.actionType === 'hostile' || 
-                    combatState.reactionResult?.actionType === 'outnumbered_hostile' || 
-                    combatState.reactionResult?.actionType === 'bribe';
-                    
-  if (isHostile && !combatState.hasQuickStrikeActive) return true;
+  if (combatState.reactionResult) {
+    const isHostile = combatState.reactionResult.actionType === 'hostile' || 
+                      combatState.reactionResult.actionType === 'outnumbered_hostile' || 
+                      combatState.reactionResult.actionType === 'bribe';
+                      
+    if (!isHostile) return true;
+    if (!combatState.hasQuickStrikeActive) return true;
+  }
   
   return combatState.hasRangedFired;
 });
