@@ -94,7 +94,7 @@ const maxBackpackSlots = computed(() => {
         </button>
       </div>
       <div class="supply-item alert-supply">
-        <span>💡 <b>明かり:</b> {{ carriesLantern ? '🕯️ 点灯中' : '❌ 暗闇 (判定-2)' }}</span>
+        <span>🪔 <b>明かり:</b> {{ carriesLantern ? '点灯中' : '❌ 暗闇 (判定-2)' }}</span>
       </div>
     </div>
 
@@ -145,7 +145,12 @@ const maxBackpackSlots = computed(() => {
 
       <!-- General Items in bag -->
       <div v-for="i in character.items" :key="i.id" class="bag-item">
-        <span class="item-name">🧪 {{ i.name }} <span class="val-sub" v-if="i.value > 0">(価値:{{ i.value }}g)</span></span>
+        <span class="item-name">
+          <span v-if="i.type === 'lantern'">🪔</span>
+          <span v-else-if="i.type === 'rope'">🪢</span>
+          <span v-else>🧪</span>
+          {{ i.name }} <span class="val-sub" v-if="i.value > 0">(価値:{{ i.value }}g)</span>
+        </span>
         <div class="item-actions">
           <button v-if="i.type === 'healingpotion'" @click="useHealingPotion" class="btn-ink btn-mini">飲む</button>
           <button v-if="i.type === 'magic_doll'" @click="activateWarDoll(i.id)" class="btn-ink btn-mini">起動(1EXP)</button>

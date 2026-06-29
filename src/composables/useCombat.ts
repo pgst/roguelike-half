@@ -165,7 +165,11 @@ export function useCombat() {
 
     // Apply outcome effects
     if (actionType === 'hostile' || actionType === 'outnumbered_hostile') {
-      await executeEnemyAttacks();
+      if (combatState.hasQuickStrikeActive) {
+        addLog('【速撃】の効果により、クリーチャーの先制攻撃を防ぎました！(プレイヤー先制)', 'success');
+      } else {
+        await executeEnemyAttacks();
+      }
     } else if (actionType === 'flee' || actionType === 'outnumbered_flee') {
       endCombat(true);
     } else if (actionType === 'neutral') {
@@ -205,7 +209,11 @@ export function useCombat() {
   async function refuseBribeAndFight() {
     combatState.reactionResult = null;
     addLog('ワイロの支払いを拒否しました。敵は敵対的になり、襲いかかってきました！(敵先制攻撃)', 'error');
-    await executeEnemyAttacks();
+    if (combatState.hasQuickStrikeActive) {
+      addLog('【速撃】の効果により、クリーチャーの先制攻撃を防ぎました！(プレイヤー先制)', 'success');
+    } else {
+      await executeEnemyAttacks();
+    }
   }
 
   // Escaping combat manually (Rule 42)
@@ -740,9 +748,11 @@ export function useCombat() {
       }
 
     } else if (spellName === '速撃') {
+      combatState.hasQuickStrikeActive = true;
       addLog('【速撃】の魔術効果により、戦闘の主導権を奪取します！', 'success');
-      // Ready to fire Close Melee immediately without taking up an action slot
-      // In terms of code, we just log and allow instant close melee turn
+      if (combatState.reactionResult) {
+        combatState.reactionResult.text = `【速撃】を発動中！ 敵の先制攻撃を阻止し、こちらが先制（第0ラウンド）を行います。`;
+      }
     } else if (spellName === '武具創造') {
       addLog('【武具創造】の魔術により、魔法の片手剣を一時的に創り出しました！', 'success');
       const summon: Weapon = {

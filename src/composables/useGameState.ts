@@ -120,6 +120,7 @@ const combatState = reactive({
   enemies: [] as Enemy[],
   round: 0,
   log: [] as string[],
+  hasQuickStrikeActive: false,
   hasCoveredInRound: false,
   pendingCover: null as {
     attackId: string;

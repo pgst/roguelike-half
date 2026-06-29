@@ -154,6 +154,7 @@ export function useDungeon() {
     // Reset combat state
     combatState.active = true;
     combatState.round = 0;
+    combatState.hasQuickStrikeActive = false;
     combatState.log = [];
     combatState.hasRangedFired = false;
     combatState.buffs.defenseBonus = 0;

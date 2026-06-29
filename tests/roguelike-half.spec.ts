@@ -186,15 +186,15 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
         if (await safeClick(confirmCombatBtn, 'Confirm combat result')) actionCount++;
       } else if (await reactionConfirmBtn.isVisible()) {
         if (await safeClick(reactionConfirmBtn, 'Confirm reaction check result')) actionCount++;
-      } else if (await refuseBribeBtn.isVisible()) {
+      } else if (await refuseBribeBtn.isVisible() && await refuseBribeBtn.isEnabled({ timeout: 500 })) {
         if (await safeClick(refuseBribeBtn, 'Refuse bribe and fight')) actionCount++;
-      } else if (await reactionRollBtn.isVisible()) {
+      } else if (await reactionRollBtn.isVisible() && await reactionRollBtn.isEnabled({ timeout: 500 })) {
         if (await safeClick(reactionRollBtn, 'Roll reaction check')) actionCount++;
-      } else if (await closeRangedBtn.isVisible()) {
+      } else if (await closeRangedBtn.isVisible() && await closeRangedBtn.isEnabled({ timeout: 500 })) {
         if (await safeClick(closeRangedBtn, 'Transition to melee combat')) actionCount++;
-      } else if (await switchWeaponBtn.isVisible()) {
+      } else if (await switchWeaponBtn.isVisible() && await switchWeaponBtn.isEnabled({ timeout: 500 })) {
         if (await safeClick(switchWeaponBtn, 'Perform weapon switching transition')) actionCount++;
-      } else if (await attackBtn.first().isVisible()) {
+      } else if (await attackBtn.first().isVisible() && await attackBtn.first().isEnabled({ timeout: 500 })) {
         if (await safeClick(attackBtn.first(), 'Attack first enemy in close combat')) actionCount++;
       }
       continue;

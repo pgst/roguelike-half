@@ -36,6 +36,33 @@ const {
 
 const activeAttacks = computed(() => (combatState as any).activeAttacks || []);
 
+const isRound0SpellDisabled = computed(() => {
+  if (combatState.round !== 0) return false;
+  if (isBossRoom.value) return combatState.hasRangedFired;
+  
+  if (!combatState.hasReactionChecked) return true;
+  
+  const isHostile = combatState.reactionResult?.actionType === 'hostile' || 
+                    combatState.reactionResult?.actionType === 'outnumbered_hostile' || 
+                    combatState.reactionResult?.actionType === 'bribe';
+                    
+  if (isHostile && !combatState.hasQuickStrikeActive) return true;
+  
+  return combatState.hasRangedFired;
+});
+
+const isQuickStrikeDisabled = computed(() => {
+  if (combatState.round !== 0) return true;
+  if (isBossRoom.value) return true;
+  if (!combatState.hasReactionChecked) return true;
+  
+  const isHostile = combatState.reactionResult?.actionType === 'hostile' || 
+                    combatState.reactionResult?.actionType === 'outnumbered_hostile' || 
+                    combatState.reactionResult?.actionType === 'bribe';
+                    
+  return !isHostile || combatState.hasQuickStrikeActive;
+});
+
 const activeCombatFollowers = computed(() => {
   // Only show followers with life > 0
   return followers.value.filter(f => f.lifeCurrent > 0);
@@ -402,7 +429,7 @@ function closeRangedRound() {
                 v-if="character.spells.includes('炎球')"
                 @click="castSpell('炎球')" 
                 class="btn-ink btn-spell"
-                :disabled="combatState.round === 0 && combatState.hasRangedFired"
+                :disabled="isRound0SpellDisabled"
               >
                 🔮 炎球 (全体攻撃)
               </button>
@@ -410,6 +437,7 @@ function closeRangedRound() {
                 v-if="character.spells.includes('武具創造') && !hasWeaponEquipped"
                 @click="castSpell('武具創造')" 
                 class="btn-ink btn-spell"
+                :disabled="isRound0SpellDisabled"
               >
                 🔮 武具創造 (光の剣)
               </button>
@@ -417,6 +445,7 @@ function closeRangedRound() {
                 v-if="character.spells.includes('速撃')"
                 @click="castSpell('速撃')" 
                 class="btn-ink btn-spell"
+                :disabled="isQuickStrikeDisabled"
               >
                 🔮 速撃 (先制攻撃)
               </button>
@@ -428,7 +457,7 @@ function closeRangedRound() {
                 v-if="character.miracles.includes('防衛')"
                 @click="castMiracle('防衛')" 
                 class="btn-ink btn-miracle"
-                :disabled="combatState.round === 0 && combatState.hasRangedFired"
+                :disabled="isRound0SpellDisabled"
               >
                 🕊️ 防衛 (+1防御バフ)
               </button>
@@ -436,6 +465,7 @@ function closeRangedRound() {
                 v-if="character.miracles.includes('そらし')"
                 @click="castMiracle('そらし')" 
                 class="btn-ink btn-miracle"
+                :disabled="isRound0SpellDisabled"
               >
                 🕊️ そらし (射撃無効)
               </button>
@@ -443,7 +473,7 @@ function closeRangedRound() {
                 v-if="character.miracles.includes('聖洗脳') && combatState.enemies.length === 1"
                 @click="castMiracle('聖洗脳')" 
                 class="btn-ink btn-miracle"
-                :disabled="combatState.round === 0 && combatState.hasRangedFired"
+                :disabled="isRound0SpellDisabled"
               >
                 🕊️ 聖洗脳 (従者にする)
               </button>
@@ -451,7 +481,7 @@ function closeRangedRound() {
                 v-if="character.miracles.includes('招天')"
                 @click="castMiracle('招天')" 
                 class="btn-ink btn-miracle"
-                :disabled="combatState.round === 0 && combatState.hasRangedFired"
+                :disabled="isRound0SpellDisabled"
               >
                 🕊️ 招天 (アンデッド光矢)
               </button>
