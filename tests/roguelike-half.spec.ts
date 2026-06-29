@@ -7,7 +7,7 @@ import { test, expect, type Locator } from '@playwright/test';
 // to prevent rapid double-clicks from disrupting the application state.
 async function safeClick(locator: Locator, description: string, postWaitMs = 1500): Promise<boolean> {
   try {
-    if (await locator.isVisible() && await locator.isEnabled()) {
+    if (await locator.isVisible() && await locator.isEnabled({ timeout: 1000 })) {
       console.log(`Attempting click: ${description}`);
       await locator.click({ timeout: 3000, force: true });
       await locator.page().waitForTimeout(postWaitMs);
@@ -82,9 +82,9 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
     // 3. Level Up / Town Market Screen
     if (await page.locator('.levelup-card').isVisible()) {
       // Learn spells/miracles if available
-      const spellBtn = page.locator('.spell-learning-section button:not([disabled])');
+      const spellBtn = page.locator('.spell-learning-section button.btn-mini:not([disabled])');
       let learnedSpell = false;
-      while (await spellBtn.first().isVisible() && await spellBtn.first().isEnabled()) {
+      while (await spellBtn.first().isVisible() && await spellBtn.first().isEnabled({ timeout: 1000 })) {
         const success = await safeClick(spellBtn.first(), 'Learn a spell/miracle', 150);
         if (!success) break;
         learnedSpell = true;
@@ -97,7 +97,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       let clickedLife = false;
       
       // Keep clicking Life increase as long as it's active in this step
-      while (await lifeBtn.isVisible() && await lifeBtn.isEnabled()) {
+      while (await lifeBtn.isVisible() && await lifeBtn.isEnabled({ timeout: 1000 })) {
         const success = await safeClick(lifeBtn, 'Life increase (+1 Life)', 150);
         if (!success) break;
         clickedLife = true;
