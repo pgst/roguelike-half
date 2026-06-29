@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch, nextTick } from 'vue';
 import { useGameState } from './composables/useGameState';
 import { DEFAULT_ITEMS, DEFAULT_WEAPONS, DEFAULT_SHIELDS, DEFAULT_ARMORS } from './composables/useGameState';
 import type { Weapon, Armor, Shield, GeneralItem } from './types';
@@ -288,6 +288,14 @@ function startAdventure() {
   currentScreen.value = 'explore';
   addLog('🧭 さあ、暗い地下迷宮へと歩みを進めましょう！ 生きて宝を持ち帰るのだ。', 'success');
 }
+
+const logbookRef = ref<HTMLElement | null>(null);
+watch(() => logs.value.length, async () => {
+  await nextTick();
+  if (logbookRef.value) {
+    logbookRef.value.scrollTop = logbookRef.value.scrollHeight;
+  }
+});
 </script>
 
 <template>
@@ -295,7 +303,7 @@ function startAdventure() {
     <!-- TOP ROW: Calligraphic Logbook -->
     <div v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" class="narrative-logbook-container" style="margin-bottom: 5px;">
       <div class="logbook-header">📜 冒険の足跡</div>
-      <div class="logbook-entries">
+      <div class="logbook-entries" ref="logbookRef">
         <div 
           v-for="log in logs" 
           :key="log.id" 

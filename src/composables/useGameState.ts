@@ -161,7 +161,7 @@ const combatState = reactive({
 
 // Logs Manager
 function addLog(text: string, type: 'info' | 'roll' | 'combat' | 'error' | 'success' | 'damage' = 'info') {
-  logs.value.unshift({
+  logs.value.push({
     id: Math.random().toString(36).substring(2, 9),
     text,
     type,
