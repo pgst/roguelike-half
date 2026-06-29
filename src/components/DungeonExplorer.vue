@@ -294,7 +294,7 @@ function startGoblinFight() {
 
     <!-- Recent Event Log -->
     <div v-if="logs.length > 0" class="recent-event-box" style="margin: 0 0 20px 0; padding: 10px; border: 1px dashed var(--ink-light); background: rgba(255,255,255,0.5); border-radius: 4px; font-family: 'Noto Serif JP', serif; font-size: 0.9rem;">
-      📖 <b>直近の出来事:</b> <span :class="logs[0].type">{{ logs[0].text }}</span>
+      📖 <b>直近の出来事:</b> <span :class="logs[logs.length - 1]?.type">{{ logs[logs.length - 1]?.text }}</span>
     </div>
 
     <!-- Active Event Panel -->
