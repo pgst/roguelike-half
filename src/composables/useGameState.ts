@@ -667,8 +667,72 @@ function useHealingPotion() {
   addLog('治療のポーションを飲みました。生命力が最大値まで全回復！', 'success');
 }
 
+function castCreateWeaponSpell(category: 'weapon' | 'armor' | 'shield', itemKey: string) {
+  if (character.value.subStatCurrent < 1) {
+    addLog('魔術点が足りないため、呪文を唱えられません！', 'error');
+    return;
+  }
+  
+  character.value.subStatCurrent--;
+  
+  if (category === 'weapon') {
+    const base = DEFAULT_WEAPONS[itemKey as keyof typeof DEFAULT_WEAPONS];
+    if (!base) return;
+    const summon: Weapon = {
+      ...base,
+      name: `創られた${base.name}`,
+      isMagic: true,
+      description: `【武具創造】によって生み出された魔法の武具。冒険終了後に消滅する。`
+    };
+    character.value.weapons.push(summon);
+    addLog(`✨ 呪文【武具創造】を唱え、「${summon.name}」を背負い袋に創造しました！`, 'success');
+  } else if (category === 'armor') {
+    const base = DEFAULT_ARMORS[itemKey as keyof typeof DEFAULT_ARMORS];
+    if (!base) return;
+    const summon: Armor = {
+      ...base,
+      name: `創られた${base.name}`,
+      isMagic: true,
+      description: `【武具創造】によって生み出された魔法の防具。冒険終了後に消滅する。`
+    };
+    character.value.armors.push(summon);
+    addLog(`✨ 呪文【武具創造】を唱え、「${summon.name}」を背負い袋に創造しました！`, 'success');
+  } else if (category === 'shield') {
+    const base = DEFAULT_SHIELDS[itemKey as keyof typeof DEFAULT_SHIELDS];
+    if (!base) return;
+    const summon: Shield = {
+      ...base,
+      name: `創られた${base.name}`,
+      isMagic: true,
+      description: `【武具創造】によって生み出された魔法の盾。冒険終了後に消滅する。`
+    };
+    character.value.shields.push(summon);
+    addLog(`✨ 呪文【武具創造】を唱え、「${summon.name}」を背負い袋に創造しました！`, 'success');
+  }
+}
+
 // Dungeon completion stats restore
 function restoreStatsAfterAdventure() {
+  // Unequip magic items first to safely adjust stats
+  if (character.value.equippedWeapon?.isMagic) {
+    character.value.equippedWeapon = null;
+  }
+  if (character.value.equippedArmor?.isMagic) {
+    const oldArmor = character.value.equippedArmor;
+    character.value.equippedArmor = null;
+    character.value.lifeMax = Math.max(1, character.value.lifeMax - oldArmor.modLife);
+  }
+  if (character.value.equippedShield?.isMagic) {
+    const oldShield = character.value.equippedShield;
+    character.value.equippedShield = null;
+    character.value.lifeMax = Math.max(1, character.value.lifeMax - oldShield.modLife);
+  }
+
+  // Remove magic items from inventory lists
+  character.value.weapons = character.value.weapons.filter(w => !w.isMagic);
+  character.value.armors = character.value.armors.filter(a => !a.isMagic);
+  character.value.shields = character.value.shields.filter(s => !s.isMagic);
+
   character.value.skillCurrent = character.value.skillMax;
   character.value.lifeCurrent = character.value.lifeMax;
   character.value.subStatCurrent = character.value.subStatMax;
@@ -998,5 +1062,6 @@ export function useGameState() {
     handleDeath,
     clearDiceTray,
     forgetSpell,
+    castCreateWeaponSpell,
   };
 }

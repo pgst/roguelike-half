@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useGameState } from '../composables/useGameState';
 import { useCombat } from '../composables/useCombat';
 
@@ -11,8 +11,11 @@ const {
   logs,
   dungeonDepth,
   totalRoomsToClear,
-  isSwitchingWeapons
+  isSwitchingWeapons,
+  castCreateWeaponSpell
 } = useGameState();
+
+const showSummonSelector = ref(false);
 
 const isBossRoom = computed(() => dungeonDepth.value >= totalRoomsToClear.value);
 
@@ -73,10 +76,6 @@ const activeCombatFollowers = computed(() => {
 
 const isRangedAvailable = computed(() => {
   return character.value.equippedWeapon?.type === 'ranged';
-});
-
-const hasWeaponEquipped = computed(() => {
-  return character.value.equippedWeapon !== null;
 });
 
 function closeRangedRound() {
@@ -437,12 +436,12 @@ function closeRangedRound() {
                 🔮 炎球 (全体攻撃)
               </button>
               <button 
-                v-if="character.spells.includes('武具創造') && !hasWeaponEquipped"
-                @click="castSpell('武具創造')" 
+                v-if="character.spells.includes('武具創造')"
+                @click="showSummonSelector = !showSummonSelector" 
                 class="btn-ink btn-spell"
                 :disabled="isRound0SpellDisabled"
               >
-                🔮 武具創造 (光の剣)
+                🔮 武具創造 (装備品の創造)
               </button>
               <button 
                 v-if="character.spells.includes('速撃')"
@@ -489,6 +488,45 @@ function closeRangedRound() {
                 🕊️ 招天 (アンデッド光矢)
               </button>
             </template>
+          </div>
+
+          <!-- Weapon Creation Submenu (武具創造) -->
+          <div v-if="showSummonSelector" class="summon-selector paper-sheet" style="margin-top: 15px; padding: 15px; border: 1px dashed var(--ink-light); background: rgba(255,255,255,0.7); border-radius: 4px; width: 100%;">
+            <p style="font-size: 0.85rem; color: var(--ink-light); margin: 0 0 10px 0; font-style: italic; font-weight: bold;">
+              🪄 創造する武具（武器・防具・盾）を1つ選択してください（魔術点1消費）：
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <!-- Weapons Category -->
+              <div>
+                <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-bottom: 5px;">⚔️ 武器を創造:</div>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button @click="castCreateWeaponSpell('weapon', 'light'); showSummonSelector = false" class="btn-ink btn-mini">軽い武器</button>
+                  <button @click="castCreateWeaponSpell('weapon', 'oneHanded'); showSummonSelector = false" class="btn-ink btn-mini">片手武器</button>
+                  <button @click="castCreateWeaponSpell('weapon', 'twoHanded'); showSummonSelector = false" class="btn-ink btn-mini">両手武器</button>
+                  <button @click="castCreateWeaponSpell('weapon', 'sling'); showSummonSelector = false" class="btn-ink btn-mini">スリング</button>
+                  <button @click="castCreateWeaponSpell('weapon', 'bow'); showSummonSelector = false" class="btn-ink btn-mini">弓矢</button>
+                </div>
+              </div>
+              <!-- Armor Category -->
+              <div>
+                <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-bottom: 5px;">🛡️ 防具を創造:</div>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button @click="castCreateWeaponSpell('armor', 'cloth'); showSummonSelector = false" class="btn-ink btn-mini">布鎧</button>
+                  <button @click="castCreateWeaponSpell('armor', 'leather'); showSummonSelector = false" class="btn-ink btn-mini">革鎧</button>
+                  <button @click="castCreateWeaponSpell('armor', 'chain'); showSummonSelector = false" class="btn-ink btn-mini">鎖鎧</button>
+                  <button @click="castCreateWeaponSpell('armor', 'plate'); showSummonSelector = false" class="btn-ink btn-mini">板金鎧</button>
+                </div>
+              </div>
+              <!-- Shield Category -->
+              <div>
+                <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-bottom: 5px;">🛡️ 盾を創造:</div>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button @click="castCreateWeaponSpell('shield', 'wood'); showSummonSelector = false" class="btn-ink btn-mini">木盾</button>
+                  <button @click="castCreateWeaponSpell('shield', 'round'); showSummonSelector = false" class="btn-ink btn-mini">丸盾</button>
+                </div>
+              </div>
+              <button @click="showSummonSelector = false" class="btn-ink btn-mini btn-secondary" style="margin-top: 5px; align-self: flex-end;">キャンセル</button>
+            </div>
           </div>
         </div>
 

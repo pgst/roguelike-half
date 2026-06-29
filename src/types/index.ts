@@ -17,6 +17,7 @@ export interface Armor {
   modDex: number;  // dexterity roll modifier
   modDef: number;  // defense roll modifier
   goldCost: number;
+  isMagic?: boolean;
   description: string;
 }
 
@@ -26,6 +27,7 @@ export interface Shield {
   modLife: number; // life increase
   modDefRanged: number; // ranged defense modifier
   goldCost: number;
+  isMagic?: boolean;
   description: string;
 }
 

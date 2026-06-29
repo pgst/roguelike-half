@@ -1,5 +1,5 @@
 import { useGameState } from './useGameState';
-import type { Enemy, Weapon, GeneralItem } from '../types';
+import type { Enemy, GeneralItem } from '../types';
 
 export function useCombat() {
   const {
@@ -753,19 +753,6 @@ export function useCombat() {
       if (combatState.reactionResult) {
         combatState.reactionResult.text = `【速撃】を発動中！ 敵の先制攻撃を阻止し、こちらが先制（第0ラウンド）を行います。`;
       }
-    } else if (spellName === '武具創造') {
-      addLog('【武具創造】の魔術により、魔法の片手剣を一時的に創り出しました！', 'success');
-      const summon: Weapon = {
-        name: '創られた魔法の剣',
-        type: 'one-handed',
-        modAttack: 1,
-        attribute: 'slash',
-        goldCost: 0,
-        isMagic: true,
-        description: '魔術によって創り出された光の武器。冒険終了後に消失する。',
-      };
-      character.value.weapons.push(summon);
-      character.value.equippedWeapon = summon;
     }
 
     addLog(`現在の残り魔術点: ${character.value.subStatCurrent}`, 'info');
