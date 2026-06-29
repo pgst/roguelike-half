@@ -106,6 +106,8 @@ export interface DungeonEvent {
   trapDamage?: number;
   lootModifier?: number;
   npcType?: 'merchant' | 'bribe' | 'priest' | 'mercenary' | 'captive';
+  isResolved?: boolean;
+  resolutionText?: string;
 }
 
 export interface Scenario {
