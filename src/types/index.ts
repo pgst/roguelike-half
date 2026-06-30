@@ -67,6 +67,7 @@ export interface Character {
   equippedArmor: Armor | null;
   equippedShield: Shield | null;
   hasActiveLantern: boolean;
+  statusEffects?: string[]; // 【追加】 呪い、石化、麻痺などの状態異常を保持
 }
 
 export interface Follower {
@@ -83,6 +84,7 @@ export interface Follower {
   weaponAttribute: 'strike' | 'slash';
   goldCost: number;
   description: string;
+  statusEffects?: string[]; // 【追加】 呪い、石化、麻痺などの状態異常を保持
 }
 
 export interface Enemy {
@@ -95,6 +97,7 @@ export interface Enemy {
   tags: ('undead' | 'golem' | 'weak' | 'strong' | 'plant' | 'weapon' | 'structure')[];
   special?: string;
   count: number; // for groups of weak enemies
+  isRanged?: boolean; // 【追加】 飛び道具（遠距離攻撃）を行うクリーチャーかの判定フラグ
 }
 
 export interface DungeonEvent {
@@ -110,6 +113,7 @@ export interface DungeonEvent {
   npcType?: 'merchant' | 'bribe' | 'priest' | 'mercenary' | 'captive';
   isResolved?: boolean;
   resolutionText?: string;
+  statusEffect?: string; // 【追加】 罠によって受ける状態異常（例: '呪い', '石化', '麻痺'）
 }
 
 export interface Scenario {

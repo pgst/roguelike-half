@@ -163,6 +163,8 @@ export function useDungeon() {
     combatState.combatType = 'melee';
     combatState.hasCoveredInRound = false;
     combatState.pendingCover = null;
+    combatState.pendingHolyArrow = 0;
+    combatState.pendingDeflect = null;
     combatState.hasReactionChecked = false;
     combatState.isBribeAllowed = false;
     combatState.reactionResult = null;
@@ -261,18 +263,33 @@ export function useDungeon() {
         character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - damage);
         damageTaken = damage;
         addLog(`主人公は ${damage} 点のダメージを受けました。(現在生命力: ${character.value.lifeCurrent})`, 'damage');
-        if (character.value.lifeCurrent <= 0) {
-          currentScreen.value = 'gameover';
-          return false;
+      }
+
+      let effectApplied = '';
+      if (activeEvent.value && (activeEvent.value as any).statusEffect) {
+        const eff = (activeEvent.value as any).statusEffect;
+        if (!character.value.statusEffects) {
+          character.value.statusEffects = [];
+        }
+        if (!character.value.statusEffects.includes(eff)) {
+          character.value.statusEffects.push(eff);
+          effectApplied = eff;
+          addLog(`主人公は状態異常【${eff}】を受けました！`, 'error');
         }
       }
+
+      if (character.value.lifeCurrent <= 0) {
+        currentScreen.value = 'gameover';
+        return false;
+      }
+
       if (activeEvent.value) {
         (activeEvent.value as any).isResolved = true;
         (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
 判定能力: ${stat.toUpperCase()} (目標値: ${target})
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
-罠を発動させてしまい、${damageTaken > 0 ? `生命力に ${damageTaken} 点のダメージを受けました！` : '何も起こりませんでした。'} (残り生命力: ${character.value.lifeCurrent})`;
+罠を発動させてしまい、${damageTaken > 0 ? `生命力に ${damageTaken} 点のダメージを受けました！` : ''}${effectApplied ? `さらに状態異常【${effectApplied}】を受けました！` : ''}${damageTaken === 0 && !effectApplied ? '何も起こりませんでした。' : ''} (残り生命力: ${character.value.lifeCurrent})`;
       }
       return false;
     }

@@ -99,6 +99,15 @@ const maxBackpackSlots = computed(() => {
       <div class="supply-item alert-supply">
         <span>🪔 <b>明かり:</b> {{ carriesLantern ? '点灯中' : '❌ 暗闇 (判定-2)' }}</span>
       </div>
+
+      <!-- Status Effects (状態異常) -->
+      <div v-if="character.statusEffects && character.statusEffects.length > 0" class="status-effects-section" style="margin-top: 15px; padding: 10px; border: 1px solid #f5c6cb; background: #fdf3f4; border-radius: 4px;">
+        <span style="font-weight: bold; color: #8c1c1c; font-size: 0.9rem; margin-right: 8px;">🚨 状態異常:</span>
+        <span v-for="effect in character.statusEffects" :key="effect" class="badge-status" style="display: inline-block; padding: 2px 8px; background: #8c1c1c; color: white; border-radius: 3px; font-size: 0.8rem; font-weight: bold; margin-right: 5px;">
+          {{ effect }}
+        </span>
+      </div>
+
       <!-- Spell: Create Weapon outside combat -->
       <div 
         v-if="character.subStatType === 'magic' && character.spells.includes('武具創造')"

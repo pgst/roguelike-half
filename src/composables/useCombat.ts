@@ -506,7 +506,7 @@ export function useCombat() {
   }
 
   // Resolve one specific queued enemy attack against a defender (Hero or Follower)
-  async function resolveDefense(attackId: string, defenderId: 'hero' | string, isAllOut = false) {
+  async function resolveDefense(attackId: string, defenderId: 'hero' | string, isAllOut = false, skipDeflect = false) {
     const queue = (combatState as any).activeAttacks || [];
     const idx = queue.findIndex((a: any) => a.id === attackId);
     if (idx === -1) return;
@@ -541,6 +541,11 @@ export function useCombat() {
       if (character.value.equippedShield) modifier += 1; // shield armor block
       // Protection Miracle buff
       modifier += combatState.buffs.defenseBonus;
+    } else {
+      const f = followers.value.find(fol => fol.id === defenderId);
+      if (f && f.isCombatant) {
+        modifier += combatState.buffs.defenseBonus;
+      }
     }
     if (!carriesLantern.value) {
       modifier -= 2;
@@ -559,6 +564,22 @@ export function useCombat() {
       addLog(`🛡️ 防御成功！ ${defName} は無傷です。(ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${enemy.level})`, 'success');
     } else {
       addLog(`💥 防御失敗！ ${defName} が被弾しました。(ロール計: ${roll === 1 ? 'ファンブル' : total} < ${enemy.level})`, 'error');
+
+      // 【そらし】の奇跡チェック
+      // 敵が飛び道具タイプであるか、または第0ラウンド（遠距離フェーズ）の攻撃であること
+      const isRangedAttack = enemy.isRanged || combatState.round === 0;
+      const hasDeflect = character.value.miracles.includes('そらし');
+      const canDeflect = !skipDeflect && isRangedAttack && hasDeflect && character.value.subStatCurrent >= 1;
+
+      if (canDeflect) {
+        combatState.pendingDeflect = {
+          attackId,
+          defenderId,
+          enemy
+        };
+        addLog(`🏹 飛び道具の攻撃が直撃！ 奇跡【そらし】を割り込んで行使できます。`, 'error');
+        return;
+      }
 
       // Check if War Doll ignores damage
       if (isHero && combatState.buffs.damageIgnoreCount > 0) {
@@ -796,11 +817,31 @@ export function useCombat() {
       addLog('🛡️ 天使の加護が味方全員を包み込みました！ 【防御ロール】に+1のボーナスを得ます。(戦闘終了まで持続)', 'success');
 
     } else if (miracleName === 'そらし') {
-      // Set deflect shield active
-      addLog('✨ 飛び道具をそらす防御の結界を張りました！ 次の射撃ダメージを無効化します。', 'success');
+      addLog('【そらし】は敵の飛び道具を被弾した際にのみ、割り込んで発動できます。', 'error');
+      character.value.subStatCurrent++; // 返還
+      return;
 
     } else if (miracleName === '祝福') {
-      addLog('✨ 祝福の光により、味方のすべての状態異常を癒やします！', 'success');
+      let healed = false;
+      if (character.value.statusEffects && character.value.statusEffects.length > 0) {
+        const removed = character.value.statusEffects.shift();
+        addLog(`✨ 祝福の光により、主人公の【${removed}】を治療しました！`, 'success');
+        healed = true;
+      } else {
+        for (const f of followers.value) {
+          if (f.statusEffects && f.statusEffects.length > 0) {
+            const removed = f.statusEffects.shift();
+            addLog(`✨ 祝福の光により、従者 ${f.name} の【${removed}】を治療しました！`, 'success');
+            healed = true;
+            break;
+          }
+        }
+      }
+      if (!healed) {
+        addLog('味方に治療すべき状態異常（呪い・石化・麻痺）はありません。', 'info');
+        character.value.subStatCurrent++; // 返還
+        return;
+      }
 
     } else if (miracleName === '聖洗脳') {
       if (combatState.enemies.length !== 1) {
@@ -817,7 +858,7 @@ export function useCombat() {
 
       addLog(`洗脳の念を送ります！幸運判定ロール...`, 'info');
       const roll = await rollD6(true);
-      const val = character.value.skillCurrent;
+      const val = character.value.subStatCurrent; // 幸運点の現在値（修正点：skillCurrentから変更）
       let modifier = 0;
       if (!carriesLantern.value) {
         modifier -= 2;
@@ -827,7 +868,6 @@ export function useCombat() {
 
       if (roll === 6 || (roll !== 1 && total >= target.level)) {
         addLog(`🕊️ 成功！ ${target.name} は改心し、【捕虜】の従者として同行することになりました！`, 'success');
-        // Add captive follower (free)
         followers.value.push({
           id: Math.random().toString(36).substring(2, 9),
           name: `捕虜の${target.name}`,
@@ -839,6 +879,7 @@ export function useCombat() {
           weaponAttribute: 'strike',
           goldCost: 0,
           description: '聖洗脳した敵。戦わない従者。常に判定ロールは失敗するが、身代わりに使える。',
+          statusEffects: [],
         });
         combatState.enemies = [];
         endCombat(true);
@@ -847,43 +888,15 @@ export function useCombat() {
       }
 
     } else if (miracleName === '招天') {
-      // Targets undead
-      if (combatState.enemies.length === 0) return;
-      
-      addLog('⚡ 空から眩い聖なる光の矢が降り注ぎます！(アンデッド特攻)', 'success');
-      
-      for (const target of combatState.enemies) {
-        if (!hasTag(target, 'undead')) {
-          addLog(`${target.name} はアンデッドではないため効果がありません。`, 'info');
-          continue;
-        }
-
-        const isWeak = target.tags.includes('weak');
-        addLog(`${target.name} に聖なる矢を放ちます！`, 'combat');
-        
-        const roll = await rollD6(true);
-        const val = character.value.skillCurrent;
-        let modifier = 0;
-        if (!carriesLantern.value) {
-          modifier -= 2;
-          addLog('暗闇のため判定に -2 のペナルティ！', 'error');
-        }
-        const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
-        const success = roll === 6 || (roll !== 1 && total >= target.level);
-
-        if (success) {
-          if (isWeak) {
-            target.lifeCurrent = 0;
-            addLog(`💀 閃光が貫き、${target.name} は塵に還った！`, 'success');
-          } else {
-            target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
-            addLog(`💥 閃光直撃！ ${target.name} に1点ダメージ。`, 'success');
-          }
-        }
+      const hasUndead = combatState.enemies.some(e => hasTag(e, 'undead'));
+      if (!hasUndead) {
+        addLog('戦闘フィールドにアンデッドの敵が存在しないため、招天を発動できません。', 'error');
+        character.value.subStatCurrent++; // Refund
+        return;
       }
 
-      // Filter dead
-      combatState.enemies = combatState.enemies.filter(e => e.lifeCurrent > 0);
+      combatState.pendingHolyArrow = 2;
+      addLog('⚡ 光り輝く2本の聖なる矢があなたの周囲に出現しました！ 対象のアンデッドを選択して発射してください。', 'success');
     }
 
     addLog(`現在の残り幸運点: ${character.value.subStatCurrent}`, 'info');
@@ -894,7 +907,7 @@ export function useCombat() {
       return;
     }
 
-    const isActionMiracle = ['防衛', '聖洗脳', '招天'].includes(miracleName);
+    const isActionMiracle = ['防衛', '聖洗脳'].includes(miracleName); // 招天は手動で対象選択して放つため、アクションの終了をトリガーさせない
     if (isActionMiracle) {
       if (combatState.round === 0) {
         combatState.hasRangedFired = true;
@@ -908,6 +921,88 @@ export function useCombat() {
         }
         await executeEnemyAttacks();
       }
+    }
+  }
+
+  // 奇跡【そらし】の割り込みをスキップ（見送り）してダメージを適用
+  async function skipDeflect() {
+    const pending = combatState.pendingDeflect;
+    if (!pending) return;
+    combatState.pendingDeflect = null;
+    await resolveDefense(pending.attackId, pending.defenderId, false, true);
+  }
+
+  // 奇跡【そらし】を発動して飛び道具を無効化
+  async function executeDeflect() {
+    const pending = combatState.pendingDeflect;
+    if (!pending) return;
+
+    character.value.subStatCurrent--;
+    addLog(`✨ 奇跡【そらし】を発動！ 飛び道具をそらし、ダメージを回避しました。(残り幸運点: ${character.value.subStatCurrent})`, 'success');
+    combatState.pendingDeflect = null;
+
+    // 攻撃キューから今回の攻撃を取り除く
+    const queue = (combatState as any).activeAttacks || [];
+    const idx = queue.findIndex((a: any) => a.id === pending.attackId);
+    if (idx !== -1) {
+      queue.splice(idx, 1);
+    }
+
+    checkEnemyRetreat();
+    if (combatState.enemies.length === 0) {
+      endCombat(true);
+    }
+  }
+
+  // 奇跡【招天】の光の矢を1本放つ
+  async function fireHolyArrow(targetEnemyId: string) {
+    if (combatState.pendingHolyArrow <= 0) return;
+    const target = combatState.enemies.find(e => e.id === targetEnemyId);
+    if (!target) return;
+
+    if (!hasTag(target, 'undead')) {
+      addLog(`${target.name} はアンデッドではないため、聖なる矢の効果がありません。`, 'error');
+      return;
+    }
+
+    combatState.pendingHolyArrow--;
+    addLog(`⚡ ${target.name} に聖なる矢を放ちます！(残り矢数: ${combatState.pendingHolyArrow})`, 'combat');
+
+    const roll = await rollD6(true);
+    const val = character.value.subStatCurrent; // 幸運点の現在値
+    let modifier = 0;
+    if (!carriesLantern.value) {
+      modifier -= 2;
+      addLog('暗闇のため判定に -2 のペナルティ！', 'error');
+    }
+    const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
+    const success = roll === 6 || (roll !== 1 && total >= target.level);
+
+    if (success) {
+      const isWeak = target.tags.includes('weak');
+      if (isWeak) {
+        target.lifeCurrent = 0;
+        addLog(`💀 聖なる光が貫き、${target.name} は浄化され塵に還った！`, 'success');
+      } else {
+        target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
+        addLog(`💥 直撃！ ${target.name} に1点の聖なるダメージを与えました。`, 'success');
+      }
+    } else {
+      addLog('💨 矢は外れるか、邪悪な闇に弾かれた！', 'error');
+    }
+
+    if (roll === 6) {
+      combatState.pendingHolyArrow++;
+      addLog('✨ クリティカル！ 聖なる奇跡の矢が1本追加されました！', 'success');
+    }
+
+    // 敵の死亡をフィルタリング
+    combatState.enemies = combatState.enemies.filter(e => e.lifeCurrent > 0);
+    checkEnemyRetreat();
+
+    if (combatState.enemies.length === 0) {
+      combatState.pendingHolyArrow = 0;
+      endCombat(true);
     }
   }
 
@@ -1305,5 +1400,8 @@ export function useCombat() {
     executeCover,
     cancelCover,
     applyFriendshipReaction,
+    skipDeflect,
+    executeDeflect,
+    fireHolyArrow,
   };
 }

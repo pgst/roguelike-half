@@ -168,7 +168,8 @@
       "type": "trap",
       "trapStat": "dexterity",
       "trapTarget": 5,
-      "trapDamage": 1
+      "trapDamage": 1,
+      "statusEffect": "麻痺"
     },
     "43": {
       "title": "探検隊の残置リュック",
@@ -271,7 +272,8 @@
       "type": "trap",
       "trapStat": "dexterity",
       "trapTarget": 4,
-      "trapDamage": 1
+      "trapDamage": 1,
+      "statusEffect": "石化"
     },
     "63": {
       "title": "大いなる地母神の加護",
@@ -302,7 +304,8 @@
       "type": "trap",
       "trapStat": "luck",
       "trapTarget": 5,
-      "trapDamage": 1
+      "trapDamage": 1,
+      "statusEffect": "呪い"
     }
   },
   "bossEvent": {

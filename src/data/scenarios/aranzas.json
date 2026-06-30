@@ -117,7 +117,8 @@
       "type": "trap",
       "trapStat": "dexterity",
       "trapTarget": 5,
-      "trapDamage": 1
+      "trapDamage": 1,
+      "statusEffect": "麻痺"
     },
     "33": {
       "title": "幸運の彫像",
@@ -198,7 +199,8 @@
       "type": "trap",
       "trapStat": "luck",
       "trapTarget": 4,
-      "trapDamage": 1
+      "trapDamage": 1,
+      "statusEffect": "呪い"
     },
     "46": {
       "title": "コボルドの略奪部隊",
@@ -308,7 +310,8 @@
       "type": "trap",
       "trapStat": "luck",
       "trapTarget": 5,
-      "trapDamage": 1
+      "trapDamage": 1,
+      "statusEffect": "呪い"
     }
   },
   "bossEvent": {

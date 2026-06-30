@@ -88,6 +88,7 @@ const character = ref<Character>({
   equippedArmor: null,
   equippedShield: null,
   hasActiveLantern: true,
+  statusEffects: [],
 });
 
 const followers = ref<Follower[]>([]);
@@ -135,6 +136,8 @@ const combatState = reactive({
     hasScout: boolean;
     hasHero: boolean;
   } | null,
+  pendingHolyArrow: 0, // 招天の光の矢の残り発射回数
+  pendingDeflect: null as { attackId: string; defenderId: string; enemy: any } | null, // そらしの割り込み待機状態
   hasRangedFired: false,
   playerHasFiredRanged: false,
   archerHasFiredRanged: false,
@@ -910,6 +913,7 @@ function initNewCharacter(name: string, subStat: Character['subStatType']) {
     equippedArmor: null,
     equippedShield: null,
     hasActiveLantern: true,
+    statusEffects: [],
   };
 
   followers.value = [];

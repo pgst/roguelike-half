@@ -34,7 +34,10 @@ const {
   resolveWeaponSwitch,
   executeCover,
   cancelCover,
-  applyFriendshipReaction
+  applyFriendshipReaction,
+  skipDeflect,
+  executeDeflect,
+  fireHolyArrow
 } = useCombat();
 
 const activeAttacks = computed(() => (combatState as any).activeAttacks || []);
@@ -131,8 +134,23 @@ function closeRangedRound() {
             </span>
           </div>
 
+          <!-- 招天フェーズ時の攻撃ボタン -->
+          <div v-if="combatState.pendingHolyArrow > 0" class="combat-actions" style="margin-top: 10px; width: 100%;">
+            <button 
+              v-if="enemy.tags.includes('undead')"
+              @click="fireHolyArrow(enemy.id)"
+              class="btn-ink btn-mini btn-miracle"
+              style="width: 100%; text-align: center; font-weight: bold; background: #fffcf0; border-color: #ffd54f; color: #b78103;"
+            >
+              ⚡ 聖なる矢を放つ (残: {{ combatState.pendingHolyArrow }}本)
+            </button>
+            <span v-else style="font-size: 0.8rem; color: var(--ink-light); font-style: italic; width: 100%; display: block; text-align: center; padding: 5px;">
+              （アンデッドではないため対象外）
+            </span>
+          </div>
+
           <!-- Melee Attack Controls -->
-          <div v-if="combatState.round > 0 && activeAttacks.length === 0" class="combat-actions">
+          <div v-if="combatState.round > 0 && activeAttacks.length === 0 && combatState.pendingHolyArrow === 0" class="combat-actions">
             <template v-if="isSwitchingWeapons">
               <span class="badge-switching" style="font-size: 0.85rem; color: #8c1c1c; font-weight: bold; background: rgba(140, 28, 28, 0.05); padding: 5px 10px; border-radius: 4px; border: 1px dashed #f5c6cb; width: 100%; display: block; text-align: center;">
                 ⚔️ 武器の持ち替え中...
@@ -181,7 +199,31 @@ function closeRangedRound() {
     <!-- DEFENSE ASSIGNMENT PANEL (High Priority overlay/warning) -->
     <div v-if="activeAttacks.length > 0 && !combatState.isOver" class="defense-overlay">
       <div class="defense-box">
-        <template v-if="combatState.pendingCover">
+        <!-- 【そらし】の割り込み画面 -->
+        <template v-if="combatState.pendingDeflect">
+          <h3 class="alert-title">🕊️ 奇跡【そらし】発動の好機！</h3>
+          <p class="alert-desc">
+            👾 <b>{{ combatState.pendingDeflect.enemy.name }}</b> からの飛び道具攻撃（目標値: <b>{{ combatState.pendingDeflect.enemy.level }}</b>）が
+            <b>{{ combatState.pendingDeflect.defenderId === 'hero' ? '主人公' : '従者' }}</b> に直撃しようとしています！
+          </p>
+
+          <div class="active-attack-row" style="flex-direction: column; align-items: stretch; gap: 15px; width: 100%;">
+            <p style="font-size: 0.85rem; color: var(--ink-light); text-align: center; margin: 0; font-style: italic;">
+              ※ 奇跡【そらし】を発動すると、幸運点1点を消費して、この被弾ダメージを完全に無効化します。(残り幸運点: <b>{{ character.subStatCurrent }}</b>)
+            </p>
+
+            <div class="assign-buttons" style="display: flex; flex-direction: column; width: 100%; gap: 10px;">
+              <button @click="executeDeflect" class="btn-ink btn-large btn-miracle" style="width: 100%; justify-content: center;">
+                🕊️ そらしを発動する (幸運1消費)
+              </button>
+              <button @click="skipDeflect" class="btn-ink btn-large btn-secondary" style="width: 100%; justify-content: center; background: rgba(0,0,0,0.05);">
+                😢 発動を見送る (通常被弾を解決)
+              </button>
+            </div>
+          </div>
+        </template>
+
+        <template v-else-if="combatState.pendingCover">
           <h3 class="alert-title">🛡️ 従者をかばう！</h3>
           <p class="alert-desc">
             従者 <b>{{ combatState.pendingCover.followerName }}</b> が被弾しました！主人公は「かばう」を使用できます。
@@ -372,7 +414,19 @@ function closeRangedRound() {
         </div>
 
         <template v-else>
-          <!-- Reaction Check (Roll prior to combat starting) -->
+          <!-- 招天発動中のパネル表示 -->
+          <div v-if="combatState.pendingHolyArrow > 0" class="holy-arrow-panel" style="border: 2px dashed #ffd54f; padding: 15px; background: #fffdf5; border-radius: 6px; text-align: center; margin-bottom: 15px; width: 100%;">
+            <p style="font-size: 1rem; font-weight: bold; color: #b78103; margin-bottom: 5px; font-family: 'Noto Serif JP', serif;">
+              ⚡ 奇跡【招天】を発動中！
+            </p>
+            <p style="font-size: 0.85rem; color: var(--ink-dark); margin: 0 0 10px 0;">
+              残り矢数: <b>{{ combatState.pendingHolyArrow }}</b> 本。<br>
+              上の出現クリーチャー一覧から、アンデッドの敵を選択して「聖なる矢を放つ」ボタンを押してください。
+            </p>
+          </div>
+
+          <template v-else>
+            <!-- Reaction Check (Roll prior to combat starting) -->
           <div v-if="isBossRoom" class="boss-disallow-panel" style="font-size: 0.9rem; font-weight: bold; color: #8c1c1c; background: rgba(140, 28, 28, 0.05); border: 1px dashed #f5c6cb; padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; text-align: center;">
             ⚠️ ボス戦のため、反応チェックやワイロによる交渉は行えません。
           </div>
@@ -406,7 +460,8 @@ function closeRangedRound() {
             </button>
           </div>
         </template>
-      </div>
+      </template>
+    </div>
 
       <!-- Round >= 1 Melee Phase Actions (e.g. Weapon Switch) -->
       <div v-else-if="isSwitchingWeapons" class="weapon-switch-box" style="border: 2px dashed #8c1c1c; padding: 20px; background: rgba(140, 28, 28, 0.05); border-radius: 6px; text-align: center; margin-bottom: 20px;">
@@ -421,7 +476,7 @@ function closeRangedRound() {
 
       <!-- Spells & Miracles (Magic / Luck archetypes) & Flee Section -->
       <template v-if="!isSwitchingWeapons">
-        <div v-if="character.subStatCurrent > 0 && activeAttacks.length === 0" class="magic-phase">
+        <div v-if="character.subStatCurrent > 0 && activeAttacks.length === 0 && combatState.pendingHolyArrow === 0" class="magic-phase">
           <h3 class="section-title">🔮 魔法・奇跡の詠唱 (残り魔力/幸運: {{ character.subStatCurrent }})</h3>
           
           <div class="spell-buttons">
@@ -464,12 +519,12 @@ function closeRangedRound() {
                 🕊️ 防衛 (+1防御バフ)
               </button>
               <button 
-                v-if="character.miracles.includes('そらし')"
-                @click="castMiracle('そらし')" 
+                v-if="character.miracles.includes('祝福')"
+                @click="castMiracle('祝福')" 
                 class="btn-ink btn-miracle"
-                :disabled="isRound0SpellDisabled"
+                :disabled="activeAttacks.length > 0"
               >
-                🕊️ そらし (射撃無効)
+                🕊️ 祝福 (状態異常治療)
               </button>
               <button 
                 v-if="character.miracles.includes('聖洗脳') && combatState.enemies.length === 1"
