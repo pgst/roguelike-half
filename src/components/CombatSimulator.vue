@@ -476,7 +476,7 @@ function closeRangedRound() {
 
       <!-- Spells & Miracles (Magic / Luck archetypes) & Flee Section -->
       <template v-if="!isSwitchingWeapons">
-        <div v-if="character.subStatCurrent > 0 && activeAttacks.length === 0 && combatState.pendingHolyArrow === 0" class="magic-phase">
+        <div v-if="['magic', 'luck'].includes(character.subStatType) && character.subStatCurrent > 0 && activeAttacks.length === 0 && combatState.pendingHolyArrow === 0" class="magic-phase">
           <h3 class="section-title">🔮 魔法・奇跡の詠唱 (残り魔力/幸運: {{ character.subStatCurrent }})</h3>
           
           <div class="spell-buttons">

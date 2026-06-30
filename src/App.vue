@@ -286,7 +286,7 @@ function startAdventure() {
     }
   }
   currentScreen.value = 'explore';
-  addLog('🧭 さあ、暗い地下迷宮へと歩みを進めましょう！ 生きて宝を持ち帰るのだ。', 'success');
+  addLog('🧭 さあ、暗い地下迷宮へと歩みを進めましょう！ 生きて宝を持ち帰るために。', 'success');
 }
 
 const logbookRef = ref<HTMLElement | null>(null);
