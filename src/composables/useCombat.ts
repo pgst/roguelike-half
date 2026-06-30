@@ -447,6 +447,11 @@ export function useCombat() {
         continue;
       }
 
+      // 遠距離戦ラウンド（第0ラウンド）では、弓兵および魔術師以外の近接従者は攻撃不可
+      if (combatState.round === 0) {
+        continue;
+      }
+
       addLog(`🛡️ 従者 ${follower.name} の援護攻撃！ (目標: ${target.name})`, 'combat');
       const roll = await rollD6(true);
       let modifier = 0;
