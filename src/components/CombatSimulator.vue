@@ -201,7 +201,7 @@ function closeRangedRound() {
       <div class="defense-box">
         <!-- 【そらし】の割り込み画面 -->
         <template v-if="combatState.pendingDeflect">
-          <h3 class="alert-title">🕊️ 奇跡【そらし】発動の好機！</h3>
+          <h3 class="alert-title">✨ 奇跡【そらし】発動の好機！</h3>
           <p class="alert-desc">
             👾 <b>{{ combatState.pendingDeflect.enemy.name }}</b> からの飛び道具攻撃（目標値: <b>{{ combatState.pendingDeflect.enemy.level }}</b>）が
             <b>{{ combatState.pendingDeflect.defenderId === 'hero' ? '主人公' : '従者' }}</b> に直撃しようとしています！
@@ -214,7 +214,7 @@ function closeRangedRound() {
 
             <div class="assign-buttons" style="display: flex; flex-direction: column; width: 100%; gap: 10px;">
               <button @click="executeDeflect" class="btn-ink btn-large btn-miracle" style="width: 100%; justify-content: center;">
-                🕊️ そらしを発動する (幸運1消費)
+                ✨ そらしを発動する (幸運1消費)
               </button>
               <button @click="skipDeflect" class="btn-ink btn-large btn-secondary" style="width: 100%; justify-content: center; background: rgba(0,0,0,0.05);">
                 😢 発動を見送る (通常被弾を解決)
@@ -516,7 +516,7 @@ function closeRangedRound() {
                 class="btn-ink btn-miracle"
                 :disabled="isRound0SpellDisabled"
               >
-                🕊️ 防衛 (+1防御バフ)
+                ✨ 防衛 (+1防御バフ)
               </button>
               <button 
                 v-if="character.miracles.includes('祝福')"
@@ -524,7 +524,7 @@ function closeRangedRound() {
                 class="btn-ink btn-miracle"
                 :disabled="activeAttacks.length > 0"
               >
-                🕊️ 祝福 (状態異常治療)
+                ✨ 祝福 (状態異常治療)
               </button>
               <button 
                 v-if="character.miracles.includes('聖洗脳') && combatState.enemies.length === 1"
@@ -532,7 +532,7 @@ function closeRangedRound() {
                 class="btn-ink btn-miracle"
                 :disabled="isRound0SpellDisabled"
               >
-                🕊️ 聖洗脳 (従者にする)
+                ✨ 聖洗脳 (従者にする)
               </button>
               <button 
                 v-if="character.miracles.includes('招天')"
@@ -540,7 +540,7 @@ function closeRangedRound() {
                 class="btn-ink btn-miracle"
                 :disabled="isRound0SpellDisabled"
               >
-                🕊️ 招天 (アンデッド光矢)
+                ✨ 招天 (アンデッド光矢)
               </button>
             </template>
           </div>

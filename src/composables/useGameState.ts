@@ -645,7 +645,7 @@ function useFood(useHolyFeast = false) {
   if (useHolyFeast) {
     character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
     heal = 3;
-    addLog('🕊️ 奇跡【聖餐】を発動！ 幸運点1を消費し、食料の回復量が3になりました。', 'success');
+    addLog('✨ 奇跡【聖餐】を発動！ 幸運点1を消費し、食料の回復量が3になりました。', 'success');
   }
 
   character.value.lifeCurrent = Math.min(character.value.lifeMax, character.value.lifeCurrent + heal);
@@ -992,7 +992,7 @@ function forgetSpell(name: string) {
     const idx = character.value.miracles.indexOf(name);
     if (idx !== -1) {
       character.value.miracles.splice(idx, 1);
-      addLog(`🕊️ 奇跡 【${name}】 を忘れました。`, 'info');
+      addLog(`✨ 奇跡 【${name}】 を忘れました。`, 'info');
       return true;
     }
   }

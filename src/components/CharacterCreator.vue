@@ -51,7 +51,7 @@ function handleCreate() {
         <label class="archetype-card" :class="{ active: subStat === 'luck' }">
           <input type="radio" v-model="subStat" value="luck" class="hidden-radio" />
           <div v-if="subStat === 'luck'" class="active-badge">✓ 選択中</div>
-          <div class="arch-header">🕊️ 幸運点</div>
+          <div class="arch-header">✨ 幸運点</div>
           <div class="arch-desc">奇跡と言祝ぎを賜る者。危機をそらす。</div>
           <div class="arch-gear">【初期装備】片手武器、鎖鎧、木盾</div>
           <div class="arch-skill">【初期技能】奇跡（任意の1種を修得）</div>

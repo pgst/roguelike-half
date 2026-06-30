@@ -865,7 +865,7 @@ export function useCombat() {
       const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
 
       if (roll === 6 || (roll !== 1 && total >= target.level)) {
-        addLog(`🕊️ 成功！ ${target.name} は改心し、【捕虜】の従者として同行することになりました！`, 'success');
+        addLog(`✨ 成功！ ${target.name} は改心し、【捕虜】の従者として同行することになりました！`, 'success');
         followers.value.push({
           id: Math.random().toString(36).substring(2, 9),
           name: `捕虜の${target.name}`,

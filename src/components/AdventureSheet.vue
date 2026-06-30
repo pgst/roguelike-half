@@ -60,7 +60,7 @@ const maxBackpackSlots = computed(() => {
       <!-- Sub-stat (副能力値) -->
       <div class="stat-card substat-highlight">
         <span class="stat-icon" v-if="character.subStatType === 'magic'">🔮</span>
-        <span class="stat-icon" v-else-if="character.subStatType === 'luck'">🕊️</span>
+        <span class="stat-icon" v-else-if="character.subStatType === 'luck'">✨</span>
         <span class="stat-icon" v-else-if="character.subStatType === 'strength'">💪</span>
         <span class="stat-icon" v-else-if="character.subStatType === 'dexterity'">🏹</span>
         
@@ -93,7 +93,7 @@ const maxBackpackSlots = computed(() => {
           class="btn-ink btn-mini btn-strength" 
           :disabled="character.food <= 0"
         >
-          🕊️ 聖餐 (+3回復, 幸運1)
+          ✨ 聖餐 (+3回復, 幸運1)
         </button>
       </div>
       <div class="supply-item alert-supply">

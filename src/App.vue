@@ -86,7 +86,7 @@ function learnSpell(name: string) {
   } else if (character.value.subStatType === 'luck') {
     if (character.value.miracles.length >= allowed) return;
     character.value.miracles.push(name);
-    addLog(`🕊️ 奇跡 【${name}】 を習得しました！`, 'success');
+    addLog(`✨ 奇跡 【${name}】 を習得しました！`, 'success');
   }
 }
 
@@ -390,7 +390,7 @@ watch(() => logs.value.length, async () => {
             <div class="ledger-row">
               <span class="row-label">
                 <span v-if="character.subStatType === 'magic'">🔮</span>
-                <span v-else-if="character.subStatType === 'luck'">🕊️</span>
+                <span v-else-if="character.subStatType === 'luck'">✨</span>
                 <span v-else-if="character.subStatType === 'strength'">💪</span>
                 <span v-else-if="character.subStatType === 'dexterity'">🏹</span>
                 <b>副能力値:</b>
@@ -444,7 +444,7 @@ watch(() => logs.value.length, async () => {
             <!-- 1. Active learning interface when there are empty slots -->
             <div v-if="canLearnSpells">
               <h3 style="margin-top: 0; font-family: 'Noto Serif JP', serif; color: var(--ink-dark); font-size: 1.1rem; border-bottom: 1px dashed #4b0082; padding-bottom: 5px;">
-                {{ character.subStatType === 'magic' ? '🔮 新たな魔術の習得' : '🕊️ 新たな奇跡の習得' }} 
+                {{ character.subStatType === 'magic' ? '🔮 新たな魔術の習得' : '✨ 新たな奇跡の習得' }} 
                 (空きスロット: {{ Math.floor(character.subStatMax / 2) - (character.subStatType === 'magic' ? character.spells.length : character.miracles.length) }}つ)
               </h3>
               <p style="font-size: 0.85rem; color: #555; margin-bottom: 15px;">
@@ -470,7 +470,7 @@ watch(() => logs.value.length, async () => {
 
             <!-- 2. Spells list (always visible if character is mage/priest) -->
             <h3 :style="{ marginTop: canLearnSpells ? '15px' : '0' }" style="font-family: 'Noto Serif JP', serif; color: var(--ink-dark); font-size: 1.1rem; border-bottom: 1px dashed #4b0082; padding-bottom: 5px; margin-bottom: 10px;">
-              {{ character.subStatType === 'magic' ? '🔮 習得済みの魔術一覧' : '🕊️ 習得済みの奇跡一覧' }} 
+              {{ character.subStatType === 'magic' ? '🔮 習得済みの魔術一覧' : '✨ 習得済みの奇跡一覧' }} 
               ({{ (character.subStatType === 'magic' ? character.spells.length : character.miracles.length) }} / {{ Math.floor(character.subStatMax / 2) }} スロット使用中)
             </h3>
             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; align-items: center;">
