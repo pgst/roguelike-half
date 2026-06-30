@@ -342,6 +342,9 @@ export function useCombat() {
 
       // Critical double attack rule (Rule 8)
       if (roll === 6) {
+        if (combatState.round === 0) {
+          combatState.hasRangedFired = false;
+        }
         addLog('✨ クリティカル成功！ 即座にもう一度攻撃を行えます！', 'success');
         return; 
       }
