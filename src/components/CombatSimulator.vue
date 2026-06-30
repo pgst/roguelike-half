@@ -431,7 +431,7 @@ function closeRangedRound() {
             ⚠️ ボス戦のため、反応チェックやワイロによる交渉は行えません。
           </div>
           <div v-else class="reaction-bribe-group">
-            <button @click="rollReactionCheck" class="btn-ink" :disabled="combatState.hasReactionChecked">🎲 反応チェックを行う</button>
+            <button @click="rollReactionCheck" class="btn-ink" :disabled="combatState.hasReactionChecked || combatState.hasRangedFired">🎲 反応チェックを行う</button>
             <button @click="payBribe(false)" class="btn-ink btn-secondary" :disabled="!combatState.isBribeAllowed || character.gold < 5">🪙 ワイロで済ませる (金貨5枚)</button>
           </div>
 
