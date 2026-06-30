@@ -206,7 +206,7 @@ const maxBackpackSlots = computed(() => {
       <div v-for="i in character.items" :key="i.id" class="bag-item">
         <span class="item-name">
           <span v-if="i.type === 'lantern'">🪔</span>
-          <span v-else-if="i.type === 'rope'">🪢</span>
+          <span v-else-if="i.type === 'rope'">➰</span>
           <span v-else>🧪</span>
           {{ i.name }} <span class="val-sub" v-if="i.value > 0">(価値:{{ i.value }}g)</span>
         </span>
