@@ -175,6 +175,10 @@ function resolveMercenary(save: boolean) {
       addLog('金貨が足りないため、彼を治療できません。', 'error');
       return;
     }
+    if (followers.value.length >= character.value.followerCurrent) {
+      addLog('従者の最大雇用枠に達しているため、これ以上従者を連れていけません！', 'error');
+      return;
+    }
     character.value.gold -= 7;
     // Recruit Swordsman
     followers.value.push({
@@ -441,7 +445,7 @@ function startGoblinFight() {
 
         <!-- Mercenary NPC -->
         <div v-else-if="activeEvent.npcType === 'mercenary' || activeEvent.title === '傷ついた傭兵'" class="button-group">
-          <button @click="resolveMercenary(true)" class="btn-ink" :disabled="character.gold < 7">💖 治療して味方にする (金貨7枚消費)</button>
+          <button @click="resolveMercenary(true)" class="btn-ink" :disabled="character.gold < 7 || followers.length >= character.followerCurrent">💖 治療して味方にする (金貨7枚消費)</button>
           <button @click="resolveMercenary(false)" class="btn-ink btn-secondary">無視して進む</button>
         </div>
 
