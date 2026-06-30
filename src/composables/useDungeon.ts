@@ -120,9 +120,6 @@ export function useDungeon() {
   async function executePerceptionHero() {
     if (!combatState.pendingPerception) return;
 
-    // Consume 1 dexterity point
-    character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
-    
     addLog('主人公が器用点【察知】を行います！ (目標値: 4)', 'info');
     const roll = await rollD6(true);
     let modifier = 0;
@@ -130,9 +127,12 @@ export function useDungeon() {
       modifier -= 2;
       addLog('暗闇のため主人公の察知判定に -2 のペナルティ！', 'error');
     }
-    const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + character.value.subStatCurrent + modifier;
+    const val = character.value.subStatCurrent; // 消費前の器用点を用いて判定
+    const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
     const success = roll === 6 || (roll !== 1 && total >= 4);
 
+    // 判定後に器用点を1点消費
+    character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
     addLog(`察知により器用点を1点消費しました。(残り: ${character.value.subStatCurrent}点)`, 'info');
 
     if (success) {

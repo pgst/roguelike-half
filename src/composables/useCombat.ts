@@ -218,44 +218,42 @@ export function useCombat() {
 
   // Escaping combat manually (Rule 42)
   async function escapeCombat() {
-    addLog('🏃 戦闘からの【逃走】を試みます！敵から無防備な一撃を受けます。', 'error');
-    combatState.isEscaping = true;
+    if (combatState.enemies.length === 0) return;
 
-    // Each enemy attacks player once for free before escaping
-    for (const enemy of combatState.enemies) {
-      for (let i = 0; i < enemy.attackCount; i++) {
-        addLog(`逃走中: ${enemy.name} からの追い打ち攻撃！`, 'combat');
-        // Let hero defend (automatically rolls or triggers damage)
-        const defRoll = await rollD6(true);
-        const skill = character.value.skillCurrent;
-        let modifier = 0;
-        if (character.value.equippedArmor) modifier += character.value.equippedArmor.modDef;
-        if (character.value.equippedShield) modifier += 1; // general shield mod
-        if (!carriesLantern.value) {
-          modifier -= 2;
-          addLog('暗闇での戦闘により防御判定に -2 のペナルティ！', 'error');
-        }
+    // 最もレベルの高い敵のレベルを目標値にする
+    const targetLevel = Math.max(...combatState.enemies.map(e => e.level));
 
-        const total = defRoll === 6 ? 99 : defRoll === 1 ? -99 : defRoll + skill + modifier;
-        if (defRoll !== 6 && (defRoll === 1 || total < enemy.level)) {
-          // Hit
-          character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
-          addLog(`💥 防御失敗！ 主人公は1点ダメージを受けた。(残り生命力: ${character.value.lifeCurrent})`, 'damage');
-          if (character.value.lifeCurrent <= 0) {
-            handleDeath();
-            return;
-          }
-        } else {
-          addLog('🛡️ 追い打ち攻撃を回避！', 'success');
-        }
-      }
+    addLog(`🏃 戦闘からの【逃走】を試みます！逃亡判定ロール... (目標値: ${targetLevel})`, 'info');
+
+    const roll = await rollD6(true);
+    const skill = character.value.skillCurrent;
+    let modifier = 0;
+    if (!carriesLantern.value) {
+      modifier -= 2;
+      addLog('暗闇のため逃亡判定に -2 のペナルティ！', 'error');
     }
 
-    // Set escaped result for manual confirmation
-    combatState.isOver = true;
-    combatState.resultType = 'escaped';
-    (combatState as any).activeAttacks = [];
-    addLog(`🏃 無事に逃走しました！「結果を承認」して1つ前の部屋に戻ってください。`, 'success');
+    const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + skill + modifier;
+    const success = roll === 6 || (roll !== 1 && total >= targetLevel);
+
+    if (success) {
+      combatState.isOver = true;
+      combatState.resultType = 'escaped';
+      (combatState as any).activeAttacks = [];
+      addLog(`🏃 逃亡に成功しました！「結果を承認」して1つ前の部屋に戻ってください。(ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${targetLevel})`, 'success');
+    } else {
+      // Damage hero and continue combat
+      character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
+      addLog(`💥 逃亡失敗！敵に回り込まれてダメージを被りました。戦闘が続行されます。(ロール計: ${roll === 1 ? 'ファンブル' : total} < ${targetLevel})`, 'error');
+
+      if (character.value.lifeCurrent <= 0) {
+        handleDeath();
+        return;
+      }
+
+      // 逃亡失敗したため、敵の手番を実行する
+      await executeEnemyAttacks();
+    }
   }
 
   // Player attacks an enemy in close combat (Rule 36)
