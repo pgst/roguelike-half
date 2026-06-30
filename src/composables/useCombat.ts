@@ -24,6 +24,8 @@ export function useCombat() {
 
   // Check if enemies should retreat (half health or count, rule 38)
   function checkEnemyRetreat() {
+    if (combatState.isOver) return;
+    if (combatState.enemies.length === 0) return;
     if (!activeEvent.value) return;
     
     // Check if the battle event is "Fight to Death" (死ぬまで戦う)
@@ -218,6 +220,7 @@ export function useCombat() {
 
   // Escaping combat manually (Rule 42)
   async function escapeCombat() {
+    if (combatState.isOver) return;
     if (combatState.enemies.length === 0) return;
 
     // 最もレベルの高い敵のレベルを目標値にする
@@ -258,6 +261,7 @@ export function useCombat() {
 
   // Player attacks an enemy in close combat (Rule 36)
   async function playerAttack(enemyId: string, isAllOut = false) {
+    if (combatState.isOver) return;
     const enemyIndex = combatState.enemies.findIndex(e => e.id === enemyId);
     if (enemyIndex === -1) return;
     const enemy = combatState.enemies[enemyIndex];
@@ -369,6 +373,7 @@ export function useCombat() {
 
   // Follower combatant attacks (Rule 33)
   async function executeFollowerAttacks() {
+    if (combatState.isOver) return;
     const combatants = followers.value.filter(f => f.isCombatant && f.lifeCurrent > 0);
     for (const follower of combatants) {
       if (combatState.enemies.length === 0) break;
@@ -486,6 +491,7 @@ export function useCombat() {
 
   // Enemy Attacks Turn - distributes and asks player to assign
   async function executeEnemyAttacks() {
+    if (combatState.isOver) return;
     combatState.round++;
     combatState.hasCoveredInRound = false;
     addLog(`--- ラウンド ${combatState.round}: クリーチャーの反撃フェーズ ---`, 'info');
@@ -634,6 +640,7 @@ export function useCombat() {
 
   // Cast spells in Round 0 or close combat (Rule 19)
   async function castSpell(spellName: string, targetEnemyId?: string) {
+    if (combatState.isOver) return;
     if (character.value.spells.length === 0) return;
     if (character.value.subStatCurrent < 1) {
       addLog('魔術点が足りないため、呪文を唱えられません！', 'error');
@@ -809,6 +816,7 @@ export function useCombat() {
 
   // Cast miracles (Rule 20)
   async function castMiracle(miracleName: string, _targetEnemyId?: string) {
+    if (combatState.isOver) return;
     if (character.value.miracles.length === 0) return;
     if (character.value.subStatCurrent < 1) {
       addLog('幸運点が足りないため、奇跡を発動できません！', 'error');
@@ -962,6 +970,7 @@ export function useCombat() {
 
   // 奇跡【招天】の光の矢を1本放つ
   async function fireHolyArrow(targetEnemyId: string) {
+    if (combatState.isOver) return;
     if (combatState.pendingHolyArrow <= 0) return;
     const target = combatState.enemies.find(e => e.id === targetEnemyId);
     if (!target) return;
@@ -1014,6 +1023,7 @@ export function useCombat() {
 
   // End Combat and trigger treasure reward or escape
   function endCombat(isVictory: boolean, getLoot = true) {
+    if (combatState.isOver) return;
     (combatState as any).activeAttacks = [];
     combatState.isOver = true;
 
@@ -1028,6 +1038,7 @@ export function useCombat() {
   }
 
   function endCombatPeaceful(text = '敵と争うことなく、穏便に交渉するか、敵の撤退に成功しました。') {
+    if (combatState.isOver) return;
     (combatState as any).activeAttacks = [];
     combatState.isOver = true;
     combatState.resultType = 'peaceful';
