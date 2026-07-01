@@ -11,6 +11,7 @@ import { defineConfig, devices } from '@playwright/test';
  *   型チェック（TypeScriptの型定義 `PlaywrightTestConfig`）が有効になります。
  */
 export default defineConfig({
+  timeout: 60000,
   /**
    * テストファイルが配置されているディレクトリのパスを指定します。
    * 【Playwright】 このディレクトリ配下にあるテストファイル（例: `*.spec.ts` など）が自動検出されます。

@@ -15,7 +15,8 @@ export function useDungeon() {
     clearDiceTray,
     activeScenario,
     carriesLantern,
-    followers
+    followers,
+    playerActiveStatusEffectRules
   } = useGameState();
 
   // Action: Explore next room
@@ -200,6 +201,14 @@ export function useDungeon() {
       modifier -= 2;
       addLog('暗闇での探索により判定に -2 のペナルティ！', 'error');
     }
+
+    // Apply status effect modifiers
+    playerActiveStatusEffectRules.value.forEach(rule => {
+      if (rule.modSkill) {
+        modifier += rule.modSkill;
+        addLog(`状態異常ペナルティにより判定に ${rule.modSkill} の修正が入ります。`, 'error');
+      }
+    });
 
     // Armor bonuses
     if (stat === 'dexterity' && character.value.equippedArmor) {

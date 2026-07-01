@@ -311,6 +311,48 @@ const isSwitchingWeapons = computed(() => {
   return combatState.round === 1 && combatState.playerHasFiredRanged && !hasSwordbearer.value;
 });
 
+const getStatusEffectRule = (effectName: string): StatusEffectRule | null => {
+  if (activeScenario.value && activeScenario.value.statusEffectRules) {
+    const rules = activeScenario.value.statusEffectRules;
+    if (rules[effectName]) {
+      return rules[effectName];
+    }
+  }
+  // Fallback defaults
+  const defaults: Record<string, StatusEffectRule> = {
+    '呪い': {
+      description: 'すべての判定ロールに -1 のペナルティを受けます。',
+      modAttack: -1,
+      modDefense: -1,
+      modSkill: -1
+    },
+    '麻痺': {
+      description: '戦闘中に攻撃・魔法を行うことができません。',
+      preventsAttack: true,
+      preventsCover: true
+    },
+    '石化': {
+      description: '体が完全に石化し、一切の行動ができません。防御判定は自動失敗します。',
+      preventsAttack: true,
+      preventsDefense: true,
+      preventsMagic: true,
+      preventsCover: true
+    }
+  };
+  return defaults[effectName] || null;
+};
+
+const playerActiveStatusEffectRules = computed<StatusEffectRule[]>(() => {
+  const list: StatusEffectRule[] = [];
+  if (character.value.statusEffects) {
+    character.value.statusEffects.forEach(eff => {
+      const rule = getStatusEffectRule(eff);
+      if (rule) list.push(rule);
+    });
+  }
+  return list;
+});
+
 // Follower purchasing logic
 function buyFollower(type: Follower['type'], attrib: 'strike' | 'slash' = 'strike', spellName: string = '炎球'): boolean {
   // Check follower slots
@@ -1036,6 +1078,8 @@ export function useGameState() {
     checkpointFollowerMax,
     checkpointSpells,
     checkpointMiracles,
+    getStatusEffectRule,
+    playerActiveStatusEffectRules,
 
     // Utility functions
     addLog,

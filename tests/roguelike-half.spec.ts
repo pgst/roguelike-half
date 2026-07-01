@@ -35,6 +35,19 @@ async function safeClick(locator: Locator, description: string, postWaitMs = 150
   return false;
 }
 
+async function disableAnimations(page: any) {
+  await page.addStyleTag({
+    content: `
+      *, *::before, *::after {
+        transition: none !important;
+        animation: none !important;
+        transition-duration: 0s !important;
+        animation-duration: 0s !important;
+      }
+    `
+  });
+}
+
 /**
  * ゲームのプレイを最後まで自動操作で完走できるかを検証するテストケースです。
  * 
@@ -59,6 +72,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
    * 【Playwright】 `playwright.config.ts` で設定された `baseURL` を起点とした相対パス（`/`）を指定しています。
    */
   await page.goto('/');
+  await disableAnimations(page);
 
   // 【テスト設計】 無限ループに陥るのを防ぐためのセーフティリミットです。
   const maxActions = 250; // 実際のクリックを伴うアクションの上限回数

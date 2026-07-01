@@ -116,6 +116,17 @@ export interface DungeonEvent {
   statusEffect?: string; // 【追加】 罠によって受ける状態異常（例: '呪い', '石化', '麻痺'）
 }
 
+export interface StatusEffectRule {
+  description: string;
+  modAttack?: number;   // 攻撃判定へのペナルティ (例: -1)
+  modDefense?: number;  // 防御判定へのペナルティ (例: -1)
+  modSkill?: number;    // スキル/能力値判定へのペナルティ (例: -1)
+  preventsAttack?: boolean;  // 戦闘時に攻撃不可
+  preventsDefense?: boolean; // 戦闘時に防御判定自動失敗
+  preventsMagic?: boolean;   // 魔法・奇跡の詠唱不可
+  preventsCover?: boolean;   // かばう行動不可
+}
+
 export interface Scenario {
   id: string;
   title: string;
@@ -124,5 +135,6 @@ export interface Scenario {
   totalRoomsToClear: number;
   d66EventTable: Record<string, DungeonEvent>;
   bossEvent: DungeonEvent;
+  statusEffectRules?: Record<string, StatusEffectRule>; // 【追加】 シナリオ固有の状態異常ルール定義
 }
 

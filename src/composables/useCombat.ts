@@ -14,7 +14,8 @@ export function useCombat() {
     totalRoomsToClear,
     handleDeath,
     clearDiceTray,
-    carriesLantern
+    carriesLantern,
+    playerActiveStatusEffectRules
   } = useGameState();
 
   // Helper: check if enemy group is Undead, Golem, etc.
@@ -272,6 +273,15 @@ export function useCombat() {
       addLog('第0ラウンドの射撃攻撃が完了しました。', 'info');
     }
 
+    let isPrevented = false;
+    playerActiveStatusEffectRules.value.forEach(rule => {
+      if (rule.preventsAttack) {
+        addLog(`⚠️ 状態異常により攻撃行動を行うことができません！ (理由: ${rule.description})`, 'error');
+        isPrevented = true;
+      }
+    });
+    if (isPrevented) return;
+
     addLog(`⚔️ ${enemy.name} への攻撃ロール！`, 'combat');
     
     // Choose stat
@@ -302,6 +312,18 @@ export function useCombat() {
       modifier -= 2;
       addLog('暗闇での戦闘により攻撃判定に -2 のペナルティ！', 'error');
     }
+
+    // Apply status effect modifiers
+    playerActiveStatusEffectRules.value.forEach(rule => {
+      if (rule.modAttack) {
+        modifier += rule.modAttack;
+        addLog(`状態異常ペナルティにより攻撃判定に ${rule.modAttack} の修正が入ります。`, 'error');
+      }
+      if (rule.modSkill) {
+        modifier += rule.modSkill;
+        addLog(`状態異常ペナルティにより攻撃判定に ${rule.modSkill} の修正が入ります。`, 'error');
+      }
+    });
 
     // Weapon modifiers
     if (character.value.equippedWeapon) {
@@ -374,7 +396,11 @@ export function useCombat() {
   // Follower combatant attacks (Rule 33)
   async function executeFollowerAttacks() {
     if (combatState.isOver) return;
-    const combatants = followers.value.filter(f => f.isCombatant && f.lifeCurrent > 0);
+    const combatants = followers.value.filter(f => {
+      const isAlive = f.isCombatant && f.lifeCurrent > 0;
+      const isParalyzedOrPetrified = f.statusEffects && (f.statusEffects.includes('麻痺') || f.statusEffects.includes('石化'));
+      return isAlive && !isParalyzedOrPetrified;
+    });
     for (const follower of combatants) {
       if (combatState.enemies.length === 0) break;
       const target = combatState.enemies[0]; // Auto-target first enemy
@@ -581,28 +607,56 @@ export function useCombat() {
       defName = f.name;
     }
 
-    addLog(`🛡️ ${defName} が ${enemy.name} の攻撃を防御します！ (目標値: ${enemy.level})`, 'combat');
-    const roll = await rollD6(true);
-    let modifier = 0;
-
+    let isPrevented = false;
     if (isHero) {
-      if (character.value.equippedArmor) modifier += character.value.equippedArmor.modDef;
-      if (character.value.equippedShield) modifier += 1; // shield armor block
-      // Protection Miracle buff
-      modifier += combatState.buffs.defenseBonus;
-    } else {
-      const f = followers.value.find(fol => fol.id === defenderId);
-      if (f && f.isCombatant) {
-        modifier += combatState.buffs.defenseBonus;
-      }
-    }
-    if (!carriesLantern.value) {
-      modifier -= 2;
-      addLog(`暗闇のため${defName}の防御判定に -2 のペナルティ！`, 'error');
+      playerActiveStatusEffectRules.value.forEach(rule => {
+        if (rule.preventsDefense) {
+          addLog(`⚠️ 状態異常により防御することができません！防御は自動失敗となります。 (理由: ${rule.description})`, 'error');
+          isPrevented = true;
+        }
+      });
     }
 
-    const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + skill + modifier;
-    const defSuccess = roll === 6 || (roll !== 1 && total >= enemy.level);
+    let roll = 1;
+    let modifier = 0;
+    let total = -99;
+    let defSuccess = false;
+
+    if (!isPrevented) {
+      addLog(`🛡️ ${defName} が ${enemy.name} の攻撃を防御します！ (目標値: ${enemy.level})`, 'combat');
+      roll = await rollD6(true);
+      if (isHero) {
+        if (character.value.equippedArmor) modifier += character.value.equippedArmor.modDef;
+        if (character.value.equippedShield) modifier += 1; // shield armor block
+        // Protection Miracle buff
+        modifier += combatState.buffs.defenseBonus;
+        
+        // Apply status effect modifiers
+        playerActiveStatusEffectRules.value.forEach(rule => {
+          if (rule.modDefense) {
+            modifier += rule.modDefense;
+            addLog(`状態異常ペナルティにより防御判定に ${rule.modDefense} の修正が入ります。`, 'error');
+          }
+          if (rule.modSkill) {
+            modifier += rule.modSkill;
+            addLog(`状態異常ペナルティにより防御判定に ${rule.modSkill} の修正が入ります。`, 'error');
+          }
+        });
+      } else {
+        const f = followers.value.find(fol => fol.id === defenderId);
+        if (f && f.isCombatant) {
+          modifier += combatState.buffs.defenseBonus;
+        }
+      }
+      if (!carriesLantern.value) {
+        modifier -= 2;
+        addLog(`暗闇のため${defName}の防御判定に -2 のペナルティ！`, 'error');
+      }
+      total = roll === 6 ? 99 : roll === 1 ? -99 : roll + skill + modifier;
+      defSuccess = roll === 6 || (roll !== 1 && total >= enemy.level);
+    } else {
+      addLog(`💥 自動被弾: ${defName} は防御行動を取れず、攻撃が直撃しました。`, 'error');
+    }
 
     if (isStrengthDef) {
       character.value.subStatCurrent--;
@@ -683,6 +737,15 @@ export function useCombat() {
       addLog('魔術点が足りないため、呪文を唱えられません！', 'error');
       return;
     }
+
+    let isMagicPrevented = false;
+    playerActiveStatusEffectRules.value.forEach(rule => {
+      if (rule.preventsMagic) {
+        addLog(`⚠️ 状態異常により魔法を唱えることができません！ (理由: ${rule.description})`, 'error');
+        isMagicPrevented = true;
+      }
+    });
+    if (isMagicPrevented) return;
 
     addLog(`✨ 呪文【${spellName}】を唱えます！`, 'success');
     
@@ -859,6 +922,15 @@ export function useCombat() {
       addLog('幸運点が足りないため、奇跡を発動できません！', 'error');
       return;
     }
+
+    let isMagicPrevented = false;
+    playerActiveStatusEffectRules.value.forEach(rule => {
+      if (rule.preventsMagic) {
+        addLog(`⚠️ 状態異常により奇跡を行使することができません！ (理由: ${rule.description})`, 'error');
+        isMagicPrevented = true;
+      }
+    });
+    if (isMagicPrevented) return;
 
     addLog(`✨ 奇跡【${miracleName}】を発動！`, 'success');
     character.value.subStatCurrent--;
@@ -1371,6 +1443,18 @@ export function useCombat() {
     const queue = (combatState as any).activeAttacks || [];
     const idx = queue.findIndex((a: any) => a.id === attackId);
 
+    let isCoverPrevented = false;
+    playerActiveStatusEffectRules.value.forEach(rule => {
+      if (rule.preventsCover) {
+        addLog(`⚠️ 状態異常により従者をかばうことができません！ (理由: ${rule.description})`, 'error');
+        isCoverPrevented = true;
+      }
+    });
+    if (isCoverPrevented) {
+      cancelCover();
+      return;
+    }
+
     // Roll defense for hero
     addLog(`🛡️ 主人公が身を挺して 従者 ${followerName} をかばいます！ (目標値: ${enemyLevel})`, 'combat');
     const roll = await rollD6(true);
@@ -1379,6 +1463,18 @@ export function useCombat() {
     if (character.value.equippedArmor) modifier += character.value.equippedArmor.modDef;
     if (character.value.equippedShield) modifier += 1;
     modifier += combatState.buffs.defenseBonus;
+
+    // Apply status effect modifiers to cover check
+    playerActiveStatusEffectRules.value.forEach(rule => {
+      if (rule.modDefense) {
+        modifier += rule.modDefense;
+        addLog(`状態異常ペナルティにより防御判定に ${rule.modDefense} の修正が入ります。`, 'error');
+      }
+      if (rule.modSkill) {
+        modifier += rule.modSkill;
+        addLog(`状態異常ペナルティにより防御判定に ${rule.modSkill} の修正が入ります。`, 'error');
+      }
+    });
     if (!carriesLantern.value) {
       modifier -= 2;
       addLog(`暗闇のため主人公の防御判定に -2 のペナルティ！`, 'error');

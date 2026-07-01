@@ -322,5 +322,25 @@
     "enemies": [
       { "name": "魔将アラザス", "level": 6, "lifeMax": 5, "lifeCurrent": 5, "attackCount": 2, "tags": ["strong", "undead"], "count": 1 }
     ]
+  },
+  "statusEffectRules": {
+    "呪い": {
+      "description": "呪いにより、すべての判定ロール（攻撃・防御・能力値判定）に -1 のペナルティを受けます。",
+      "modAttack": -1,
+      "modDefense": -1,
+      "modSkill": -1
+    },
+    "麻痺": {
+      "description": "麻痺により、戦闘中に攻撃（物理・魔法）を行うことができません。また、かばう行動も不可となります。",
+      "preventsAttack": true,
+      "preventsCover": true
+    },
+    "石化": {
+      "description": "体が石化し、一切の行動（攻撃、防御、魔法、かばう）ができません。被弾時の防御判定は自動的に失敗します。",
+      "preventsAttack": true,
+      "preventsDefense": true,
+      "preventsMagic": true,
+      "preventsCover": true
+    }
   }
 }
