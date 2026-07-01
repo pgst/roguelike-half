@@ -125,8 +125,17 @@ const hireableFollowers = [
   { type: 'scout', name: '斥候', cost: 5, desc: '非戦闘。察知可能。金貨5枚。' },
   { type: 'lantern', name: 'ランタン持ち', cost: 0, desc: '非戦闘。明かり提供。無料。' },
   { type: 'swordbearer', name: '太刀持ち', cost: 0, desc: '非戦闘。武器即時持替。無料。' },
-  { type: 'porter', name: '荷物持ち', cost: 0, desc: '非戦闘。バッグ拡張。無料。' },
+  { type: 'porter', name: '荷物持ち', cost: 0, desc: '非戦闘.バッグ拡張。無料。' },
 ];
+
+const selectedFollowerAttrib = ref<Record<string, 'strike' | 'slash'>>({
+  soldier: 'strike',
+  swordsman: 'strike',
+  archer: 'slash',
+  mage: 'strike'
+});
+
+const selectedMageSpell = ref('炎球');
 
 function buyWeapon(w: Weapon) {
   if (character.value.gold < w.goldCost) return;
@@ -555,9 +564,31 @@ watch(() => logs.value.length, async () => {
                   <div v-for="f in hireableFollowers" :key="f.name" style="display: flex; flex-direction: column; gap: 3px; border-bottom: 1px dashed #e8e0d4; padding-bottom: 6px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold;">
                       <span>{{ f.name }} <span style="font-weight: normal; color: #705844; font-size: 0.75rem;">(費用: {{ f.cost }}g)</span></span>
-                      <button @click="buyFollower(f.type as any)" class="btn-ink btn-mini" :disabled="character.gold < f.cost || followers.length >= character.followerCurrent">雇用</button>
+                      <button @click="buyFollower(f.type as any, selectedFollowerAttrib[f.type] || 'strike', f.type === 'mage' ? selectedMageSpell : undefined)" class="btn-ink btn-mini" :disabled="character.gold < f.cost || followers.length >= character.followerCurrent">雇用</button>
                     </div>
                     <div style="font-size: 0.7rem; color: #8c715c; line-height: 1.2;">{{ f.desc }}</div>
+
+                    <!-- Weapon Attribute selection (Soldier, Swordsman, Archer, Mage) -->
+                    <div v-if="['soldier', 'swordsman', 'archer', 'mage'].includes(f.type)" style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; margin-top: 2px;">
+                      <span style="color: #705844;">武器特性:</span>
+                      <label style="display: inline-flex; align-items: center; gap: 2px; cursor: pointer;">
+                        <input type="radio" :name="'attrib-' + f.type" value="strike" v-model="selectedFollowerAttrib[f.type]" /> 打撃
+                      </label>
+                      <label style="display: inline-flex; align-items: center; gap: 2px; cursor: pointer;">
+                        <input type="radio" :name="'attrib-' + f.type" value="slash" v-model="selectedFollowerAttrib[f.type]" /> 斬撃
+                      </label>
+                    </div>
+
+                    <!-- Mage spell selection -->
+                    <div v-if="f.type === 'mage'" style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; margin-top: 2px;">
+                      <span style="color: #705844;">習得魔術:</span>
+                      <select v-model="selectedMageSpell" style="padding: 1px 3px; font-size: 0.7rem; border: 1px solid #c2b09a; background: #faf8f5; border-radius: 2px; color: var(--ink-dark);">
+                        <option value="炎球">炎球 (1点ダメージ)</option>
+                        <option value="気絶">気絶 (弱い敵眠らせ)</option>
+                        <option value="氷槍">氷槍 (2点ダメージ)</option>
+                        <option value="速撃">速撃 (先制奪取)</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>

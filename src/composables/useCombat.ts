@@ -382,7 +382,8 @@ export function useCombat() {
       // Mage Follower spellcasting (Rule 33)
       if (follower.type === 'mage' && follower.magicCurrent !== undefined && follower.magicCurrent > 0) {
         follower.magicCurrent--;
-        addLog(`🔮 従者の魔術師 ${follower.name} が呪文 [炎球] を唱えた！ (魔術点消費。残り: ${follower.magicCurrent})`, 'success');
+        const spellName = (follower.magicList && follower.magicList.length > 0) ? follower.magicList[0] : '炎球';
+        addLog(`🔮 従者の魔術師 ${follower.name} が呪文 [${spellName}] を唱えた！ (魔術点消費。残り: ${follower.magicCurrent})`, 'success');
         
         const spellRoll = await rollD6(true);
         let modifier = 0;
@@ -393,17 +394,53 @@ export function useCombat() {
         const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0 + modifier;
         const spellHit = spellRoll === 6 || (spellRoll !== 1 && spellTotal >= target.level);
         
-        if (spellHit) {
-          target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
-          addLog(`🎯 炎球が命中！ ${target.name} に1点のダメージ。 (ロール計: ${spellRoll === 6 ? 'クリティカル' : spellTotal})`, 'success');
-          if (target.lifeCurrent <= 0) {
-            addLog(`💀 ${target.name} は崩れ落ちた。`, 'success');
-            combatState.enemies.shift();
+        if (spellName === '気絶') {
+          if (!target.tags.includes('weak')) {
+            addLog('【気絶】は「弱いクリーチャー」にしか効果がありません。通常攻撃に切り替えます。', 'error');
+            follower.magicCurrent++; // refund
+            // Fall through to normal attack
+          } else if (hasTag(target, 'undead') || hasTag(target, 'golem') || hasTag(target, 'plant')) {
+            addLog('アンデッドやゴーレム、植物などには【気絶】の効果はありません！', 'error');
+            continue;
+          } else {
+            if (spellHit) {
+              addLog(`💤 成功！ ${target.name} は深い眠りに落ちた。(撃破扱い)`, 'success');
+              combatState.enemies.shift();
+            } else {
+              addLog(`💨 呪文は抵抗された！`, 'error');
+            }
+            continue;
           }
+        } else if (spellName === '氷槍') {
+          if (spellHit) {
+            target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
+            addLog(`❄️ 直撃！ ${target.name} に極大の2点ダメージ！`, 'success');
+            if (target.lifeCurrent <= 0) {
+              addLog(`💀 ${target.name} は砕け散った！`, 'success');
+              combatState.enemies.shift();
+            }
+          } else {
+            addLog(`💨 氷槍は回避された。`, 'error');
+          }
+          continue;
+        } else if (spellName === '速撃') {
+          combatState.hasQuickStrikeActive = true;
+          addLog('【速撃】の効果により、戦闘の主導権を奪取します！', 'success');
+          continue;
         } else {
-          addLog(`💨 炎球は ${target.name} に回避された。(ロール計: ${spellRoll === 1 ? 'ファンブル' : spellTotal} < ${target.level})`, 'info');
+          // Default: 炎球
+          if (spellHit) {
+            target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
+            addLog(`🎯 炎球が命中！ ${target.name} に1点のダメージ。 (ロール計: ${spellRoll === 6 ? 'クリティカル' : spellTotal})`, 'success');
+            if (target.lifeCurrent <= 0) {
+              addLog(`💀 ${target.name} は崩れ落ちた。`, 'success');
+              combatState.enemies.shift();
+            }
+          } else {
+            addLog(`💨 炎球は ${target.name} に回避された。(ロール計: ${spellRoll === 1 ? 'ファンブル' : spellTotal} < ${target.level})`, 'info');
+          }
+          continue;
         }
-        continue;
       }
 
       // Archer specific rules (Rule 271)

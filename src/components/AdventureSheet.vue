@@ -240,7 +240,9 @@ const maxBackpackSlots = computed(() => {
         </div>
         <div class="fol-stats">
           <span>技量: {{ f.skill }} | 生命: {{ f.lifeCurrent }}/{{ f.lifeMax }}</span>
+          <span v-if="['soldier', 'swordsman', 'archer', 'mage'].includes(f.type)"> | 属性: {{ f.weaponAttribute === 'strike' ? '打撃' : '斬撃' }}</span>
           <span v-if="f.type === 'mage'"> | 魔術: {{ f.magicCurrent }}/{{ f.magicMax }}</span>
+          <span v-if="f.type === 'mage'"> | 習得: {{ f.magicList && f.magicList.length ? f.magicList.join(', ') : 'なし' }}</span>
         </div>
         <div class="fol-desc">{{ f.description }}</div>
         <button @click="dismissFollower(f.id)" class="btn-ink btn-mini dismiss-btn">解雇</button>

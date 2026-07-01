@@ -312,7 +312,7 @@ const isSwitchingWeapons = computed(() => {
 });
 
 // Follower purchasing logic
-function buyFollower(type: Follower['type'], attrib: 'strike' | 'slash' = 'strike'): boolean {
+function buyFollower(type: Follower['type'], attrib: 'strike' | 'slash' = 'strike', spellName: string = '炎球'): boolean {
   // Check follower slots
   const activeFollowerCount = followers.value.length;
   if (activeFollowerCount >= character.value.followerCurrent) {
@@ -335,7 +335,7 @@ function buyFollower(type: Follower['type'], attrib: 'strike' | 'slash' = 'strik
         lifeCurrent: 1,
         weaponAttribute: attrib,
         goldCost: 0,
-        description: '戦闘に参加する戦う従者。技量0、生命1。無料。',
+        description: `戦闘に参加する戦う従者。技量0、生命1。無料。(属性: ${attrib === 'strike' ? '打撃' : '斬撃'})`,
       };
       break;
     case 'swordsman':
@@ -349,7 +349,7 @@ function buyFollower(type: Follower['type'], attrib: 'strike' | 'slash' = 'strik
         lifeCurrent: 1,
         weaponAttribute: attrib,
         goldCost: 7,
-        description: '戦闘に参加する戦う従者。技量1、生命1。金貨7枚。',
+        description: `戦闘に参加する戦う従者。技量1、生命1。金貨7枚。(属性: ${attrib === 'strike' ? '打撃' : '斬撃'})`,
       };
       break;
     case 'archer':
@@ -361,9 +361,9 @@ function buyFollower(type: Follower['type'], attrib: 'strike' | 'slash' = 'strik
         skill: 0,
         lifeMax: 1,
         lifeCurrent: 1,
-        weaponAttribute: 'slash',
+        weaponAttribute: attrib,
         goldCost: 5,
-        description: '戦う従者。Round 0に射撃(+1修正)。接近戦時は軽い武器で攻撃力-1。',
+        description: `戦う従者。Round 0に射撃(+1修正)。接近戦時(${attrib === 'strike' ? '打撃' : '斬撃'})は軽い武器で攻撃力-1。`,
       };
       break;
     case 'mage':
@@ -377,10 +377,10 @@ function buyFollower(type: Follower['type'], attrib: 'strike' | 'slash' = 'strik
         lifeCurrent: 1,
         magicMax: 1,
         magicCurrent: 1,
-        magicList: ['気絶'], // starting spell
-        weaponAttribute: 'strike',
+        magicList: [spellName],
+        weaponAttribute: attrib,
         goldCost: 5,
-        description: '戦う従者。魔術点1。基礎魔術を1つ覚えられる。軽い武器(-1)。',
+        description: `戦う従者。魔術点1。呪文【${spellName}】を修得。接近戦時(${attrib === 'strike' ? '打撃' : '斬撃'})は攻撃力-1。`,
       };
       break;
     case 'lantern':

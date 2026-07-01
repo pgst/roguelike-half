@@ -264,6 +264,8 @@ function startGoblinFight() {
   combatState.round = 0;
   combatState.log = [];
   combatState.hasRangedFired = false;
+  combatState.playerHasFiredRanged = false;
+  combatState.archerHasFiredRanged = false;
   combatState.buffs.defenseBonus = 0;
   combatState.buffs.damageIgnoreCount = 0;
   combatState.isEscaping = false;
