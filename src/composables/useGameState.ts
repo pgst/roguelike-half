@@ -1,5 +1,5 @@
 import { ref, reactive, computed, watch } from 'vue';
-import type { Character, Follower, Enemy, Weapon, Armor, Shield, GeneralItem, DungeonEvent, Scenario } from '../types';
+import type { Character, Follower, Enemy, Weapon, Armor, Shield, GeneralItem, DungeonEvent, Scenario, StatusEffectRule } from '../types';
 
 // Load Scenarios
 const scenarioModules = import.meta.glob<{ default: any }>('../data/scenarios/*.json', { eager: true });
