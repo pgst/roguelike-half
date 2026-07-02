@@ -781,6 +781,7 @@ function restoreStatsAfterAdventure() {
   character.value.skillCurrent = character.value.skillMax;
   character.value.lifeCurrent = character.value.lifeMax;
   character.value.subStatCurrent = character.value.subStatMax;
+  character.value.statusEffects = []; // 町に戻った際にすべての状態異常を治療
   potionUsedThisAdventure = false;
   // Restore follower mages' mana
   followers.value.forEach(f => {

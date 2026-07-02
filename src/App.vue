@@ -30,7 +30,8 @@ const {
   equipArmor,
   addLog,
   clearLogs,
-  forgetSpell
+  forgetSpell,
+  activeScenario
 } = useGameState();
 
 const ALL_SPELLS = [
@@ -189,7 +190,8 @@ function proceedToNextAdventure() {
   character.value.exp += 1;
   character.value.level += 1;
   addLog(`🎉 ダンジョンクリア報酬！ 経験値 +1。新しいレベルは ${character.value.level} です。`, 'success');
-  currentScreen.value = 'scenario_select';
+  activeScenario.value = null; // シナリオの選択状態をクリア
+  currentScreen.value = 'levelup'; // 直接レベルアップ/街の市場画面へ遷移
 }
 
 // Re-try after death (Rule 41)
@@ -513,6 +515,10 @@ watch(() => logs.value.length, async () => {
           
           <div class="town-market">
             <h3 class="ledger-title" style="font-size: 1.1rem; border-bottom: 1px dashed var(--ink-dark); margin-top: 10px;">🛒 街の市場 ＆ 従者スカウト</h3>
+            <div v-if="activeScenario" style="margin-bottom: 10px; font-size: 0.85rem; background: rgba(92, 75, 61, 0.08); padding: 8px 12px; border-radius: 4px; border-left: 3px solid var(--ink-dark); display: flex; justify-content: space-between; align-items: center;">
+              <span>🧭 挑戦中のシナリオ: <b>{{ activeScenario.title }}</b> (全 {{ activeScenario.totalRoomsToClear }} 部屋 + 決戦)</span>
+              <button @click="currentScreen = 'scenario_select'" class="btn-ink btn-mini" style="font-size: 0.75rem;">シナリオを変更する</button>
+            </div>
             <p class="ledger-desc" style="font-size: 0.85rem; margin-bottom: 15px;">
               冒険へ旅立つ前に、初期の金貨を使って基礎的な装備の購入や従者を雇うことができます。
               <br/>
@@ -598,8 +604,11 @@ watch(() => logs.value.length, async () => {
           <div class="divider"></div>
 
           <div class="actions">
-            <button @click="startAdventure" class="btn-ink btn-large">
-              🧭 冒険を開始する (迷宮の探索へ)
+            <button v-if="!activeScenario" @click="currentScreen = 'scenario_select'" class="btn-ink btn-large btn-select-scenario">
+              🗺️ 次のシナリオを選択する (シナリオ選択へ)
+            </button>
+            <button v-else @click="startAdventure" class="btn-ink btn-large btn-start-adventure">
+              🧭 冒険を開始する ({{ activeScenario.title }} の探索へ)
             </button>
           </div>
         </div>
