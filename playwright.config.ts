@@ -64,7 +64,7 @@ export default defineConfig({
      * テスト内で `await page.goto('/')` のように相対パスで遷移する際のベースとなるURLです。
      * 【Playwright】 ローカル開発サーバーのURL（`http://localhost:5173`）を起点としてテストを実行します。
      */
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://127.0.0.1:5173',
 
     /**
      * テスト実行時のトレース（実行ログ、スクリーンショット、DOMのスナップショットなど）をどのように収集するかを指定します。
@@ -126,7 +126,7 @@ export default defineConfig({
      * サーバーの起動完了を検知するために Playwright が監視するURLです。
      * 【Playwright】 このURLへの接続が成功した段階で、開発サーバーが起動したと判断してテストを開始します。
      */
-    url: 'http://localhost:5173',
+    url: 'http://127.0.0.1:5173',
 
     /**
      * すでにサーバーが起動している場合に、そのサーバーを再利用するかどうかを指定します。

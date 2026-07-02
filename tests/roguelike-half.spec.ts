@@ -131,11 +131,18 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
         await page.waitForTimeout(50);
       }
 
-      // これ以上成長させる余地（経験値）がなくなったら、冒険を開始します。
+      // これ以上成長させる余地（経験値）がなくなったら、冒険を開始するか次のシナリオを選択します。
       if (!clickedLife && !learnedSpell) {
         const startBtn = page.locator('button:has-text("冒険を開始する")');
-        if (await safeClick(startBtn, 'Start adventure button', 500)) {
-          actionCount++;
+        const selectScenarioBtn = page.locator('button:has-text("次のシナリオを選択する")');
+        if (await startBtn.isVisible()) {
+          if (await safeClick(startBtn, 'Start adventure button', 500)) {
+            actionCount++;
+          }
+        } else if (await selectScenarioBtn.isVisible()) {
+          if (await safeClick(selectScenarioBtn, 'Select next scenario button', 500)) {
+            actionCount++;
+          }
         }
       }
       continue;
@@ -199,12 +206,21 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       const switchWeaponBtn = page.locator('button:has-text("武器を持ち替える")');
       const escapeBtn = page.locator('button:has-text("戦闘から逃走する")');
       const attackBtn = page.locator('button:has-text("通常攻撃")');
+      const deflectBtn = page.locator('button:has-text("そらしを発動する")');
+      const skipDeflectBtn = page.locator('button:has-text("発動を見送る")');
+      const holyArrowBtn = page.locator('button:has-text("聖なる矢を放つ")');
 
       // 戦闘のフェーズに応じたボタンを検出し、処理を実行します。
       const sheetText = await page.locator('.adventure-sheet').textContent();
       const cannotAttack = sheetText?.includes('麻痺') || sheetText?.includes('石化');
 
-      if (await coverBtn.first().isVisible()) {
+      if (await deflectBtn.isVisible()) {
+        if (await safeClick(deflectBtn, 'Use deflect miracle')) actionCount++;
+      } else if (await skipDeflectBtn.isVisible()) {
+        if (await safeClick(skipDeflectBtn, 'Skip deflect miracle')) actionCount++;
+      } else if (await holyArrowBtn.first().isVisible()) {
+        if (await safeClick(holyArrowBtn.first(), 'Fire holy arrow')) actionCount++;
+      } else if (await coverBtn.first().isVisible()) {
         if (await safeClick(coverBtn.first(), 'Perform cover action')) actionCount++;
       } else if (await cancelCoverBtn.isVisible()) {
         if (await safeClick(cancelCoverBtn, 'Decline cover action')) actionCount++;
