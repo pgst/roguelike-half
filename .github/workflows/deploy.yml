@@ -42,4 +42,4 @@ jobs:
           local-path: './dist' # Vueのビルド成果物が入るディレクトリ
           sync: 'full'
           # リモート（サーバー側）のパス。初期ドメインの場合は以下のような構成になります
-          remote-path: '/home/${{ secrets.SFTP_USERNAME }}/pgst.cloudfree.jp/public_html'
+          remote-path: '/home/${{ secrets.SFTP_USERNAME }}/pgst.cloudfree.jp/public_html/roguelike-half'

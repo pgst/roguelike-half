@@ -12,7 +12,7 @@
       ]
     }
   },
-  "forwardPorts": [5173],
+  "forwardPorts": [5173, 9323],
   "networkMode": "host",
   "mounts": [
     "source=${localEnv:HOME}/.local/bin/agy,target=/usr/local/bin/agy,type=bind,consistency=cached",
@@ -31,7 +31,7 @@
     "ANTIGRAVITY_LS_ADDRESS": "${localEnv:ANTIGRAVITY_LS_ADDRESS}",
     "ANTIGRAVITY_PROJECT_ID": "${localEnv:ANTIGRAVITY_PROJECT_ID}"
   },
-  "postCreateCommand": "sudo ln -s /home/node /home/pgst || true && npm install",
+  "postCreateCommand": "sudo ln -s /home/node /home/pgst || true && npm install && npx playwright install && sudo npx playwright install-deps",
   "remoteUser": "node"
 }
 

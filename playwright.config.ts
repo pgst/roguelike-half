@@ -51,7 +51,9 @@ export default defineConfig({
    * テスト結果の出力レポート形式を指定します。
    * 【Playwright】 `'html'` を指定すると、テスト完了後に詳細な結果を確認できるHTML形式のレポートが生成されます。
    */
-  reporter: 'html',
+  reporter: [
+    ['html', { host: '0.0.0.0', port: 9323 }]
+  ],
 
   /**
    * すべてのテストプロジェクトで共有されるグローバルな設定です。
