@@ -197,9 +197,13 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       const reactionRollBtn = page.locator('button:has-text("反応チェックを行う")');
       const closeRangedBtn = page.locator('button:has-text("接近戦へ移行する")');
       const switchWeaponBtn = page.locator('button:has-text("武器を持ち替える")');
+      const escapeBtn = page.locator('button:has-text("戦闘から逃走する")');
       const attackBtn = page.locator('button:has-text("通常攻撃")');
 
       // 戦闘のフェーズに応じたボタンを検出し、処理を実行します。
+      const sheetText = await page.locator('.adventure-sheet').textContent();
+      const cannotAttack = sheetText?.includes('麻痺') || sheetText?.includes('石化');
+
       if (await coverBtn.first().isVisible()) {
         if (await safeClick(coverBtn.first(), 'Perform cover action')) actionCount++;
       } else if (await cancelCoverBtn.isVisible()) {
@@ -214,21 +218,23 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
           actionCount++;
           await page.waitForTimeout(50);
         }
+      } else if (cannotAttack && await escapeBtn.isVisible()) {
+        if (await safeClick(escapeBtn, 'Escape from combat due to paralysis/petrification')) actionCount++;
       } else if (await lootRollBtn.isVisible()) {
         if (await safeClick(lootRollBtn, 'Roll combat victory loot')) actionCount++;
       } else if (await confirmCombatBtn.isVisible()) {
         if (await safeClick(confirmCombatBtn, 'Confirm combat result')) actionCount++;
       } else if (await reactionConfirmBtn.isVisible()) {
         if (await safeClick(reactionConfirmBtn, 'Confirm reaction check result')) actionCount++;
-      } else if (await refuseBribeBtn.isVisible() && await refuseBribeBtn.isEnabled({ timeout: 500 })) {
+      } else if (await refuseBribeBtn.isVisible()) {
         if (await safeClick(refuseBribeBtn, 'Refuse bribe and fight')) actionCount++;
-      } else if (await reactionRollBtn.isVisible() && await reactionRollBtn.isEnabled({ timeout: 500 })) {
+      } else if (await reactionRollBtn.isVisible()) {
         if (await safeClick(reactionRollBtn, 'Roll reaction check')) actionCount++;
-      } else if (await closeRangedBtn.isVisible() && await closeRangedBtn.isEnabled({ timeout: 500 })) {
+      } else if (await closeRangedBtn.isVisible()) {
         if (await safeClick(closeRangedBtn, 'Transition to melee combat')) actionCount++;
-      } else if (await switchWeaponBtn.isVisible() && await switchWeaponBtn.isEnabled({ timeout: 500 })) {
+      } else if (await switchWeaponBtn.isVisible()) {
         if (await safeClick(switchWeaponBtn, 'Perform weapon switching transition')) actionCount++;
-      } else if (await attackBtn.first().isVisible() && await attackBtn.first().isEnabled({ timeout: 500 })) {
+      } else if (await attackBtn.first().isVisible()) {
         if (await safeClick(attackBtn.first(), 'Attack first enemy in close combat')) actionCount++;
       }
       continue;
