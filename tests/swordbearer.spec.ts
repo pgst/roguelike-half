@@ -1,51 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-// Helper to mock random rolls
-async function setupMockRandom(page: any, d66Result: number, normalRoll: number) {
-  await page.evaluate(({ d66Result, normalRoll }) => {
-    let callCount = 0;
-    const d1 = Math.floor(d66Result / 10);
-    const d2 = d66Result % 10;
-    
-    window.Math.random = () => {
-      callCount++;
-      // Call 1 is log ID
-      if (callCount === 1) return 0.5;
-      // Call 2 & 3 are d66 roll digits
-      if (callCount === 2) return (d1 - 1) / 6;
-      if (callCount === 3) return (d2 - 1) / 6;
-      // Subsequent rolls return normalRoll (e.g. 0.9 for 6)
-      return (normalRoll - 1) / 6 + 0.01;
-    };
-  }, { d66Result, normalRoll });
-}
-
-// Helper to process all pending defense rolls
-async function handlePendingDefense(page: any) {
-  const defendBtn = page.locator('button:has-text("主人公が防御する")');
-  try {
-    await defendBtn.waitFor({ state: 'visible', timeout: 1500 });
-  } catch (e) {
-    return;
-  }
-  while (await defendBtn.isVisible()) {
-    await defendBtn.click({ force: true });
-    await page.waitForTimeout(800);
-  }
-}
-
-async function disableAnimations(page: any) {
-  await page.addStyleTag({
-    content: `
-      *, *::before, *::after {
-        transition: none !important;
-        animation: none !important;
-        transition-duration: 0s !important;
-        animation-duration: 0s !important;
-      }
-    `
-  });
-}
+import { disableAnimations, setupMockRandom, handlePendingDefense } from './helpers/test-utils';
 
 test.describe('太刀持ち従者の武器持ち替え省略＆リセット判定テスト', () => {
   

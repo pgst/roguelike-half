@@ -1,52 +1,5 @@
 import { test, expect, type Locator } from '@playwright/test';
-// 【TypeScript】 `@playwright/test` モジュールからテスト用のヘルパーをインポートしています。
-// - `type Locator` のように `type` 修飾子を用いることで、コンパイル時に型情報のみをインポートし、JavaScriptへの出力時には不要なインポートコードを削除できます。
-// 【Playwright】
-// - `test`: テストケースを定義するためのメイン関数です。
-// - `expect`: アサーション（テストの実行結果が期待通りか検証する）を行うための関数です。
-// - `Locator`: ページ上の要素（ボタン、入力欄など）を指し示し、操作するための型定義です。
-
-/**
- * 対象の要素を安全にクリックするための非同期ヘルパー関数です。
- * 
- * 【TypeScript】
- * - `async` を付与した関数は自動的に `Promise` を返します。ここでは `Promise<boolean>` 型を明示しています。
- * - `locator: Locator` や `description: string` で引数の型を制限し、`postWaitMs = 1500` でデフォルト引数（数値型）を設定しています。
- * - `catch (e: any)` は、例外の型が不確定であるため、一時的に `any` 型としてキャッチしています。
- * 
- * 【Playwright / テスト設計】
- * - ダイスアニメーションや画面の再レンダリングによって、クリックした瞬間に要素が消えたり無効化されたりすることがあります。
- * - `try-catch` でエラーを握り潰すことで、一時的な不安定さによるテストの中断を防ぎ、次のゲームループでの再試行を可能にします。
- * - `locator.isVisible()` で表示、`locator.isEnabled({ timeout: 1000 })` で1秒以内に操作可能になるかを事前にチェックします。
- * - `locator.click({ timeout: 3000, force: true })` で、他要素によるオーバーレイを無視して強制クリックを行います。
- * - クリック成功後、連打によるバグを防ぐために `postWaitMs`（デフォルト1.5秒）の間待機します。
- */
-async function safeClick(locator: Locator, description: string, postWaitMs = 1500): Promise<boolean> {
-  try {
-    if (await locator.isVisible() && await locator.isEnabled({ timeout: 1000 })) {
-      console.log(`Attempting click: ${description}`);
-      await locator.click({ timeout: 3000, force: true });
-      await locator.page().waitForTimeout(postWaitMs);
-      return true;
-    }
-  } catch (e: any) {
-    console.log(`[Safe Click Info] Click failed/omitted for "${description}": ${e.message}`);
-  }
-  return false;
-}
-
-async function disableAnimations(page: any) {
-  await page.addStyleTag({
-    content: `
-      *, *::before, *::after {
-        transition: none !important;
-        animation: none !important;
-        transition-duration: 0s !important;
-        animation-duration: 0s !important;
-      }
-    `
-  });
-}
+import { safeClick, disableAnimations } from './helpers/test-utils';
 
 /**
  * ゲームのプレイを最後まで自動操作で完走できるかを検証するテストケースです。

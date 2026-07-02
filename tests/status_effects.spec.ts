@@ -1,42 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-// Helper to mock sequential random rolls
-async function setupMockSequence(page: any, d66Result: number, rolls: number[]) {
-  await page.evaluate(({ d66Result, rolls }) => {
-    let callCount = 0;
-    const d1 = Math.floor(d66Result / 10);
-    const d2 = d66Result % 10;
-    
-    window.Math.random = () => {
-      callCount++;
-      // Call 1 is log ID
-      if (callCount === 1) return 0.5;
-      // Call 2 & 3 are d66 roll digits
-      if (callCount === 2) return (d1 - 1) / 6;
-      if (callCount === 3) return (d2 - 1) / 6;
-      
-      // Subsequent rolls use the rolls array
-      const rollIndex = callCount - 4;
-      if (rollIndex >= 0 && rollIndex < rolls.length) {
-        return (rolls[rollIndex] - 1) / 6 + 0.01;
-      }
-      return 0.5; // default middle roll
-    };
-  }, { d66Result, rolls });
-}
-
-async function disableAnimations(page: any) {
-  await page.addStyleTag({
-    content: `
-      *, *::before, *::after {
-        transition: none !important;
-        animation: none !important;
-        transition-duration: 0s !important;
-        animation-duration: 0s !important;
-      }
-    `
-  });
-}
+import { disableAnimations, setupMockRandom } from './helpers/test-utils';
 
 test.describe('状態異常システム (Status Effect Rules) 検証テスト', () => {
 
@@ -59,7 +22,7 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 10000 });
 
     // d66 = 32 (毒矢トラップ). Trap roll fails (fumble = 1)
-    await setupMockSequence(page, 32, [1]);
+    await setupMockRandom(page, 32, [1]);
 
     // d66を振って次の部屋を探索
     await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
@@ -88,7 +51,7 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
     await page.waitForTimeout(500);
 
     // d66 = 11 (ゴブリン戦闘). Roll 3 for reaction (causes hostile outcome since hero is alone)
-    await setupMockSequence(page, 11, [3]);
+    await setupMockRandom(page, 11, [3]);
 
     // d66を振って次の部屋を探索
     await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
@@ -169,7 +132,7 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 10000 });
 
     // d66 = 66 (デーモンの石像 - 呪いトラップ). Trap roll fails (fumble = 1)
-    await setupMockSequence(page, 66, [1]);
+    await setupMockRandom(page, 66, [1]);
 
     // d66を振って探索
     await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
@@ -199,7 +162,7 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
 
     // d66 = 12 (崩落する天井トラップ). Trap roll: player rolls 4. Stat = 3. Modifier = -2 (darkness) -1 (curse).
     // Total = 4 + 3 - 3 = 4. Target = 4. It should succeed!
-    await setupMockSequence(page, 12, [4]);
+    await setupMockRandom(page, 12, [4]);
 
     // d66を振って探索
     await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
