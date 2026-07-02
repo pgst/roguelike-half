@@ -208,7 +208,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
         let defenseCount = 0;
         // 防御ロールが複数回発生する場合（敵が複数いるなど）、1ループ中に最大10回までまとめて処理して無駄な待機ループを削減します。
         while (await defendBtn.isVisible() && defenseCount < 10) {
-          const success = await safeClick(defendBtn, 'Player defense roll', 1500);
+          const success = await safeClick(defendBtn, 'Player defense roll', 300);
           if (!success) break;
           defenseCount++;
           actionCount++;

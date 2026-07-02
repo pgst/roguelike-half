@@ -139,11 +139,12 @@ function hireFollower(type: any) {
 
 // Loot item logic
 async function resolveLootRoom() {
-  if (!activeEvent.value) return;
+  const currentEvent = activeEvent.value;
+  if (!currentEvent) return;
   addLog(`部屋の探索を開始します。宝物を得るためにダイスを振ります...`, 'info');
   const lootText = await resolveLoot(); // Call loot table roll directly
-  (activeEvent.value as any).isResolved = true;
-  (activeEvent.value as any).resolutionText = `🎁 宝物を獲得しました！\n獲得した戦利品: ${lootText}`;
+  (currentEvent as any).isResolved = true;
+  (currentEvent as any).resolutionText = `🎁 宝物を獲得しました！\n獲得した戦利品: ${lootText}`;
 }
 
 // Priest NPC heal options

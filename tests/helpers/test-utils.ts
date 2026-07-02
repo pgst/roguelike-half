@@ -5,7 +5,7 @@ import { type Locator } from '@playwright/test';
  * 画面の再レンダリングやアニメーションによって要素が一時的に無効な状態でも、
  * 例外をキャッチして次のループでの再試行を可能にします。
  */
-export async function safeClick(locator: Locator, description: string, postWaitMs = 1500): Promise<boolean> {
+export async function safeClick(locator: Locator, description: string, postWaitMs = 300): Promise<boolean> {
   try {
     if (await locator.isVisible() && await locator.isEnabled({ timeout: 1000 })) {
       console.log(`Attempting click: ${description}`);
