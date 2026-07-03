@@ -83,10 +83,10 @@ const maxBackpackSlots = computed(() => {
     <div class="section-title">📦 物資・財産</div>
     <div class="supplies-box">
       <div class="supply-item">
-        <span>🪙 <b>金貨:</b> {{ character.gold }} 枚</span>
+        <span><b>金貨:</b> {{ character.gold }} 枚</span>
       </div>
       <div class="supply-item" style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
-        <span>🍞 <b>食料:</b> {{ character.food }} 食分</span>
+        <span><b>食料:</b> {{ character.food }} 食分</span>
         <button @click="useFood(false)" class="btn-ink btn-mini" :disabled="character.food <= 0">食べる (+2回復)</button>
         <button 
           v-if="character.subStatType === 'luck' && character.miracles.includes('聖餐') && character.subStatCurrent >= 1"
@@ -98,7 +98,7 @@ const maxBackpackSlots = computed(() => {
         </button>
       </div>
       <div class="supply-item alert-supply">
-        <span>🪔 <b>明かり:</b> {{ carriesLantern ? '点灯中' : '❌ 暗闇 (判定-2)' }}</span>
+        <span><b>明かり:</b> {{ carriesLantern ? '点灯中' : '❌ 暗闇 (判定-2)' }}</span>
       </div>
 
       <!-- Status Effects (状態異常) -->
@@ -194,27 +194,29 @@ const maxBackpackSlots = computed(() => {
     <div class="backpack-list">
       <!-- Weapons in bag -->
       <div v-for="w in character.weapons" :key="w.name" class="bag-item" v-show="character.equippedWeapon?.name !== w.name">
-        <span class="item-name">⚔️ {{ w.name }}</span>
+        <span class="item-name"><span class="item-category-label">[武器]</span> {{ w.name }}</span>
         <button @click="equipWeapon(w)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedWeapon">装備</button>
       </div>
 
       <!-- Armors in bag -->
       <div v-for="a in character.armors" :key="a.name" class="bag-item" v-show="character.equippedArmor?.name !== a.name">
-        <span class="item-name">🛡️ {{ a.name }}</span>
+        <span class="item-name"><span class="item-category-label">[防具]</span> {{ a.name }}</span>
         <button @click="equipArmor(a)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedArmor">装備</button>
       </div>
 
       <!-- Shields in bag -->
       <div v-for="s in character.shields" :key="s.name" class="bag-item" v-show="character.equippedShield?.name !== s.name">
-        <span class="item-name">🛡️ [盾] {{ s.name }}</span>
+        <span class="item-name"><span class="item-category-label">[盾]</span> {{ s.name }}</span>
         <button @click="equipShield(s)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedShield">装備</button>
       </div>
       <!-- Spell: Create Weapon outside combat -->
       <div v-for="i in character.items" :key="i.id" class="bag-item">
         <span class="item-name">
-          <span v-if="i.type === 'lantern'">🪔</span>
-          <span v-else-if="i.type === 'rope'">➰</span>
-          <span v-else>🧪</span>
+          <span class="item-category-label" v-if="['lantern', 'rope'].includes(i.type)">[道具]</span>
+          <span class="item-category-label" v-else-if="['holywater', 'healingpotion'].includes(i.type)">[消耗品]</span>
+          <span class="item-category-label" v-else-if="['magic_flute', 'magic_staff', 'magic_monocle', 'magic_shield', 'magic_doll'].includes(i.type)">[魔道具]</span>
+          <span class="item-category-label" v-else-if="['gem_small', 'gem_large', 'accessory', 'clue'].includes(i.type) || i.value > 0">[財宝]</span>
+          <span class="item-category-label" v-else>[道具]</span>
           {{ i.name }} <span class="val-sub" v-if="i.value > 0">(価値:{{ i.value }}g)</span>
         </span>
         <div class="item-actions">
@@ -226,11 +228,11 @@ const maxBackpackSlots = computed(() => {
 
       <!-- Gold and Food slot weight indicators (Rule 27) -->
       <div v-if="Math.floor(character.gold / 100) > 0" class="bag-item system-item" style="color: #705844; border-color: rgba(112, 88, 68, 0.2); font-style: italic;">
-        <span class="item-name">🪙 金貨の重み ({{ Math.floor(character.gold / 100) }} スロット分)</span>
+        <span class="item-name">金貨の重み ({{ Math.floor(character.gold / 100) }} スロット分)</span>
         <span style="font-size: 0.8rem; opacity: 0.8;">※金貨100枚ごとに1スロット</span>
       </div>
       <div v-if="Math.floor(character.food / 10) > 0" class="bag-item system-item" style="color: #705844; border-color: rgba(112, 88, 68, 0.2); font-style: italic;">
-        <span class="item-name">🍞 食料の重み ({{ Math.floor(character.food / 10) }} スロット分)</span>
+        <span class="item-name">食料の重み ({{ Math.floor(character.food / 10) }} スロット分)</span>
         <span style="font-size: 0.8rem; opacity: 0.8;">※食料10個ごとに1スロット</span>
       </div>
 
@@ -440,6 +442,15 @@ const maxBackpackSlots = computed(() => {
 
 .item-name {
   color: var(--ink-dark);
+}
+
+.item-category-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  color: #8c715c;
+  letter-spacing: 0.02em;
+  margin-right: 3px;
+  vertical-align: middle;
 }
 
 .val-sub {
