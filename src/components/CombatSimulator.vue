@@ -491,7 +491,7 @@ function closeRangedRound() {
                 v-if="character.spells.includes('武具創造')"
                 @click="showSummonSelector = !showSummonSelector" 
                 class="btn-ink btn-spell"
-                :disabled="isRound0SpellDisabled"
+                :disabled="isRound0SpellDisabled || combatState.hasWeaponCreatedThisRound"
               >
                 🔮 武具創造 (装備品の創造)
               </button>

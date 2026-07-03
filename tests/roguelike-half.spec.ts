@@ -165,25 +165,25 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       const exploreBtn = page.locator('button:has-text("d66を振って次の部屋を探索する")');
 
       // 優先度の高い順に画面上の選択肢ボタンを評価し、存在するものをクリックします。
-      if (await proceedBtn.isVisible()) {
+      if (await proceedBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(proceedBtn, 'Proceed to next room')) actionCount++;
-      } else if (await trapBtn.first().isVisible()) {
+      } else if (await trapBtn.first().isVisible({ timeout: 0 })) {
         if (await safeClick(trapBtn.first(), 'Attempt trap roll')) actionCount++;
-      } else if (await treasureBtn.isVisible()) {
+      } else if (await treasureBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(treasureBtn, 'Loot treasure chest')) actionCount++;
-      } else if (await restHealBtn.isVisible()) {
+      } else if (await restHealBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(restHealBtn, 'Select rest healing')) actionCount++;
-      } else if (await fightBribeBtn.isVisible()) {
+      } else if (await fightBribeBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(fightBribeBtn, 'Fight goblin negotiator')) actionCount++;
-      } else if (await npcPriestBtn.isVisible()) {
+      } else if (await npcPriestBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(npcPriestBtn, 'Request priest healing')) actionCount++;
-      } else if (await npcMercenaryBtn.first().isVisible()) {
+      } else if (await npcMercenaryBtn.first().isVisible({ timeout: 0 })) {
         if (await safeClick(npcMercenaryBtn.first(), 'Ignore NPC (mercenary/captive)')) actionCount++;
-      } else if (await leaveMerchantBtn.first().isVisible()) {
+      } else if (await leaveMerchantBtn.first().isVisible({ timeout: 0 })) {
         if (await safeClick(leaveMerchantBtn.first(), 'Leave merchant/market')) actionCount++;
-      } else if (await skipPerceptionBtn.isVisible()) {
+      } else if (await skipPerceptionBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(skipPerceptionBtn, 'Skip perception check and enter room')) actionCount++;
-      } else if (await exploreBtn.isVisible()) {
+      } else if (await exploreBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(exploreBtn, 'Roll d66 to explore next room')) actionCount++;
       }
       continue;
@@ -214,43 +214,43 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       const sheetText = await page.locator('.adventure-sheet').textContent();
       const cannotAttack = sheetText?.includes('麻痺') || sheetText?.includes('石化');
 
-      if (await deflectBtn.isVisible()) {
+      if (await deflectBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(deflectBtn, 'Use deflect miracle')) actionCount++;
-      } else if (await skipDeflectBtn.isVisible()) {
+      } else if (await skipDeflectBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(skipDeflectBtn, 'Skip deflect miracle')) actionCount++;
-      } else if (await holyArrowBtn.first().isVisible()) {
+      } else if (await holyArrowBtn.first().isVisible({ timeout: 0 })) {
         if (await safeClick(holyArrowBtn.first(), 'Fire holy arrow')) actionCount++;
-      } else if (await coverBtn.first().isVisible()) {
+      } else if (await coverBtn.first().isVisible({ timeout: 0 })) {
         if (await safeClick(coverBtn.first(), 'Perform cover action')) actionCount++;
-      } else if (await cancelCoverBtn.isVisible()) {
+      } else if (await cancelCoverBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(cancelCoverBtn, 'Decline cover action')) actionCount++;
-      } else if (await defendBtn.isVisible()) {
+      } else if (await defendBtn.isVisible({ timeout: 0 })) {
         let defenseCount = 0;
         // 防御ロールが複数回発生する場合（敵が複数いるなど）、1ループ中に最大10回までまとめて処理して無駄な待機ループを削減します。
-        while (await defendBtn.isVisible() && defenseCount < 10) {
+        while (await defendBtn.isVisible({ timeout: 0 }) && defenseCount < 10) {
           const success = await safeClick(defendBtn, 'Player defense roll', 300);
           if (!success) break;
           defenseCount++;
           actionCount++;
           await page.waitForTimeout(50);
         }
-      } else if (cannotAttack && await escapeBtn.isVisible()) {
+      } else if (cannotAttack && await escapeBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(escapeBtn, 'Escape from combat due to paralysis/petrification')) actionCount++;
-      } else if (await lootRollBtn.isVisible()) {
+      } else if (await lootRollBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(lootRollBtn, 'Roll combat victory loot')) actionCount++;
-      } else if (await confirmCombatBtn.isVisible()) {
+      } else if (await confirmCombatBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(confirmCombatBtn, 'Confirm combat result')) actionCount++;
-      } else if (await reactionConfirmBtn.isVisible()) {
+      } else if (await reactionConfirmBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(reactionConfirmBtn, 'Confirm reaction check result')) actionCount++;
-      } else if (await refuseBribeBtn.isVisible()) {
+      } else if (await refuseBribeBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(refuseBribeBtn, 'Refuse bribe and fight')) actionCount++;
-      } else if (await reactionRollBtn.isVisible()) {
+      } else if (await reactionRollBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(reactionRollBtn, 'Roll reaction check')) actionCount++;
-      } else if (await closeRangedBtn.isVisible()) {
+      } else if (await closeRangedBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(closeRangedBtn, 'Transition to melee combat')) actionCount++;
-      } else if (await switchWeaponBtn.isVisible()) {
+      } else if (await switchWeaponBtn.isVisible({ timeout: 0 })) {
         if (await safeClick(switchWeaponBtn, 'Perform weapon switching transition')) actionCount++;
-      } else if (await attackBtn.first().isVisible()) {
+      } else if (await attackBtn.first().isVisible({ timeout: 0 })) {
         if (await safeClick(attackBtn.first(), 'Attack first enemy in close combat')) actionCount++;
       }
       continue;

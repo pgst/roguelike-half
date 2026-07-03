@@ -7,6 +7,7 @@ const {
   currentScreen,
   character,
   followers,
+  combatState,
   carriesLantern,
   isBackpackFull,
   equipWeapon,
@@ -108,7 +109,14 @@ const maxBackpackSlots = computed(() => {
         </span>
       </div>
 
-      <!-- Spell: Create Weapon outside combat -->
+      <!-- Combat Buffs (戦闘バフ表示) -->
+      <div v-if="combatState.active && combatState.buffs.defenseBonus > 0" class="status-effects-section" style="margin-top: 8px; padding: 10px; border: 1px solid #90caf9; background: #e3f2fd; border-radius: 4px;">
+        <span style="font-weight: bold; color: #1565c0; font-size: 0.9rem; margin-right: 8px;">🛡️ バフ:</span>
+        <span class="badge-status" style="display: inline-block; padding: 2px 8px; background: #1565c0; color: white; border-radius: 3px; font-size: 0.8rem; font-weight: bold; margin-right: 5px;">
+          防衛バフ: +{{ combatState.buffs.defenseBonus }}
+        </span>
+      </div>
+
       <div 
         v-if="character.subStatType === 'magic' && character.spells.includes('武具創造')"
         class="supply-item"
@@ -201,8 +209,7 @@ const maxBackpackSlots = computed(() => {
         <span class="item-name">🛡️ [盾] {{ s.name }}</span>
         <button @click="equipShield(s)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedShield">装備</button>
       </div>
-
-      <!-- General Items in bag -->
+      <!-- Spell: Create Weapon outside combat -->
       <div v-for="i in character.items" :key="i.id" class="bag-item">
         <span class="item-name">
           <span v-if="i.type === 'lantern'">🪔</span>

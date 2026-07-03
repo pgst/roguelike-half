@@ -122,6 +122,7 @@ const combatState = reactive({
   round: 0,
   log: [] as string[],
   hasQuickStrikeActive: false,
+  hasWeaponCreatedThisRound: false,
   hasCoveredInRound: false,
   pendingCover: null as {
     attackId: string;
@@ -754,6 +755,8 @@ function castCreateWeaponSpell(category: 'weapon' | 'armor' | 'shield', itemKey:
     character.value.shields.push(summon);
     addLog(`✨ 呪文【武具創造】を唱え、「${summon.name}」を背負い袋に創造しました！`, 'success');
   }
+
+  combatState.hasWeaponCreatedThisRound = true;
 }
 
 // Dungeon completion stats restore

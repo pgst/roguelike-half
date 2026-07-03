@@ -557,6 +557,7 @@ export function useCombat() {
     if (combatState.isOver) return;
     combatState.round++;
     combatState.hasCoveredInRound = false;
+    combatState.hasWeaponCreatedThisRound = false;
     addLog(`--- ラウンド ${combatState.round}: クリーチャーの反撃フェーズ ---`, 'info');
 
     // Gather all enemy attacks
