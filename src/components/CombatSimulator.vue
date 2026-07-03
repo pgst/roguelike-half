@@ -46,15 +46,12 @@ const isRound0SpellDisabled = computed(() => {
   if (combatState.round !== 0) return false;
   if (isBossRoom.value) return combatState.hasRangedFired;
   
-  if (!combatState.hasReactionChecked) return true;
-  
   if (combatState.reactionResult) {
-    const isHostile = combatState.reactionResult.actionType === 'hostile' || 
-                      combatState.reactionResult.actionType === 'outnumbered_hostile' || 
-                      combatState.reactionResult.actionType === 'bribe';
+    const isFightPossible = combatState.reactionResult.actionType === 'hostile' || 
+                            combatState.reactionResult.actionType === 'outnumbered_hostile' || 
+                            combatState.reactionResult.actionType === 'bribe';
                       
-    if (!isHostile) return true;
-    if (!combatState.hasQuickStrikeActive) return true;
+    if (!isFightPossible) return true;
   }
   
   return combatState.hasRangedFired;
