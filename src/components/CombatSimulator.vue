@@ -34,6 +34,7 @@ const {
   resolveWeaponSwitch,
   executeCover,
   cancelCover,
+  useHolyWater,
   applyFriendshipReaction,
   skipDeflect,
   executeDeflect,
@@ -41,6 +42,8 @@ const {
 } = useCombat();
 
 const activeAttacks = computed(() => (combatState as any).activeAttacks || []);
+
+const hasHolyWater = computed(() => character.value.items.some(i => i.type === 'holywater'));
 
 const isRound0SpellDisabled = computed(() => {
   if (combatState.round !== 0) return false;
@@ -76,6 +79,26 @@ const activeCombatFollowers = computed(() => {
 
 const isRangedAvailable = computed(() => {
   return character.value.equippedWeapon?.type === 'ranged';
+});
+
+const isHolyWaterAvailable = computed(() => {
+  if (!hasHolyWater.value) return false;
+  if (activeAttacks.value.length > 0 || combatState.pendingHolyArrow > 0) return false;
+  if (isSwitchingWeapons.value) return false;
+
+  if (combatState.round === 0) {
+    if (combatState.hasRangedFired) return false;
+    if (isBossRoom.value) return true;
+    if (!combatState.hasReactionChecked) return false;
+    if (combatState.reactionResult) {
+      const isFightPossible = combatState.reactionResult.actionType === 'hostile' || 
+                              combatState.reactionResult.actionType === 'outnumbered_hostile' || 
+                              combatState.reactionResult.actionType === 'bribe';
+      if (!isFightPossible) return false;
+    }
+  }
+
+  return true;
 });
 
 function closeRangedRound() {
@@ -129,6 +152,17 @@ function closeRangedRound() {
             <span v-for="tag in enemy.tags" :key="tag" class="tag-badge" :class="tag">
               {{ tag === 'undead' ? '💀 アンデッド' : tag === 'golem' ? '🤖 ゴーレム' : tag === 'weak' ? '雑魚' : '強敵' }}
             </span>
+          </div>
+
+          <!-- 聖水使用ボタン -->
+          <div v-if="isHolyWaterAvailable" class="combat-actions" style="margin-top: 10px; width: 100%;">
+            <button 
+              @click="useHolyWater(enemy.id)"
+              class="btn-ink btn-mini"
+              style="width: 100%; text-align: center; font-weight: bold; background: #e0f2f1; border-color: #4db6ac; color: #00796b;"
+            >
+              🧪 聖水を使用 (対象: {{ enemy.name }})
+            </button>
           </div>
 
           <!-- 招天フェーズ時の攻撃ボタン -->

@@ -1534,6 +1534,69 @@ export function useCombat() {
     }
   }
 
+  async function useHolyWater(targetEnemyId: string) {
+    if (combatState.isOver) return;
+
+    const idx = character.value.items.findIndex(i => i.type === 'holywater');
+    if (idx === -1) {
+      addLog('聖水を所持していません！', 'error');
+      return;
+    }
+
+    const target = combatState.enemies.find(e => e.id === targetEnemyId);
+    if (!target) return;
+
+    addLog(`🧪 聖水を ${target.name} に投げつけた！`, 'success');
+    character.value.items.splice(idx, 1);
+
+    const isUndead = hasTag(target, 'undead');
+    const isWeak = target.tags.includes('weak');
+
+    if (isUndead || !isWeak) {
+      // アンデッドや強い敵には2点ダメージ
+      target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
+      addLog(`✨ 聖水が清浄なる炎をあげた！ ${target.name} に2点ダメージ！`, 'success');
+      if (target.lifeCurrent <= 0) {
+        addLog(`💀 ${target.name} は浄化され、崩れ去った。`, 'success');
+        const tIdx = combatState.enemies.findIndex(e => e.id === targetEnemyId);
+        if (tIdx !== -1) combatState.enemies.splice(tIdx, 1);
+      }
+    } else {
+      // 弱い敵なら2体を一撃で倒す
+      addLog(`✨ 聖水が炸裂し、清浄な霧が広がった！ ${target.name} は即座に浄化された！`, 'success');
+      const tIdx = combatState.enemies.findIndex(e => e.id === targetEnemyId);
+      if (tIdx !== -1) combatState.enemies.splice(tIdx, 1);
+
+      // もう1体弱い敵がいればそれも一撃で倒す
+      const nextWeakIdx = combatState.enemies.findIndex(e => e.tags.includes('weak'));
+      if (nextWeakIdx !== -1) {
+        const nextWeak = combatState.enemies[nextWeakIdx];
+        addLog(`✨ さらに ${nextWeak.name} も聖水の霧に包まれ、浄化された！`, 'success');
+        combatState.enemies.splice(nextWeakIdx, 1);
+      }
+    }
+
+    checkEnemyRetreat();
+
+    if (combatState.enemies.length === 0) {
+      endCombat(true);
+      return;
+    }
+
+    // 聖水の使用は「通常攻撃等の代わり（行動）」として処理される
+    if (combatState.round === 0) {
+      combatState.hasRangedFired = true;
+    } else {
+      await executeFollowerAttacks();
+      checkEnemyRetreat();
+      if (combatState.enemies.length === 0) {
+        endCombat(true);
+        return;
+      }
+      await executeEnemyAttacks();
+    }
+  }
+
   return {
     rollReactionCheck,
     payBribe,
@@ -1550,6 +1613,7 @@ export function useCombat() {
     resolveWeaponSwitch,
     executeCover,
     cancelCover,
+    useHolyWater,
     applyFriendshipReaction,
     skipDeflect,
     executeDeflect,
