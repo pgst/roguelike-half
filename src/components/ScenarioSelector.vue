@@ -2,14 +2,14 @@
 import { useGameState } from '../composables/useGameState';
 import type { Scenario } from '../types';
 
-const { availableScenarios, activeScenario, currentScreen, character } = useGameState();
+const { availableScenarios, activeScenario, currentScreen, isCharacterCreated } = useGameState();
 
 function selectScenario(scenario: Scenario) {
   activeScenario.value = scenario;
   
-  // If the character is still the default template, go to character creation.
+  // If the character has not been created yet, go to character creation.
   // Otherwise (e.g., subsequent adventure), proceed directly to level up / town market.
-  if (character.value.name === '無名の冒険者') {
+  if (!isCharacterCreated.value) {
     currentScreen.value = 'creator';
   } else {
     currentScreen.value = 'levelup';

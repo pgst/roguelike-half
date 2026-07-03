@@ -2,6 +2,19 @@ import { test, expect, type Locator } from '@playwright/test';
 import { safeClick, disableAnimations } from './helpers/test-utils';
 
 /**
+ * 対象のロケータが有効（Enabled）であるかを安全に判定します。
+ * PlaywrightのisEnabledは非活性や未描画の状態でタイムアウトに達すると例外を投げるため、
+ * try-catchで例外をトラップして安全にfalseを返すようにします。
+ */
+async function isElementEnabled(locator: Locator): Promise<boolean> {
+  try {
+    return await locator.isEnabled({ timeout: 50 });
+  } catch {
+    return false;
+  }
+}
+
+/**
  * ゲームのプレイを最後まで自動操作で完走できるかを検証するテストケースです。
  * 
  * 【TypeScript】
@@ -51,12 +64,12 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
      * ゲーム終了画面（勝利または敗北）が表示されているかをチェックします。
      * 【Playwright】 `page.locator(selector)` で要素を特定し、`.isVisible()` で画面上に表示されているかを判定します（非同期処理）。
      */
-    if (await page.locator('.victory-card').isVisible()) {
+    if (await page.locator('.victory-card').isVisible({ timeout: 0 })) {
       console.log(`🎉 Reached Victory (Success) Screen after ${actionCount} actions (loops: ${loopCount})!`);
       reachedEnd = true;
       break;
     }
-    if (await page.locator('.gameover-card').isVisible()) {
+    if (await page.locator('.gameover-card').isVisible({ timeout: 0 })) {
       console.log(`💀 Reached Game Over Screen after ${actionCount} actions (loops: ${loopCount})!`);
       reachedEnd = true;
       break;
@@ -66,7 +79,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
      * 1. シナリオ選択画面の処理
      * 【Playwright】 `.scenario-selector` がある場合、`.scenario-card` の一番最初のカードを取得しクリックします。
      */
-    if (await page.locator('.scenario-selector').isVisible()) {
+    if (await page.locator('.scenario-selector').isVisible({ timeout: 0 })) {
       const scenarioCard = page.locator('.scenario-card').first();
       if (await safeClick(scenarioCard, 'Selecting first scenario card', 500)) {
         actionCount++;
@@ -78,7 +91,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
      * 2. キャラクター作成画面の処理
      * 【Playwright】 `.creator-card` がある場合、入力フィールドに入力し、アーキタイプを選択して送信ボタンを押します。
      */
-    if (await page.locator('.creator-card').isVisible()) {
+    if (await page.locator('.creator-card').isVisible({ timeout: 0 })) {
       console.log(`[Action ${actionCount}] Filling character details...`);
       /**
        * テキストボックスや入力フォームに値を入力します。
@@ -104,13 +117,13 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
      * 3. レベルアップ / 街の市場画面の処理
      * 【Playwright】 スキル（魔法・奇跡）の修得、および生命点の上昇を可能な限り行い、最後に冒険を開始します。
      */
-    if (await page.locator('.levelup-card').isVisible()) {
+    if (await page.locator('.levelup-card').isVisible({ timeout: 0 })) {
       // 習得可能な魔法・奇跡のボタンを検出します（無効化されていないもの）。
       const spellBtn = page.locator('.spell-learning-section button.btn-mini:not([disabled])');
       let learnedSpell = false;
       
       // 修得可能なスペルボタンが存在し、かつ有効な間ループして修得します。
-      while (await spellBtn.first().isVisible() && await spellBtn.first().isEnabled({ timeout: 1000 })) {
+      while (await spellBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(spellBtn.first())) {
         const success = await safeClick(spellBtn.first(), 'Learn a spell/miracle', 150);
         if (!success) break;
         learnedSpell = true;
@@ -123,7 +136,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       let clickedLife = false;
       
       // 経験値がある限り、生命点上昇ボタンを繰り返しクリックします。
-      while (await lifeBtn.isVisible() && await lifeBtn.isEnabled({ timeout: 1000 })) {
+      while (await lifeBtn.isVisible({ timeout: 0 }) && await isElementEnabled(lifeBtn)) {
         const success = await safeClick(lifeBtn, 'Life increase (+1 Life)', 150);
         if (!success) break;
         clickedLife = true;
@@ -135,11 +148,11 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       if (!clickedLife && !learnedSpell) {
         const startBtn = page.locator('button:has-text("冒険を開始する")');
         const selectScenarioBtn = page.locator('button:has-text("次のシナリオを選択する")');
-        if (await startBtn.isVisible()) {
+        if (await startBtn.isVisible({ timeout: 0 })) {
           if (await safeClick(startBtn, 'Start adventure button', 500)) {
             actionCount++;
           }
-        } else if (await selectScenarioBtn.isVisible()) {
+        } else if (await selectScenarioBtn.isVisible({ timeout: 0 })) {
           if (await safeClick(selectScenarioBtn, 'Select next scenario button', 500)) {
             actionCount++;
           }
@@ -152,7 +165,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
      * 4. ダンジョン探索画面の処理
      * 【Playwright】 部屋の状態（進行、罠判定、宝箱、回復、NPC遭遇、ショップなど）に応じて適切なボタンを押します。
      */
-    if (await page.locator('.explorer-card').isVisible()) {
+    if (await page.locator('.explorer-card').isVisible({ timeout: 0 })) {
       const proceedBtn = page.locator('button:has-text("次の小部屋へ進む")');
       const trapBtn = page.locator('button:has-text("判定ロールに挑戦する"), button:has-text("で挑戦")');
       const treasureBtn = page.locator('button:has-text("宝物を入手する")');
@@ -165,25 +178,25 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       const exploreBtn = page.locator('button:has-text("d66を振って次の部屋を探索する")');
 
       // 優先度の高い順に画面上の選択肢ボタンを評価し、存在するものをクリックします。
-      if (await proceedBtn.isVisible({ timeout: 0 })) {
+      if (await proceedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(proceedBtn)) {
         if (await safeClick(proceedBtn, 'Proceed to next room')) actionCount++;
-      } else if (await trapBtn.first().isVisible({ timeout: 0 })) {
+      } else if (await trapBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(trapBtn.first())) {
         if (await safeClick(trapBtn.first(), 'Attempt trap roll')) actionCount++;
-      } else if (await treasureBtn.isVisible({ timeout: 0 })) {
+      } else if (await treasureBtn.isVisible({ timeout: 0 }) && await isElementEnabled(treasureBtn)) {
         if (await safeClick(treasureBtn, 'Loot treasure chest')) actionCount++;
-      } else if (await restHealBtn.isVisible({ timeout: 0 })) {
+      } else if (await restHealBtn.isVisible({ timeout: 0 }) && await isElementEnabled(restHealBtn)) {
         if (await safeClick(restHealBtn, 'Select rest healing')) actionCount++;
-      } else if (await fightBribeBtn.isVisible({ timeout: 0 })) {
+      } else if (await fightBribeBtn.isVisible({ timeout: 0 }) && await isElementEnabled(fightBribeBtn)) {
         if (await safeClick(fightBribeBtn, 'Fight goblin negotiator')) actionCount++;
-      } else if (await npcPriestBtn.isVisible({ timeout: 0 })) {
+      } else if (await npcPriestBtn.isVisible({ timeout: 0 }) && await isElementEnabled(npcPriestBtn)) {
         if (await safeClick(npcPriestBtn, 'Request priest healing')) actionCount++;
-      } else if (await npcMercenaryBtn.first().isVisible({ timeout: 0 })) {
+      } else if (await npcMercenaryBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(npcMercenaryBtn.first())) {
         if (await safeClick(npcMercenaryBtn.first(), 'Ignore NPC (mercenary/captive)')) actionCount++;
-      } else if (await leaveMerchantBtn.first().isVisible({ timeout: 0 })) {
+      } else if (await leaveMerchantBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(leaveMerchantBtn.first())) {
         if (await safeClick(leaveMerchantBtn.first(), 'Leave merchant/market')) actionCount++;
-      } else if (await skipPerceptionBtn.isVisible({ timeout: 0 })) {
+      } else if (await skipPerceptionBtn.isVisible({ timeout: 0 }) && await isElementEnabled(skipPerceptionBtn)) {
         if (await safeClick(skipPerceptionBtn, 'Skip perception check and enter room')) actionCount++;
-      } else if (await exploreBtn.isVisible({ timeout: 0 })) {
+      } else if (await exploreBtn.isVisible({ timeout: 0 }) && await isElementEnabled(exploreBtn)) {
         if (await safeClick(exploreBtn, 'Roll d66 to explore next room')) actionCount++;
       }
       continue;
@@ -193,7 +206,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
      * 5. 戦闘画面の処理
      * 【Playwright】 戦闘中の各種アクション（かばう、防御、攻撃、武器の持ち替え、勝敗結果の確認など）を順に評価して実行します。
      */
-    if (await page.locator('.combat-card').isVisible()) {
+    if (await page.locator('.combat-card').isVisible({ timeout: 0 })) {
       const coverBtn = page.locator('button:has-text("を基準にしてかばう")');
       const cancelCoverBtn = page.locator('button:has-text("かばうのを見送る")');
       const defendBtn = page.locator('button:has-text("主人公が防御する")');
@@ -214,43 +227,43 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       const sheetText = await page.locator('.adventure-sheet').textContent();
       const cannotAttack = sheetText?.includes('麻痺') || sheetText?.includes('石化');
 
-      if (await deflectBtn.isVisible({ timeout: 0 })) {
+      if (await deflectBtn.isVisible({ timeout: 0 }) && await isElementEnabled(deflectBtn)) {
         if (await safeClick(deflectBtn, 'Use deflect miracle')) actionCount++;
-      } else if (await skipDeflectBtn.isVisible({ timeout: 0 })) {
+      } else if (await skipDeflectBtn.isVisible({ timeout: 0 }) && await isElementEnabled(skipDeflectBtn)) {
         if (await safeClick(skipDeflectBtn, 'Skip deflect miracle')) actionCount++;
-      } else if (await holyArrowBtn.first().isVisible({ timeout: 0 })) {
+      } else if (await holyArrowBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(holyArrowBtn.first())) {
         if (await safeClick(holyArrowBtn.first(), 'Fire holy arrow')) actionCount++;
-      } else if (await coverBtn.first().isVisible({ timeout: 0 })) {
+      } else if (await coverBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(coverBtn.first())) {
         if (await safeClick(coverBtn.first(), 'Perform cover action')) actionCount++;
-      } else if (await cancelCoverBtn.isVisible({ timeout: 0 })) {
+      } else if (await cancelCoverBtn.isVisible({ timeout: 0 }) && await isElementEnabled(cancelCoverBtn)) {
         if (await safeClick(cancelCoverBtn, 'Decline cover action')) actionCount++;
-      } else if (await defendBtn.isVisible({ timeout: 0 })) {
+      } else if (await defendBtn.isVisible({ timeout: 0 }) && await isElementEnabled(defendBtn)) {
         let defenseCount = 0;
         // 防御ロールが複数回発生する場合（敵が複数いるなど）、1ループ中に最大10回までまとめて処理して無駄な待機ループを削減します。
-        while (await defendBtn.isVisible({ timeout: 0 }) && defenseCount < 10) {
+        while (await defendBtn.isVisible({ timeout: 0 }) && await isElementEnabled(defendBtn) && defenseCount < 10) {
           const success = await safeClick(defendBtn, 'Player defense roll', 300);
           if (!success) break;
           defenseCount++;
           actionCount++;
           await page.waitForTimeout(50);
         }
-      } else if (cannotAttack && await escapeBtn.isVisible({ timeout: 0 })) {
+      } else if (cannotAttack && await escapeBtn.isVisible({ timeout: 0 }) && await isElementEnabled(escapeBtn)) {
         if (await safeClick(escapeBtn, 'Escape from combat due to paralysis/petrification')) actionCount++;
-      } else if (await lootRollBtn.isVisible({ timeout: 0 })) {
+      } else if (await lootRollBtn.isVisible({ timeout: 0 }) && await isElementEnabled(lootRollBtn)) {
         if (await safeClick(lootRollBtn, 'Roll combat victory loot')) actionCount++;
-      } else if (await confirmCombatBtn.isVisible({ timeout: 0 })) {
+      } else if (await confirmCombatBtn.isVisible({ timeout: 0 }) && await isElementEnabled(confirmCombatBtn)) {
         if (await safeClick(confirmCombatBtn, 'Confirm combat result')) actionCount++;
-      } else if (await reactionConfirmBtn.isVisible({ timeout: 0 })) {
+      } else if (await reactionConfirmBtn.isVisible({ timeout: 0 }) && await isElementEnabled(reactionConfirmBtn)) {
         if (await safeClick(reactionConfirmBtn, 'Confirm reaction check result')) actionCount++;
-      } else if (await refuseBribeBtn.isVisible({ timeout: 0 })) {
+      } else if (await refuseBribeBtn.isVisible({ timeout: 0 }) && await isElementEnabled(refuseBribeBtn)) {
         if (await safeClick(refuseBribeBtn, 'Refuse bribe and fight')) actionCount++;
-      } else if (await reactionRollBtn.isVisible({ timeout: 0 })) {
+      } else if (await reactionRollBtn.isVisible({ timeout: 0 }) && await isElementEnabled(reactionRollBtn)) {
         if (await safeClick(reactionRollBtn, 'Roll reaction check')) actionCount++;
-      } else if (await closeRangedBtn.isVisible({ timeout: 0 })) {
+      } else if (await closeRangedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(closeRangedBtn)) {
         if (await safeClick(closeRangedBtn, 'Transition to melee combat')) actionCount++;
-      } else if (await switchWeaponBtn.isVisible({ timeout: 0 })) {
+      } else if (await switchWeaponBtn.isVisible({ timeout: 0 }) && await isElementEnabled(switchWeaponBtn)) {
         if (await safeClick(switchWeaponBtn, 'Perform weapon switching transition')) actionCount++;
-      } else if (await attackBtn.first().isVisible({ timeout: 0 })) {
+      } else if (await attackBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(attackBtn.first())) {
         if (await safeClick(attackBtn.first(), 'Attack first enemy in close combat')) actionCount++;
       }
       continue;

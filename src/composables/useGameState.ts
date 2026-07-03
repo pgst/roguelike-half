@@ -19,6 +19,7 @@ const activeScenario = ref<Scenario | null>(null);
 
 // Central State
 const currentScreen = ref<'scenario_select' | 'creator' | 'explore' | 'combat' | 'levelup' | 'gameover' | 'success'>('scenario_select');
+const isCharacterCreated = ref<boolean>(false);
 const dungeonDepth = ref<number>(0);
 const totalRoomsToClear = computed(() => activeScenario.value ? activeScenario.value.totalRoomsToClear : 8);
 const logs = ref<{ id: string; text: string; type: 'info' | 'roll' | 'combat' | 'error' | 'success' | 'damage' }[]>([]);
@@ -934,6 +935,7 @@ function refundExpForStat(stat: 'skill' | 'life' | 'sub' | 'follower'): boolean 
 
 // Game lifecycle
 function initNewCharacter(name: string, subStat: Character['subStatType']) {
+  isCharacterCreated.value = true;
   character.value = {
     name: name || '無名の冒険者',
     level: 10,
@@ -1058,6 +1060,7 @@ export function useGameState() {
   return {
     // State
     currentScreen,
+    isCharacterCreated,
     character,
     followers,
     activeEvent,
