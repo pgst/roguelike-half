@@ -1,0 +1,347 @@
+{
+  "id": "ice_tower",
+  "title": "氷結の魔塔",
+  "description": "永久凍土の果てにそびえ立つ、全てを凍てつかせる絶対零度の魔塔。荒れ狂う吹雪の罠と氷の魔物の軍勢を突破し、最上階に君臨する氷蓮の魔女王セリアを討て。",
+  "difficulty": "★★★★☆",
+  "totalRoomsToClear": 8,
+  "d66EventTable": {
+    "11": {
+      "title": "氷獣の急襲",
+      "d66Code": "11",
+      "description": "鋭い氷の牙を持つ氷原の狼が3体、吹雪の向こうから牙を剥いて飛びかかってきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "フロストウルフ A", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "フロストウルフ B", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "フロストウルフ C", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "12": {
+      "title": "降り注ぐ氷柱トラップ",
+      "d66Code": "12",
+      "description": "振動によって天井から鋭利な巨大氷柱が崩落してきました！器用に身をかわす必要があります。",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "13": {
+      "title": "暖炉のある待合室",
+      "d66Code": "13",
+      "description": "不思議と消えない魔導の暖炉が燃える部屋です。凍えた身体を休め、傷を癒やすか精神を回復させることができます。",
+      "type": "rest"
+    },
+    "14": {
+      "title": "凍りついた探検家",
+      "d66Code": "14",
+      "description": "完全に氷漬けになった過去の探検家の遺体を見つけました。彼が遺した装備や遺品を調べることができそうです。",
+      "type": "treasure",
+      "lootModifier": 0
+    },
+    "15": {
+      "title": "絶対零度の障壁",
+      "d66Code": "15",
+      "description": "近づくだけで魂まで凍りつく青い結界が道を塞いでいます。魔術の知識で解除するか、運を天に任せて突破する必要があります。",
+      "type": "trap",
+      "trapStat": "magic",
+      "trapTarget": 5,
+      "trapDamage": 1
+    },
+    "16": {
+      "title": "氷結のスケルトン",
+      "d66Code": "16",
+      "description": "氷の鎧を身にまとった骸骨兵が3体、剣を構えて立ち上がりました！冷気を帯びた【アンデッド】です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "氷骨剣士 A", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1 },
+        { "name": "氷骨剣士 B", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1 },
+        { "name": "氷骨剣士 C", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1 }
+      ]
+    },
+    "21": {
+      "title": "雪原の密輸商人",
+      "d66Code": "21",
+      "description": "厚手の毛皮に身を包んだ、塔内を回る密輸商人に遭遇しました。金貨と物資の取引が可能です。",
+      "type": "npc",
+      "npcType": "merchant"
+    },
+    "22": {
+      "title": "凍結レバーの罠",
+      "d66Code": "22",
+      "description": "扉を開けるために握った鉄のレバーが瞬時に凍りつき、手を引き剥がせなくなりました！筋力で力任せに引き剥がす必要があります。",
+      "type": "trap",
+      "trapStat": "strength",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "23": {
+      "title": "精霊の氷湧水",
+      "d66Code": "23",
+      "description": "凍らずに湧き出る神秘的な聖水です。この水を飲むことで、魔力や精神力（副能力値）が完全に回復します。",
+      "type": "rest"
+    },
+    "24": {
+      "title": "厳重に封印された氷櫃",
+      "d66Code": "24",
+      "description": "分厚い氷に覆われた古い宝箱が置かれています。罠が仕掛けられているかもしれませんが、中身は期待できそうです。",
+      "type": "treasure",
+      "lootModifier": -1
+    },
+    "25": {
+      "title": "雪男の門番",
+      "d66Code": "25",
+      "description": "知性を持ったイエティの門番が道を塞いでいます。金貨5枚の【ワイロ】を支払えば、見逃して通してくれそうです。",
+      "type": "npc",
+      "npcType": "bribe"
+    },
+    "26": {
+      "title": "アイシクル・ゴーレム",
+      "d66Code": "26",
+      "description": "巨大な氷塊を組み合わせて作られた強固な魔導人形が動き出しました！非常に頑丈な【ゴーレム】です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "アイシクル・ゴーレム", "level": 4, "lifeMax": 3, "lifeCurrent": 3, "attackCount": 1, "tags": ["strong", "golem"], "count": 1 }
+      ]
+    },
+    "31": {
+      "title": "遭難した雪山猟師",
+      "d66Code": "31",
+      "description": "寒さで身動きが取れなくなっているベテランの猟師がいます。金貨を払い暖めてやれば、従者として同行してくれるかもしれません。",
+      "type": "npc",
+      "npcType": "mercenary"
+    },
+    "32": {
+      "title": "氷の床のスリップ罠",
+      "d66Code": "32",
+      "description": "鏡のように磨かれた氷の床で足を滑らせ、壁の鋭い氷のトゲに向かって滑落しました！素早く体勢を立て直す必要があります。",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 5,
+      "trapDamage": 1,
+      "statusEffect": "麻痺"
+    },
+    "33": {
+      "title": "冬至の女神像",
+      "d66Code": "33",
+      "description": "冬の平穏を司る女神の美しい氷彫刻です。祈りを捧げることで邪気が払われ、幸運点が全回復します。",
+      "type": "rest"
+    },
+    "34": {
+      "title": "フロスト・バットの群れ",
+      "d66Code": "34",
+      "description": "天井の氷柱に擬態していた青い大コウモリ4体が、超音波を放ちながら一斉に襲いかかってきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "氷大コウモリ A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "氷大コウモリ B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "氷大コウモリ C", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "氷大コウモリ D", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "35": {
+      "title": "霜の巨人の戦士",
+      "d66Code": "35",
+      "description": "青白い肌を持つ誇り高き霜の巨人が、氷の戦斧を振り下ろしながら咆哮を上げました！極めて強力な敵です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "フロストジャイアント", "level": 5, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong"], "count": 1 }
+      ]
+    },
+    "36": {
+      "title": "幽閉された雪原の司祭",
+      "d66Code": "36",
+      "description": "氷の檻に閉じ込められた司祭を発見しました。助け出すと、神の奇跡で傷を癒やすか「聖水」を恵んでくれます。",
+      "type": "npc",
+      "npcType": "priest"
+    },
+    "41": {
+      "title": "氷結晶のスライム",
+      "d66Code": "41",
+      "description": "完全に凍りついたコアを持つ結晶化スライムが5体、床を滑りながら突進してきました！数が多いです。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "氷結スライム A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "氷結スライム B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "氷結スライム C", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "氷結スライム D", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "氷結スライム E", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "42": {
+      "title": "落とし穴と氷の串刺し",
+      "d66Code": "42",
+      "description": "薄い氷でカモフラージュされた落とし穴を踏んでしまいました！底には氷のトゲが敷き詰められています。腕力で縁にしがみつく必要があります。",
+      "type": "trap",
+      "trapStat": "strength",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "43": {
+      "title": "彫刻が施された白銀箱",
+      "d66Code": "43",
+      "description": "吹雪の吹き溜まりに、美しい白銀のチェストが隠されていました。手つかずの財宝が入っているようです！",
+      "type": "treasure",
+      "lootModifier": 1
+    },
+    "44": {
+      "title": "白銀の魔導鎧",
+      "d66Code": "44",
+      "description": "白銀の甲冑に凍てつく魂が宿り、ゆっくりと大剣を抜いて動き出しました！冷気を放つ頑丈な【ゴーレム】です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "ホワイトアーマー", "level": 5, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong", "golem"], "count": 1 }
+      ]
+    },
+    "45": {
+      "title": "凍えつく魔音の氷碑",
+      "d66Code": "45",
+      "description": "邪悪な魔力が込められた氷碑から、精神を凍凍と狂わせる不協和音が響きました！幸運の力で正気を保つ必要があります。",
+      "type": "trap",
+      "trapStat": "luck",
+      "trapTarget": 4,
+      "trapDamage": 1,
+      "statusEffect": "呪い"
+    },
+    "46": {
+      "title": "氷原ゴブリンの略奪隊",
+      "d66Code": "46",
+      "description": "青い皮膚をした氷原ゴブリンの戦士4体が、容赦なく武器を構えて襲いかかってきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "凍土ゴブリン A", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "凍土ゴブリン B", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "凍土ゴブリン C", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "凍土ゴブリン D", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "51": {
+      "title": "癒やしの魔導温水",
+      "d66Code": "51",
+      "description": "冷気を寄せ付けない不思議な温泉が湧き出ています。身体を芯から温めることで、すべての傷（生命力）が完全に癒やされます。",
+      "type": "rest"
+    },
+    "52": {
+      "title": "吹き出す絶対零度ガス",
+      "d66Code": "52",
+      "description": "壁の隙間から、一瞬で血液を凍らせる超低温のガスが噴出しました！強靭な肉体と肺活量（筋力）で耐える必要があります。",
+      "type": "trap",
+      "trapStat": "strength",
+      "trapTarget": 5,
+      "trapDamage": 1
+    },
+    "53": {
+      "title": "雪山で果てた怨霊",
+      "d66Code": "53",
+      "description": "吹雪の中で行き倒れた者の凄まじい執念が、氷の怨霊となって現れました！物理攻撃が効きにくい【アンデッド】です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "フロストファントム", "level": 4, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["undead"], "count": 1 }
+      ]
+    },
+    "54": {
+      "title": "氷結晶の幾何学パズル",
+      "d66Code": "54",
+      "description": "美しく複雑な氷の結晶で組み立てられた仕掛け扉があります。高度な頭脳（技量）を駆使して模様を解き明かせば、隠された財宝が得られます。",
+      "type": "trap",
+      "trapStat": "skill",
+      "trapTarget": 5,
+      "trapDamage": 0
+    },
+    "55": {
+      "title": "氷漬けのゴブリン盗賊",
+      "d66Code": "55",
+      "description": "薄い氷の中に閉じ込められ、身動きが取れなくなっているゴブリンがいます。ロープ等で救出すれば、無理やり「戦わない従者（捕虜）」にできます。",
+      "type": "npc",
+      "npcType": "captive"
+    },
+    "56": {
+      "title": "永久凍土のミイラ",
+      "d66Code": "56",
+      "description": "氷の棺から、凍りついて干からびた古代のミイラが這い出してきました！非常に頑強でしぶとい【アンデッド】です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "凍結ミイラ", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong", "undead"], "count": 1 }
+      ]
+    },
+    "61": {
+      "title": "塔の番人フロスト・トロール",
+      "d66Code": "61",
+      "description": "白毛に覆われ、圧倒的な巨体と再生能力を持つフロスト・トロールが棍棒を振り回して襲ってきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "フロスト・トロール", "level": 5, "lifeMax": 4, "lifeCurrent": 4, "attackCount": 1, "tags": ["strong"], "count": 1 }
+      ]
+    },
+    "62": {
+      "title": "高圧結氷スプレー",
+      "d66Code": "62",
+      "description": "像の口から、触れたものを即座に凍結させる超高圧の魔法結氷液が放たれました！素早い身のこなし（器用）で避けてください。",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 4,
+      "trapDamage": 1,
+      "statusEffect": "石化"
+    },
+    "63": {
+      "title": "氷雪精霊王の祝福",
+      "d66Code": "63",
+      "description": "塔に住まう気高き精霊の意思が光となって舞い降ります。主人公の生命力が1回復し、さらにすべての副能力値が全回復します。",
+      "type": "rest"
+    },
+    "64": {
+      "title": "放棄された白銀の武具庫",
+      "d66Code": "64",
+      "description": "かつて塔を警護していた高潔な騎士たちの武具庫です。今でも十分に使える頑丈な装備が残されています。",
+      "type": "treasure",
+      "lootModifier": 0
+    },
+    "65": {
+      "title": "氷蓮教の狂信戦士",
+      "d66Code": "65",
+      "description": "魔女王セリアを盲信する、氷蓮教の冷酷なエリート神殿騎士が道を塞ぎます。一切の容赦はありません。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "氷蓮の神殿騎士", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong"], "count": 1 }
+      ]
+    },
+    "66": {
+      "title": "呪いの氷像",
+      "d66Code": "66",
+      "description": "禍々しい冷気の瘴気を放つ、狂った魔女王の彫像です。通過する者に精神を凍らせる呪いを放ちます！幸運で耐えてください。",
+      "type": "trap",
+      "trapStat": "luck",
+      "trapTarget": 5,
+      "trapDamage": 1,
+      "statusEffect": "呪い"
+    }
+  },
+  "bossEvent": {
+    "title": "【決戦】氷蓮の魔女王セリア",
+    "d66Code": "Boss",
+    "description": "魔塔の最上階、大吹雪が渦巻く玉座の間。氷の蓮華をまとった冷徹なる女王「セリア」が、絶対零度の魔力を湛えた杖を掲げて立ちはだかります。これぞ最終決戦！",
+    "type": "encounter",
+    "enemies": [
+      { "name": "氷蓮の魔女王セリア", "level": 6, "lifeMax": 6, "lifeCurrent": 6, "attackCount": 2, "tags": ["strong"], "count": 1 }
+    ]
+  },
+  "statusEffectRules": {
+    "呪い": {
+      "description": "呪いにより、すべての判定ロール（攻撃・防御・能力値判定）に -1 のペナルティを受けます。",
+      "modAttack": -1,
+      "modDefense": -1,
+      "modSkill": -1
+    },
+    "麻痺": {
+      "description": "麻痺により、戦闘中に攻撃（物理・魔法）を行うことができません。また、かばう行動も不可となります。",
+      "preventsAttack": true,
+      "preventsCover": true
+    },
+    "石化": {
+      "description": "体が石化し、一切の行動（攻撃、防御、魔法、かばう）ができません。被弾時の防御判定は自動的に失敗します。",
+      "preventsAttack": true,
+      "preventsDefense": true,
+      "preventsMagic": true,
+      "preventsCover": true
+    }
+  }
+}

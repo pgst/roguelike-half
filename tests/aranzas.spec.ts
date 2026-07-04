@@ -1,11 +1,6 @@
 import { test, expect, type Locator } from '@playwright/test';
 import { safeClick, disableAnimations } from './helpers/test-utils';
 
-/**
- * 対象のロケータが有効（Enabled）であるかを安全に判定します。
- * PlaywrightのisEnabledは非活性や未描画の状態でタイムアウトに達すると例外を投げるため、
- * try-catchで例外をトラップして安全にfalseを返すようにします。
- */
 async function isElementEnabled(locator: Locator): Promise<boolean> {
   try {
     return await locator.isEnabled({ timeout: 50 });
@@ -14,56 +9,26 @@ async function isElementEnabled(locator: Locator): Promise<boolean> {
   }
 }
 
-/**
- * ゲームのプレイを最後まで自動操作で完走できるかを検証するテストケースです。
- * 
- * 【TypeScript】
- * - `async ({ page }) => { ... }` の部分は、アロー関数（無名関数の一種）で非同期処理を記述しています。
- * - `{ page }` は引数のオブジェクトから `page` プロパティを取り出す「分割代入（Destructuring Assignment）」です。
- * 
- * 【Playwright】
- * - `test` 関数の第1引数にテスト名、第2引数に実際のテスト内容（フィクスチャを受け取るコールバック関数）を渡します。
- * - `page` フィクスチャは、このテスト専用に初期化されたブラウザのタブ（ページ）を表します。
- */
-test('Roguelike Half full play-through verification', async ({ page }) => {
-  /**
-   * テストのタイムアウト時間をミリ秒単位で設定します。
-   * 【Playwright】 このゲームはダイスロールのアニメーションなどが多く時間がかかるため、
-   *              デフォルトのタイムアウト（通常30秒）を300,000ミリ秒（5分）に引き上げています。
-   */
+test('Aranzas scenario full play-through verification', async ({ page }) => {
   test.setTimeout(300000);
 
-  /**
-   * 指定したURLにブラウザを遷移させます。
-   * 【Playwright】 `playwright.config.ts` で設定された `baseURL` を起点とした相対パス（`/`）を指定しています。
-   */
   await page.goto('/');
   await disableAnimations(page);
 
-  // 【テスト設計】 無限ループに陥るのを防ぐためのセーフティリミットです。
-  const maxActions = 250; // 実際のクリックを伴うアクションの上限回数
-  const maxLoops = 2500;  // アクションが起きない待機・監視ループの上限回数
+  const maxActions = 250;
+  const maxLoops = 2500;
   
   let actionCount = 0;
   let loopCount = 0;
   let reachedEnd = false;
 
-  console.log('Starting Roguelike Half automation with safe-clicks...');
+  console.log('Starting Aranzas scenario play-through...');
 
-  // どちらかの上限値に達するまでループし、ゲーム画面の要素に応じたアクションを繰り返します。
   while (actionCount < maxActions && loopCount < maxLoops) {
     loopCount++;
     
-    /**
-     * 指定ミリ秒数だけ処理を一時停止します。
-     * 【Playwright】 画面の状態遷移やアニメーションが落ち着くのを待つために、ループごとに100ミリ秒待機します。
-     */
     await page.waitForTimeout(100);
 
-    /**
-     * ゲーム終了画面（勝利または敗北）が表示されているかをチェックします。
-     * 【Playwright】 `page.locator(selector)` で要素を特定し、`.isVisible()` で画面上に表示されているかを判定します（非同期処理）。
-     */
     if (await page.locator('.victory-card').isVisible({ timeout: 0 })) {
       console.log(`🎉 Reached Victory (Success) Screen after ${actionCount} actions (loops: ${loopCount})!`);
       reachedEnd = true;
@@ -75,37 +40,23 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       break;
     }
 
-    /**
-     * 1. シナリオ選択画面の処理
-     * 【Playwright】 `.scenario-selector` がある場合、`.scenario-card` の一番最初のカードを取得しクリックします。
-     */
+    // 1. Scenario selection - Target "魔将アラザスの迷宮"
     if (await page.locator('.scenario-selector').isVisible({ timeout: 0 })) {
-      const scenarioCard = page.locator('.scenario-card').first();
-      if (await safeClick(scenarioCard, 'Selecting first scenario card', 500)) {
+      const scenarioCard = page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first();
+      if (await safeClick(scenarioCard, 'Selecting Aranzas scenario card', 500)) {
         actionCount++;
       }
       continue;
     }
 
-    /**
-     * 2. キャラクター作成画面の処理
-     * 【Playwright】 `.creator-card` がある場合、入力フィールドに入力し、アーキタイプを選択して送信ボタンを押します。
-     */
+    // 2. Character creation
     if (await page.locator('.creator-card').isVisible({ timeout: 0 })) {
       console.log(`[Action ${actionCount}] Filling character details...`);
-      /**
-       * テキストボックスや入力フォームに値を入力します。
-       * 【Playwright】 ID指定 `#char-name` の入力フィールドに `'Playwright Hero'` を入力します。
-       */
-      await page.fill('#char-name', 'Playwright Hero');
+      await page.fill('#char-name', 'Aranzas Hero');
       
       const archCard = page.locator('.archetype-card').first();
       await safeClick(archCard, 'First archetype card', 200);
 
-      /**
-       * 特定の文字列を含むボタンを検出します。
-       * 【Playwright】 `:has-text("...")` セレクターを使用して、特定のテキストを表示しているボタンを取得します。
-       */
       const submitBtn = page.locator('button:has-text("キャラクターの命運を紡ぎ出す")');
       if (await safeClick(submitBtn, 'Create character button', 500)) {
         actionCount++;
@@ -113,16 +64,11 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       continue;
     }
 
-    /**
-     * 3. レベルアップ / 街の市場画面の処理
-     * 【Playwright】 スキル（魔法・奇跡）の修得、および生命点の上昇を可能な限り行い、最後に冒険を開始します。
-     */
+    // 3. Level-up / Town Market
     if (await page.locator('.levelup-card').isVisible({ timeout: 0 })) {
-      // 習得可能な魔法・奇跡のボタンを検出します（無効化されていないもの）。
       const spellBtn = page.locator('.spell-learning-section button.btn-mini:not([disabled])');
       let learnedSpell = false;
       
-      // 修得可能なスペルボタンが存在し、かつ有効な間ループして修得します。
       while (await spellBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(spellBtn.first())) {
         const success = await safeClick(spellBtn.first(), 'Learn a spell/miracle', 150);
         if (!success) break;
@@ -131,11 +77,9 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
         await page.waitForTimeout(50);
       }
 
-      // 生命点の上昇ボタンを検出します。
       const lifeBtn = page.locator('.ledger-row:has-text("生命点") button:has-text("+1上昇")');
       let clickedLife = false;
       
-      // 経験値がある限り、生命点上昇ボタンを繰り返しクリックします。
       while (await lifeBtn.isVisible({ timeout: 0 }) && await isElementEnabled(lifeBtn)) {
         const success = await safeClick(lifeBtn, 'Life increase (+1 Life)', 150);
         if (!success) break;
@@ -144,7 +88,6 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
         await page.waitForTimeout(50);
       }
 
-      // これ以上成長させる余地（経験値）がなくなったら、冒険を開始するか次のシナリオを選択します。
       if (!clickedLife && !learnedSpell) {
         const startBtn = page.locator('button:has-text("冒険を開始する")');
         const selectScenarioBtn = page.locator('button:has-text("次のシナリオを選択する")');
@@ -161,10 +104,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       continue;
     }
 
-    /**
-     * 4. ダンジョン探索画面の処理
-     * 【Playwright】 部屋の状態（進行、罠判定、宝箱、回復、NPC遭遇、ショップなど）に応じて適切なボタンを押します。
-     */
+    // 4. Dungeon Exploration
     if (await page.locator('.explorer-card').isVisible({ timeout: 0 })) {
       const proceedBtn = page.locator('button:has-text("次の小部屋へ進む")');
       const trapBtn = page.locator('button:has-text("判定ロールに挑戦する"), button:has-text("で挑戦")');
@@ -177,7 +117,6 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
       const exploreBtn = page.locator('button:has-text("d66を振って次の部屋を探索する")');
 
-      // 優先度の高い順に画面上の選択肢ボタンを評価し、存在するものをクリックします。
       if (await proceedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(proceedBtn)) {
         if (await safeClick(proceedBtn, 'Proceed to next room')) actionCount++;
       } else if (await trapBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(trapBtn.first())) {
@@ -202,10 +141,7 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       continue;
     }
 
-    /**
-     * 5. 戦闘画面の処理
-     * 【Playwright】 戦闘中の各種アクション（かばう、防御、攻撃、武器の持ち替え、勝敗結果の確認など）を順に評価して実行します。
-     */
+    // 5. Combat
     if (await page.locator('.combat-card').isVisible({ timeout: 0 })) {
       const coverBtn = page.locator('button:has-text("を基準にしてかばう")');
       const cancelCoverBtn = page.locator('button:has-text("かばうのを見送る")');
@@ -223,7 +159,6 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
       const skipDeflectBtn = page.locator('button:has-text("発動を見送る")');
       const holyArrowBtn = page.locator('button:has-text("聖なる矢を放つ")');
 
-      // 戦闘のフェーズに応じたボタンを検出し、処理を実行します。
       const sheetText = await page.locator('.adventure-sheet').textContent();
       const cannotAttack = sheetText?.includes('麻痺') || sheetText?.includes('石化');
 
@@ -239,7 +174,6 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
         if (await safeClick(cancelCoverBtn, 'Decline cover action')) actionCount++;
       } else if (await defendBtn.isVisible({ timeout: 0 }) && await isElementEnabled(defendBtn)) {
         let defenseCount = 0;
-        // 防御ロールが複数回発生する場合（敵が複数いるなど）、1ループ中に最大10回までまとめて処理して無駄な待機ループを削減します。
         while (await defendBtn.isVisible({ timeout: 0 }) && await isElementEnabled(defendBtn) && defenseCount < 10) {
           const success = await safeClick(defendBtn, 'Player defense roll', 300);
           if (!success) break;
@@ -270,10 +204,5 @@ test('Roguelike Half full play-through verification', async ({ page }) => {
     }
   }
 
-  /**
-   * テスト結果のアサーションを行います。
-   * 【Playwright】 `expect(actual).toBe(expected)` を用いて、ゲーム終了画面（勝利または敗北）まで完走できたかを検証します。
-   */
   expect(reachedEnd).toBe(true);
 });
-
