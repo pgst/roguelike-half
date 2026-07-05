@@ -2,7 +2,7 @@
   "id": "black_serpent",
   "title": "黒蛇の洞窟",
   "description": "猛毒を帯びた蜘蛛や大蛇が蠢き、湿った空気が肌を刺す底無しの洞窟。数々の毒ガスや落とし穴を潜り抜け、最深部でとぐろを巻く巨大黒蛇獣「オロチ」を討ち滅ぼせ。",
-  "recommendedLevel": "適正レベル：1-3",
+  "recommendedLevel": "適正レベル：10-11",
   "totalRoomsToClear": 6,
   "d66EventTable": {
     "11": {

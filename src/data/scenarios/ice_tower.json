@@ -2,7 +2,7 @@
   "id": "ice_tower",
   "title": "氷結の魔塔",
   "description": "永久凍土の果てにそびえ立つ、全てを凍てつかせる絶対零度の魔塔。荒れ狂う吹雪の罠と氷の魔物の軍勢を突破し、最上階に君臨する氷蓮の魔女王セリアを討て。",
-  "recommendedLevel": "適正レベル：5-7",
+  "recommendedLevel": "適正レベル：12-13",
   "totalRoomsToClear": 8,
   "d66EventTable": {
     "11": {
