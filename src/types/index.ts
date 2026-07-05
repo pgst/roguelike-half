@@ -99,6 +99,7 @@ export interface Enemy {
   special?: string;
   count: number; // for groups of weak enemies
   isRanged?: boolean; // 【追加】 飛び道具（遠距離攻撃）を行うクリーチャーかの判定フラグ
+  weaponAttribute?: 'strike' | 'slash';
 }
 
 export interface DungeonEvent {
@@ -111,7 +112,7 @@ export interface DungeonEvent {
   trapTarget?: number;
   trapDamage?: number;
   lootModifier?: number;
-  npcType?: 'merchant' | 'bribe' | 'priest' | 'mercenary' | 'captive';
+  npcType?: 'merchant' | 'bribe' | 'priest' | 'mercenary' | 'captive' | 'final2_choice' | 'desert_crocodile';
   isResolved?: boolean;
   resolutionText?: string;
   statusEffect?: string; // 【追加】 罠によって受ける状態異常（例: '呪い', '石化', '麻痺'）

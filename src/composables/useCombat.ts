@@ -642,7 +642,7 @@ export function useCombat() {
         addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
       }
 
-      const { hit, total } = calculateFollowerHit(follower, target, roll, modifier);
+      const { hit } = calculateFollowerHit(follower, target, roll, modifier);
 
       if (hit) {
         target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
@@ -1478,18 +1478,7 @@ export function useCombat() {
     }
   }
 
-  function checkCombatVictory() {
-    if (combatState.enemies.length === 0) {
-      if (activeEvent.value?.d66Code === 'Final3' && !(combatState as any).roarCheckedThisCombat) {
-        (combatState as any).pendingRoarCheck = 'death';
-        addLog('😈 刻の悪魔クロノヴァルスは生命力が0になりましたが、その歪んだ肉体から最後の『時喰いの咆哮』を放ちました！', 'error');
-        return true;
-      }
-      endCombat(true);
-      return true;
-    }
-    return false;
-  }
+
 
   async function rollSpellResistance(target = 5) {
     const isMagic = character.value.subStatType === 'magic';

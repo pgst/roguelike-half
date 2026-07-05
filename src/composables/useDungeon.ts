@@ -465,5 +465,6 @@ export function useDungeon() {
     confirmPerceptionSkip,
     executePerceptionScout,
     executePerceptionHero,
+    startEncounter,
   };
 }

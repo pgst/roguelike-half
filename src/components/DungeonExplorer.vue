@@ -118,15 +118,8 @@ function startFinal2Fight(choice: 'golem' | 'shireen') {
 async function bribeCrocodile(type: 'food' | 'follower') {
   if (!activeEvent.value) return;
   if (type === 'food') {
-    let removed = 0;
-    for (let i = character.value.items.length - 1; i >= 0; i--) {
-      if (removed >= 2) break;
-      if (character.value.items[i].type === 'food') {
-        character.value.items.splice(i, 1);
-        removed++;
-      }
-    }
-    addLog('💸 食料2個をワイロとして投げ与えました。', 'info');
+    character.value.food = Math.max(0, character.value.food - 2);
+    addLog('💸 食料2食分をワイロとして投げ与えました。', 'info');
   } else {
     const fIdx = followers.value.findIndex(f => f.goldCost <= 10);
     if (fIdx !== -1) {
@@ -703,8 +696,8 @@ function resolveSkeletonEvent() {
               食料2個、または弱い（雇用費が金貨10枚以下）従者1体を差し出すことで、友好関係を試すことができます (1d6を振り、1-3で成功/戦闘回避、4-6で戦闘突入)。
             </p>
             <div class="button-group" style="display: flex; gap: 10px; flex-direction: column;">
-              <button v-if="character.items.filter(i => i.type === 'food').length >= 2" @click="bribeCrocodile('food')" class="btn-ink" style="width: 100%; justify-content: center; font-weight: bold;" :disabled="diceTray.isRolling">
-                💸 食料 2 個を差し出してワイロを試みる (現在の食料: {{ character.items.filter(i => i.type === 'food').length }}個)
+              <button v-if="character.food >= 2" @click="bribeCrocodile('food')" class="btn-ink" style="width: 100%; justify-content: center; font-weight: bold;" :disabled="diceTray.isRolling">
+                💸 食料 2 個を差し出してワイロを試みる (現在の食料: {{ character.food }}個)
               </button>
               <button v-if="followers.some(f => f.goldCost <= 10)" @click="bribeCrocodile('follower')" class="btn-ink" style="width: 100%; justify-content: center; font-weight: bold;" :disabled="diceTray.isRolling">
                 💸 弱い従者 1 体を差し出してワイロを試みる
