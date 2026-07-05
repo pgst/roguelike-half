@@ -1,0 +1,357 @@
+{
+  "id": "pyramid_of_chronodemon",
+  "title": "刻の悪魔のピラミッド",
+  "description": "アランツァ大陸南東の砂漠に突如現れた巨大なピラミッド。かつてビウレスの魔道士ミロスが異能の神、刻の悪魔クロノヴァルスを封印した場所。クロノシア教徒によって甦った悪魔の脅威を退け、再び封印せよ。[cite: 1]",
+  "difficulty": "★★★★☆",
+  "totalRoomsToClear": 11,
+  "d66EventTable": {
+    "11": {
+      "title": "ゴールデンポップコーン",
+      "d66Code": "11",
+      "description": "部屋の隅に、麻袋が積まれています。中には砂漠の暑さにも強い魔法の非常食「ゴールデンポップコーン」が詰められていました。[cite: 1]",
+      "type": "treasure",
+      "lootModifier": 0
+    },
+    "12": {
+      "title": "巨大な蜘蛛の巣",
+      "d66Code": "12",
+      "description": "天井に巨大な蜘蛛の巣が張り巡らされており、いくつかの武器が絡みついています。武器を取ろうとすると、大グモが現れるかもしれません。[cite: 1]",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 3,
+      "trapDamage": 1
+    },
+    "13": {
+      "title": "彫刻家の石ノミ",
+      "d66Code": "13",
+      "description": "隠し扉の奥に、彫刻家ミロスの仕事道具が納められていました。ゴーレムに対して絶大な威力を発揮する「彫刻家の石ノミ」を入手できます。[cite: 1]",
+      "type": "treasure",
+      "lootModifier": 1
+    },
+    "14": {
+      "title": "ハヤブサのミサンガ",
+      "d66Code": "14",
+      "description": "鳥の絵が描かれた小箱の中に、ハヤブサの羽で作られた魔法のミサンガが入っていました。素早く動けるようになるアイテムです。[cite: 1]",
+      "type": "treasure",
+      "lootModifier": 0
+    },
+    "15": {
+      "title": "水晶の薔薇",
+      "d66Code": "15",
+      "description": "ガラスケースの中に、透き通った幻の薔薇「水晶の薔薇」が収められています。所持しているだけで幸運が訪れる美しい宝物です。[cite: 1]",
+      "type": "treasure",
+      "lootModifier": 1
+    },
+    "16": {
+      "title": "八百万のお札",
+      "d66Code": "16",
+      "description": "遥か東方の文字が記された厚手の紙のお札を見つけました。身代わりやワイロとして使える不思議な力を秘めています。[cite: 1]",
+      "type": "treasure",
+      "lootModifier": 0
+    },
+    "21": {
+      "title": "ポロメイアの若きボロ",
+      "d66Code": "21",
+      "description": "ポロメイアの若き戦士ボロが倒れています。治療してあげれば、クロノシア教団に関する重要な手がかりを教えてくれるでしょう。[cite: 1]",
+      "type": "npc",
+      "npcType": "mercenary"
+    },
+    "22": {
+      "title": "彷徨える商人",
+      "d66Code": "22",
+      "description": "ピラミッドに迷い込んだ商人ワンダロスと出会いました。彼を護衛して連れて行くか、物資を購入することができます。[cite: 1]",
+      "type": "npc",
+      "npcType": "merchant"
+    },
+    "23": {
+      "title": "三本傷のコビット",
+      "d66Code": "23",
+      "description": "顔に三本傷のある女コビットのジル＝メガが、石で出来た猫型のゴーレムと戦闘中です！加勢すればお礼がもらえるかもしれません。[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "キャットゴーレム A", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["golem"], "count": 1 },
+        { "name": "キャットゴーレム B", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["golem"], "count": 1 }
+      ]
+    },
+    "24": {
+      "title": "修繕するアリ人",
+      "d66Code": "24",
+      "description": "ピラミッドの壁や床を修繕しているアリ人の一族がいます。手伝いを申し出れば有益なアイテムをもらえますが、怒らせると戦闘になります。[cite: 1]",
+      "type": "npc",
+      "npcType": "bribe"
+    },
+    "25": {
+      "title": "隊長アランとアダマンタイト",
+      "d66Code": "25",
+      "description": "部屋の中央にあるアダマンタイトを巡って、アルマシウダの戦士アランと鉢合わせしました。譲ってもらうか、力ずくで奪うか決断が必要です。[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "アラン", "level": 5, "lifeMax": 5, "lifeCurrent": 5, "attackCount": 1, "tags": ["strong", "human"], "count": 1 }
+      ]
+    },
+    "26": {
+      "title": "おしゃべりスフィンクス",
+      "d66Code": "26",
+      "description": "通路を通せんぼするように鎮座するスフィンクスが、延々ととりとめのない話をしています。最後まで聞けば有益な情報を得られますが、頭痛がするかもしれません。[cite: 1]",
+      "type": "npc",
+      "npcType": "merchant"
+    },
+    "31": {
+      "title": "幻の庭園",
+      "d66Code": "31",
+      "description": "魔法の石「幻投石」によって、美しい庭園と過去の幻影が映し出されています。ここで休息を取れば、副能力値が回復します。[cite: 1]",
+      "type": "rest"
+    },
+    "32": {
+      "title": "怪力王の壁画",
+      "d66Code": "32",
+      "description": "怪力王ヘラクレオスの伝説が描かれた壁画があります。はめ込まれている「聖石」を持っていけば、力を得る助けになるかもしれません。[cite: 1]",
+      "type": "treasure",
+      "lootModifier": 0
+    },
+    "33": {
+      "title": "砂掃きの骸骨",
+      "d66Code": "33",
+      "description": "箒を持って掃除をしている骸骨がいます。友好的に接して特定の武器を渡せば、彼が持っている「古竜の肋骨剣」と交換してくれます。[cite: 1]",
+      "type": "npc",
+      "npcType": "merchant"
+    },
+    "34": {
+      "title": "ゼブラの蝋燭と闇の壁画",
+      "d66Code": "34",
+      "description": "壁際に6本の白黒の蝋燭が立っています。すべてに火を灯せば悪魔の壁画を確認できますが、灯すたびに不穏な罠が発動します。[cite: 1]",
+      "type": "trap",
+      "trapStat": "luck",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "35": {
+      "title": "黄金風呂の浮遊体",
+      "d66Code": "35",
+      "description": "黄金で造られた浴槽に温水が張られています。影が浮いており、ゾンビか、死体か、それともただの異国の剣士か確かめる必要がありますが、入浴できれば生命力が全快します。[cite: 1]",
+      "type": "rest"
+    },
+    "36": {
+      "title": "時計塔の模型",
+      "d66Code": "36",
+      "description": "三階層の時計塔の模型があります。ネジを回すと未来のヒントを得るか、過去の幻影と戦うことになりますが、幻影に勝てば完全回復します。[cite: 1]",
+      "type": "trap",
+      "trapStat": "skill",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "41": {
+      "title": "流砂回廊",
+      "d66Code": "41",
+      "description": "天井が外れ、大量の砂が通路を埋め尽くす勢いで溢れてきました！グリフォン像を倒して防ぐか、全力で逃げ出さなければ生き埋めになります。[cite: 1]",
+      "type": "trap",
+      "trapStat": "strength",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "42": {
+      "title": "海獣の天秤",
+      "d66Code": "42",
+      "description": "蛸の神官が立つ天秤の間。亡くした仲間の形見を捧げれば復活のチャンスがありますが、失敗すると巨大な海獣「飽食のクジラ」に呑み込まれます！[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "飽食のクジラ", "level": 4, "lifeMax": 6, "lifeCurrent": 6, "attackCount": 2, "tags": ["strong", "monster"], "count": 1 }
+      ]
+    },
+    "43": {
+      "title": "壁面パズル",
+      "d66Code": "43",
+      "description": "壁に埋め込まれたパネルを動かすパズルがあります。解ければ隠し通路が開きますが、失敗すると猛獣（トラ）の檻が開いてしまいます。[cite: 1]",
+      "type": "trap",
+      "trapStat": "skill",
+      "trapTarget": 4,
+      "trapDamage": 0
+    },
+    "44": {
+      "title": "謎かけスフィンクス",
+      "d66Code": "44",
+      "description": "金箔の顔をしたスフィンクスがなぞなぞを出題してきます。知恵を絞って解けば宝をもらえますが、間違えれば襲いかかってきます。[cite: 1]",
+      "type": "trap",
+      "trapStat": "luck",
+      "trapTarget": 5,
+      "trapDamage": 0
+    },
+    "45": {
+      "title": "宝箱と黄色い煙",
+      "d66Code": "45",
+      "description": "魅力的な宝箱がありますが、近づくと部屋に黄色い猛毒の煙が充満しました！吸い込むと身体や装備が石化してしまいます。[cite: 1]",
+      "type": "trap",
+      "trapStat": "luck",
+      "trapTarget": 4,
+      "trapDamage": 1,
+      "statusEffect": "石化"
+    },
+    "46": {
+      "title": "闇の祭壇",
+      "d66Code": "46",
+      "description": "闇の神オスクリードの祭壇から、亡者の怨霊が無数に這い出してきました。炎や聖水で退けるか、必死に逃げ出す必要があります。[cite: 1]",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "51": {
+      "title": "黒く這うもの",
+      "d66Code": "51",
+      "description": "暗い天井や壁から、かつて悪魔の配下だった大グモの群れが這ってきました。糸を垂らして獲物を絡め取ろうとしています！[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "大グモ A", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["weak", "beast"], "count": 1 },
+        { "name": "大グモ B", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["weak", "beast"], "count": 1 },
+        { "name": "大グモ C", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["weak", "beast"], "count": 1 }
+      ]
+    },
+    "52": {
+      "title": "クロノシア教徒",
+      "d66Code": "52",
+      "description": "過去を消し去るために自らの両眼を捧げた狂信者たち、クロノシア教徒が立ち塞がります。彼らは仲間の死によってより凶暴になります。[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "クロノシア教徒 A", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "クロノシア教徒 B", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "クロノシア教徒 C", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+      ]
+    },
+    "53": {
+      "title": "恐ろしき絵",
+      "d66Code": "53",
+      "description": "祭壇に飾られた異形の獣の絵画から、司祭の祈りによって炎を操る下級悪魔が召喚されました！[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "下級悪魔 A", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["demon"], "count": 1 },
+        { "name": "下級悪魔 B", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["demon"], "count": 1 }
+      ]
+    },
+    "54": {
+      "title": "墓標の下に眠る者たち",
+      "d66Code": "54",
+      "description": "ピラミッド建設にかり出され葬られた人夫たちが、岩をも砕くツルハシを持った骸骨として土の下から現れました！[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "ツルハシを持つがい骨 A", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["undead"], "count": 1 },
+        { "name": "ツルハシを持つがい骨 B", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["undead"], "count": 1 },
+        { "name": "ツルハシを持つがい骨 C", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["undead"], "count": 1 },
+        { "name": "ツルハシを持つがい骨 D", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["undead"], "count": 1 }
+      ]
+    },
+    "55": {
+      "title": "木像兵団",
+      "d66Code": "55",
+      "description": "通路に立ち並ぶ戦士像は、棍棒を振り下ろす木製のゴーレム兵士でした。一斉に動き出し侵入者を排除しようとします。[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "木ゴーレム A", "level": 5, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["golem"], "count": 1 },
+        { "name": "木ゴーレム B", "level": 5, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["golem"], "count": 1 },
+        { "name": "木ゴーレム C", "level": 5, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["golem"], "count": 1 }
+      ]
+    },
+    "56": {
+      "title": "忍び寄る小恐竜",
+      "d66Code": "56",
+      "description": "素早く動き回る灰緑色の小恐竜、コンピーの群れに囲まれました。腹を空かせており、一斉に襲いかかってきます。[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "コンピー A", "level": 4, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "beast"], "count": 1 },
+        { "name": "コンピー B", "level": 4, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "beast"], "count": 1 },
+        { "name": "コンピー C", "level": 4, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "beast"], "count": 1 },
+        { "name": "コンピー D", "level": 4, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "beast"], "count": 1 },
+        { "name": "コンピー E", "level": 4, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "beast"], "count": 1 }
+      ]
+    },
+    "61": {
+      "title": "ヘラクレオスの右腕",
+      "d66Code": "61",
+      "description": "かつて悪魔の首を絞めた怪力王の右腕が、魔界で醜い怪物と化して立ちはだかります。強い呪いと絶望を放っています。[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "ヘラクレオスの右腕", "level": 5, "lifeMax": 7, "lifeCurrent": 7, "attackCount": 2, "tags": ["strong", "golem"], "count": 1 }
+      ]
+    },
+    "62": {
+      "title": "ヘラクレオスの左腕",
+      "d66Code": "62",
+      "description": "怪力王の後悔と懺悔が充満した左腕の怪物です。倒しきれないと無数の指に分裂して襲いかかってくる強敵です。[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "ヘラクレオスの左腕", "level": 4, "lifeMax": 7, "lifeCurrent": 7, "attackCount": 1, "tags": ["strong", "golem"], "count": 1 }
+      ]
+    },
+    "63": {
+      "title": "寡黙なスフィンクス",
+      "d66Code": "63",
+      "description": "翼の生えた獅子が沈黙したまま敵意を向けてきます。実は笑い上戸という弱点がありますが、強烈な一撃を放ちます。[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "寡黙なスフィンクス", "level": 5, "lifeMax": 5, "lifeCurrent": 5, "attackCount": 2, "tags": ["strong", "monster"], "count": 1 }
+      ]
+    },
+    "64": {
+      "title": "輝石の鱗鳥",
+      "d66Code": "64",
+      "description": "ピラミッドの外壁で、虹色の羽毛とトカゲの牙を持つ巨大な怪鳥に遭遇しました。その巨体を活かした斬撃を繰り出します。[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "輝石の鱗鳥", "level": 6, "lifeMax": 3, "lifeCurrent": 3, "attackCount": 2, "tags": ["strong", "beast"], "count": 1 }
+      ]
+    },
+    "65": {
+      "title": "白銀の守護者",
+      "d66Code": "65",
+      "description": "白銀に光る打撃武器を寄せ集めて作られた巨大なシルバー・ゴーレムが動き出しました。雷の魔法が有効です。[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "シルバー・ゴーレム", "level": 5, "lifeMax": 10, "lifeCurrent": 10, "attackCount": 1, "tags": ["strong", "golem"], "count": 1 }
+      ]
+    },
+    "66": {
+      "title": "オスクリードの巫女",
+      "d66Code": "66",
+      "description": "闇の神と契約した高位の悪霊である妖艶な巫女です。気絶や氷槍などの強力な魔法と、長い爪による斬撃で襲いかかります。[cite: 1]",
+      "type": "encounter",
+      "enemies": [
+        { "name": "オスクリードの巫女", "level": 6, "lifeMax": 10, "lifeCurrent": 10, "attackCount": 3, "tags": ["strong", "undead"], "count": 1 }
+      ]
+    }
+  },
+  "bossEvent": {
+    "title": "【決戦】刻の悪魔クロノヴァルス",
+    "d66Code": "Boss",
+    "description": "ピラミッド最上階、脈動するクリスタルの下から異形の悪魔が降臨しました。時間を巻き戻す「時喰いの咆哮」や空間を引き裂く攻撃を繰り出す絶望的な存在です！[cite: 1]",
+    "type": "encounter",
+    "enemies": [
+      { "name": "刻の悪魔クロノヴァルス", "level": 5, "lifeMax": 12, "lifeCurrent": 12, "attackCount": 2, "tags": ["strong", "demon"], "count": 1 }
+    ]
+  },
+  "statusEffectRules": {
+    "呪い": {
+      "description": "呪いにより、すべての判定ロール（攻撃・防御・能力値判定）に -1 のペナルティを受けます。[cite: 1]",
+      "modAttack": -1,
+      "modDefense": -1,
+      "modSkill": -1
+    },
+    "石化": {
+      "description": "体が石化し、行動に制限が生じるか、持っている武器や防具が使い物にならなくなります。[cite: 1]",
+      "preventsAttack": true,
+      "preventsDefense": true,
+      "preventsMagic": true,
+      "preventsCover": true
+    },
+    "麻痺": {
+      "description": "全身が麻痺して動けなくなります。[cite: 1]",
+      "preventsAttack": true,
+      "preventsCover": true
+    },
+    "気絶": {
+      "description": "その場に倒れて、戦闘が終了するまで起き上がることができなくなります。[cite: 1]",
+      "preventsAttack": true,
+      "preventsDefense": true,
+      "preventsMagic": true,
+      "preventsCover": true
+    }
+  }
+}
