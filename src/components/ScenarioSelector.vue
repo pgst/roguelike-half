@@ -33,6 +33,7 @@ function selectScenario(scenario: Scenario) {
       >
         <div class="scenario-header">
           <h2 class="scenario-title">{{ scenario.title }}</h2>
+          <span class="scenario-level-badge">{{ scenario.recommendedLevel }}</span>
         </div>
         
         <p class="scenario-desc">{{ scenario.description }}</p>
@@ -119,7 +120,16 @@ function selectScenario(scenario: Scenario) {
   margin: 0;
 }
 
-
+.scenario-level-badge {
+  font-size: 0.85rem;
+  font-weight: bold;
+  background-color: #f0e6d2;
+  color: #705844;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid #c2b09a;
+  white-space: nowrap;
+}
 
 .scenario-desc {
   font-size: 0.95rem;

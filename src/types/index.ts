@@ -133,7 +133,7 @@ export interface Scenario {
   id: string;
   title: string;
   description: string;
-  difficulty: string;
+  recommendedLevel: string;
   totalRoomsToClear: number;
   d66EventTable: Record<string, DungeonEvent>;
   bossEvent: DungeonEvent;

@@ -2,7 +2,7 @@
   "id": "aranzas",
   "title": "魔将アラザスの迷宮",
   "description": "アランツァの地底深くに築かれた、悪魔の軍勢が蠢く暗黒の迷宮。数多のトラップと魔物の包囲網を突破し、最深部に君臨する魔将アラザスを討て。",
-  "difficulty": "★★★☆☆",
+  "recommendedLevel": "適正レベル：8-10",
   "totalRoomsToClear": 8,
   "d66EventTable": {
     "11": {

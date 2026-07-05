@@ -2,7 +2,7 @@
   "id": "pyramid_of_chronodemon",
   "title": "刻の悪魔のピラミッド",
   "description": "アランツァ大陸南東の砂漠に突如現れた巨大なピラミッド。かつてビウレスの魔道士ミロスが異能の神、刻の悪魔クロノヴァルスを封印した場所。クロノシア教徒によって甦った悪魔の脅威を退け、再び封印せよ。",
-  "difficulty": "★★★★☆",
+  "recommendedLevel": "適正レベル：13-15",
   "totalRoomsToClear": 11,
   "d66EventTable": {
     "11": {
