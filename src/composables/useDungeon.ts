@@ -16,7 +16,9 @@ export function useDungeon() {
     activeScenario,
     carriesLantern,
     followers,
-    playerActiveStatusEffectRules
+    playerActiveStatusEffectRules,
+    pyramidRunCount,
+    savePyramidBossSnapshot
   } = useGameState();
 
   // Action: Explore next room
@@ -28,6 +30,157 @@ export function useDungeon() {
     }
     clearDiceTray();
 
+    // Chronodemon scenario custom tile/run progression
+    if (activeScenario.value.id === 'pyramid_of_chronodemon') {
+      const run = pyramidRunCount.value;
+      const depth = dungeonDepth.value; // 0-indexed room index
+
+      // 1. Room 4 (depth 3) is always the Middle Event
+      if (depth === 3) {
+        let middleEvent: any;
+        if (run === 1) {
+          middleEvent = {
+            title: "【中間】ヘラクレオス像 (1回目の冒険)",
+            d66Code: "Middle1",
+            description: "階段の踊り場でポロメイア兵士団とアルマシウダの黒蜘蛛隊が鉢合わせ、一触即発の状況に遭遇しました。そこに突如、動き出した「ヘラクレオス像」が襲いかかってきます！\n※打撃属性の攻撃特性を持つゴーレムに対しては、【斬撃】武器での攻撃ロールに -2 のペナルティを受けます。戦闘から逃走することはできません。",
+            type: "encounter",
+            enemies: [
+              { name: "ヘラクレオス像", level: 5, lifeMax: 6, lifeCurrent: 6, attackCount: 2, tags: ["golem", "strong"], count: 1 }
+            ]
+          };
+        } else if (run === 2) {
+          middleEvent = {
+            title: "【中間】氷霧の精霊 (2回目の冒険)",
+            d66Code: "Middle2",
+            description: "バーランドが黒蜘蛛隊に冷たい霧を撒き散らし、逃げ去りました。霧が実体化した「氷霧の精霊」が目の前に立ち塞がります！\n※全体攻撃特性：すべてのキャラクターは毎ラウンド終了時に防御ロール（目標値: 3）を行い、失敗すると生命点1を失います。精霊のため【氷】特性攻撃は無効です。逃走不可。",
+            type: "encounter",
+            enemies: [
+              { name: "氷霧の精霊", level: 3, lifeMax: 6, lifeCurrent: 6, attackCount: 1, tags: ["strong"], count: 1, special: "ice_mist" }
+            ]
+          };
+        } else {
+          middleEvent = {
+            title: "【中間】砂漠ワニ (3回目の冒険)",
+            d66Code: "Middle3",
+            description: "落とし穴の底にある無数の針にぶら下がっていたホークを救助するため、下から登ってきた巨大な「砂漠ワニ」の注意を引いて戦闘に入ります！\n※食料2つまたは弱い従者1体のワイロ（1-3で友好）が可能です。防御判定ファンブル時、噛みつき（毎ラウンド終了時ダメージ2）が発生。逃走不可。",
+            type: "npc",
+            npcType: "desert_crocodile",
+            enemies: [
+              { name: "砂漠ワニ", level: 4, lifeMax: 9, lifeCurrent: 9, attackCount: 1, tags: ["weak"], count: 1, weaponAttribute: "slash" }
+            ]
+          };
+        }
+        activeEvent.value = middleEvent;
+        addLog(`中間イベント発生！ [第4の部屋] (${run}回目の冒険)`, 'error');
+        if (middleEvent.type === 'encounter') {
+          startEncounter();
+        }
+        return;
+      }
+
+      // 2. Final Boss/Event check (from Room 5 / depth 4 onwards)
+      let triggerFinal = false;
+      let rolledValue = 0;
+
+      if (depth >= 10) {
+        // Room 11 (depth 10) is always the final event
+        triggerFinal = true;
+      } else if (depth >= 4) {
+        // Roll d66 to check probability
+        addLog('次の部屋へ向けて通路を進みます...', 'info');
+        const res = await rollD66();
+        rolledValue = res.value;
+        // Rules:
+        // Room 5 (depth 4) -> never
+        // Room 6 (depth 5) -> 11-16
+        // Room 7 (depth 6) -> 11-26
+        // Room 8 (depth 7) -> 11-36
+        // Room 9 (depth 8) -> 11-46
+        // Room 10 (depth 9) -> 11-56
+        if (depth === 5 && rolledValue >= 11 && rolledValue <= 16) triggerFinal = true;
+        else if (depth === 6 && rolledValue >= 11 && rolledValue <= 26) triggerFinal = true;
+        else if (depth === 7 && rolledValue >= 11 && rolledValue <= 36) triggerFinal = true;
+        else if (depth === 8 && rolledValue >= 11 && rolledValue <= 46) triggerFinal = true;
+        else if (depth === 9 && rolledValue >= 11 && rolledValue <= 56) triggerFinal = true;
+      }
+
+      if (triggerFinal) {
+        let finalEvent: any;
+        if (run === 1) {
+          finalEvent = {
+            title: "【決戦】崩落する床 (1回目の冒険)",
+            d66Code: "Final1",
+            description: "ドワーフの魔道士ミロスの過去の幻影に出会いました。話している最中、足元の床が崩落を始めます！\n崩れ去る床を跳び越えるため、3回の【器用度判定】を行ってください。",
+            type: "trap",
+            trapStat: "dexterity",
+            trapTarget: 3,
+            trapDamage: 1,
+            isResolved: false
+          };
+        } else if (run === 2) {
+          finalEvent = {
+            title: "【決戦】大広間の対峙 (2回目の冒険)",
+            d66Code: "Final2",
+            description: "大広間でシーリーンとバーランドが対峙しています。背後の巨像「至高のヘラクレオス」が動き出しました！\nどちらを相手にするか選んでください。",
+            type: "npc",
+            npcType: "final2_choice",
+            isResolved: false
+          };
+        } else {
+          finalEvent = {
+            title: "【決戦】刻の悪魔クロノヴァルス (3回目の冒険)",
+            d66Code: "Final3",
+            description: "ピラミッド最上階。心臓のように脈動する巨大なクリスタルから、ついに『刻の悪魔クロノヴァルス』が降臨しました！\n時の巻き戻しを切り抜け、悪魔を『封印の壺』へ封じ込めるのです！",
+            type: "encounter",
+            enemies: [
+              { name: "刻の悪魔クロノヴァルス", level: 5, lifeMax: 12, lifeCurrent: 12, attackCount: 2, tags: ["strong", "demon"], count: 1 }
+            ]
+          };
+        }
+        savePyramidBossSnapshot();
+        activeEvent.value = finalEvent;
+        addLog(`決戦イベント発生！ (${run}回目の冒険)`, 'error');
+        if (finalEvent.type === 'encounter') {
+          startEncounter();
+        }
+        return;
+      }
+
+      // If we didn't trigger final, proceed with normal d66 roll
+      // If we rolled a value but it didn't trigger final, we reuse that value!
+      let value = rolledValue;
+      if (value === 0) {
+        addLog('次の部屋へ向けて通路を進みます...', 'info');
+        const res = await rollD66();
+        value = res.value;
+      }
+
+      let event = activeScenario.value.d66EventTable[value.toString()];
+      if (!event) {
+        event = activeScenario.value.d66EventTable['11'] || Object.values(activeScenario.value.d66EventTable)[0];
+      }
+
+      addLog(`部屋発見: [d66: ${value}] ${event.title}`, 'info');
+
+      // Check perception
+      const hasScout = followers.value.some(f => f.type === 'scout');
+      const hasDexPerception = character.value.subStatType === 'dexterity' && character.value.subStatCurrent > 0;
+
+      if (hasScout || hasDexPerception) {
+        combatState.pendingPerception = {
+          rollValue: value,
+          event,
+          hasScout,
+          hasHero: hasDexPerception
+        };
+        addLog(`🧭 部屋発見：危険を察知して回避（振り直し）を試みることができます。`, 'error');
+      } else {
+        activateRoomEvent(event);
+      }
+      return;
+    }
+
+    // Default room exploration for other scenarios
     if (dungeonDepth.value >= totalRoomsToClear.value) {
       // Final Boss Room
       activeEvent.value = JSON.parse(JSON.stringify(activeScenario.value.bossEvent));

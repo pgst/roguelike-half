@@ -15,12 +15,45 @@ export function useCombat() {
     handleDeath,
     clearDiceTray,
     carriesLantern,
-    playerActiveStatusEffectRules
+    playerActiveStatusEffectRules,
+    pyramidRunCount,
+    restorePyramidBossSnapshot
   } = useGameState();
 
   // Helper: check if enemy group is Undead, Golem, etc.
   function hasTag(enemy: Enemy, tag: string): boolean {
     return enemy.tags.includes(tag as any);
+  }
+
+  function calculateFollowerHit(follower: any, target: Enemy, roll: number, baseModifier: number) {
+    let modifier = baseModifier;
+    
+    // Heracles modifier for followers
+    if (target.name === 'ヘラクレオス像' || target.name === '至高のヘラクレオス') {
+      if (follower.weaponAttribute === 'slash') {
+        modifier -= 2;
+        addLog(`🤖 ヘラクレオス像に対する ${follower.name} の【斬撃】ペナルティ -2！`, 'error');
+      }
+      if (target.name === '至高のヘラクレオス' && follower.weaponAttribute === 'strike') {
+        modifier += 1;
+        addLog(`🤖 至高のヘラクレオスに対する ${follower.name} の【打撃】ボーナス +1！`, 'success');
+      }
+    }
+    
+    const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + follower.skill + modifier;
+    let hit = roll === 6 || (roll !== 1 && total >= target.level);
+    
+    // Shireen future sight check
+    if (target.name === '異端者シーリーン') {
+      const isCritical = roll === 6;
+      const canHit = isCritical || (combatState as any).shireenClueSpent;
+      if (!canHit && hit) {
+        hit = false;
+        addLog(`🔮 シーリーンは未来を垣間見て ${follower.name} の攻撃を回避した！`, 'error');
+      }
+    }
+    
+    return { hit, total };
   }
 
   // Check if enemies should retreat (half health or count, rule 38)
@@ -307,6 +340,37 @@ export function useCombat() {
     const roll = await rollD6(true);
     let modifier = 0;
 
+    // Chronovals wind attack penalty modifier
+    if ((combatState as any).chronovalsWindPenalty) {
+      modifier -= 1;
+      (combatState as any).chronovalsWindPenalty = false;
+      addLog('🌪️ 斬撃風による体勢崩れペナルティ -1！', 'error');
+    }
+
+    // Heracles modifiers
+    if (enemy.name === 'ヘラクレオス像' || enemy.name === '至高のヘラクレオス') {
+      if (character.value.equippedWeapon?.attribute === 'slash') {
+        modifier -= 2;
+        addLog('🤖 ヘラクレオス像に対する【斬撃】武器ペナルティ -2！', 'error');
+      }
+      if (enemy.name === '至高のヘラクレオス' && character.value.equippedWeapon?.attribute === 'strike') {
+        modifier += 1;
+        addLog('🤖 至高のヘラクレオスに対する【打撃】武器ボーナス +1！', 'success');
+      }
+    }
+
+    // Shireen confusion berserk modifier
+    if ((combatState as any).isBerserk) {
+      modifier += 2;
+      addLog('🌀 狂気効果：半狂乱による攻撃ボーナス +2！', 'success');
+    }
+
+    // Shireen evil eye modifier
+    if ((combatState as any).isCharmed) {
+      modifier -= 2;
+      addLog('👁️ 邪視による攻撃ペナルティ -2！', 'error');
+    }
+
     // Lantern penalty
     if (!carriesLantern.value) {
       modifier -= 2;
@@ -340,7 +404,17 @@ export function useCombat() {
     }
 
     const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + attackStat + modifier;
-    const hit = roll === 6 || (roll !== 1 && total >= enemy.level);
+    let hit = roll === 6 || (roll !== 1 && total >= enemy.level);
+
+    if (enemy.name === '異端者シーリーン') {
+      const isMagicWeapon = character.value.equippedWeapon?.isMagic;
+      const isCritical = roll === 6;
+      const canHit = isMagicWeapon || isCritical || (combatState as any).shireenClueSpent;
+      if (!canHit && hit) {
+        hit = false;
+        addLog('🔮 シーリーンは未来を垣間見てあなたの通常攻撃を軽々と回避した！', 'error');
+      }
+    }
 
     // --- CUSTOM LOGIC: Ancient Dragon's Rib-Sword Fumble Check ---
     if (roll === 1 && character.value.equippedWeapon?.name === '古竜の肋骨剣') {
@@ -514,8 +588,7 @@ export function useCombat() {
             modifier -= 2;
             addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
           }
-          const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + follower.skill + modifier;
-          const hit = roll === 6 || (roll !== 1 && total >= target.level);
+          const { hit, total } = calculateFollowerHit(follower, target, roll, modifier);
           if (hit) {
             target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
             addLog(`🎯 従者弓兵の射撃が命中！ ${target.name} に1点のダメージ。(ロール計: ${roll === 6 ? 'クリティカル' : total})`, 'success');
@@ -536,8 +609,7 @@ export function useCombat() {
             modifier -= 2;
             addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
           }
-          const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + follower.skill + modifier;
-          const hit = roll === 6 || (roll !== 1 && total >= target.level);
+          const { hit, total } = calculateFollowerHit(follower, target, roll, modifier);
           if (hit) {
             target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
             addLog(`🎯 従者の攻撃が命中！ ${target.name} に1点のダメージ。(ロール計: ${roll === 6 ? 'クリティカル' : total})`, 'success');
@@ -570,8 +642,7 @@ export function useCombat() {
         addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
       }
 
-      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + follower.skill + modifier;
-      const hit = roll === 6 || (roll !== 1 && total >= target.level);
+      const { hit, total } = calculateFollowerHit(follower, target, roll, modifier);
 
       if (hit) {
         target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
@@ -597,10 +668,64 @@ export function useCombat() {
     // Gather all enemy attacks
     const attackQueue: { source: Enemy; id: string }[] = [];
     combatState.enemies.forEach(e => {
-      // For weak enemies, their attack count matches their group count (Rule 37)
-      const count = e.tags.includes('weak') ? e.count : e.attackCount;
-      for (let i = 0; i < count; i++) {
-        attackQueue.push({ source: e, id: Math.random().toString(36).substring(2, 9) });
+      if (e.name === '刻の悪魔クロノヴァルス') {
+        // Chronovals has 2 attacks: 1 wind (鴉の黒翼), 1 Spacetime Fang (targets hero and follower, or hero twice)
+        attackQueue.push({
+          source: e,
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'wind'
+        } as any);
+        
+        const activeFollowers = followers.value.filter(f => f.lifeCurrent > 0);
+        if (activeFollowers.length > 0) {
+          const chosenFollower = activeFollowers[Math.floor(Math.random() * activeFollowers.length)];
+          attackQueue.push({
+            source: e,
+            id: Math.random().toString(36).substring(2, 9),
+            type: 'spacetime_fang_hero',
+            targetName: '主人公'
+          } as any);
+          attackQueue.push({
+            source: e,
+            id: Math.random().toString(36).substring(2, 9),
+            type: 'spacetime_fang_follower',
+            targetName: `従者 ${chosenFollower.name}`,
+            targetFollowerId: chosenFollower.id
+          } as any);
+        } else {
+          attackQueue.push({
+            source: e,
+            id: Math.random().toString(36).substring(2, 9),
+            type: 'spacetime_fang_hero',
+            targetName: '主人公 (1回目)'
+          } as any);
+          attackQueue.push({
+            source: e,
+            id: Math.random().toString(36).substring(2, 9),
+            type: 'spacetime_fang_hero_2',
+            targetName: '主人公 (2回目)'
+          } as any);
+        }
+      } else if (e.name === '異端者シーリーン') {
+        const round = combatState.round;
+        if (round === 1) {
+          attackQueue.push({ source: e, id: Math.random().toString(36).substring(2, 9), type: 'evil_eye' } as any);
+        } else if (round === 2) {
+          attackQueue.push({ source: e, id: Math.random().toString(36).substring(2, 9), type: 'slash_eye' } as any);
+        } else if (round === 3) {
+          attackQueue.push({ source: e, id: Math.random().toString(36).substring(2, 9), type: 'mad_eye' } as any);
+        } else {
+          for (let i = 0; i < 3; i++) {
+            attackQueue.push({ source: e, id: Math.random().toString(36).substring(2, 9), type: 'normal' } as any);
+          }
+        }
+      } else {
+        const count = e.name === '砂漠ワニ' && (combatState as any).isCrocodileClamped
+          ? 0
+          : (e.tags.includes('weak') ? e.count : e.attackCount);
+        for (let i = 0; i < count; i++) {
+          attackQueue.push({ source: e, id: Math.random().toString(36).substring(2, 9), type: 'normal' } as any);
+        }
       }
     });
 
@@ -644,6 +769,10 @@ export function useCombat() {
 
     let isPrevented = false;
     if (isHero) {
+      if ((combatState as any).isStunned) {
+        addLog('⚠️ 狂気効果によりスタン状態です！ 防御判定は自動失敗となります。', 'error');
+        isPrevented = true;
+      }
       playerActiveStatusEffectRules.value.forEach(rule => {
         if (rule.preventsDefense) {
           addLog(`⚠️ 状態異常により防御することができません！防御は自動失敗となります。 (理由: ${rule.description})`, 'error');
@@ -657,14 +786,42 @@ export function useCombat() {
     let total = -99;
     let defSuccess = false;
 
+    // Spacetime fang target checks
+    if (attack.type === 'spacetime_fang_hero' || attack.type === 'spacetime_fang_hero_2') {
+      if (!isHero) {
+        // Hero is targeted
+        return;
+      }
+    }
+    if (attack.type === 'spacetime_fang_follower') {
+      if (defenderId !== attack.targetFollowerId) {
+        // Specified follower is targeted
+        return;
+      }
+    }
+
     if (!isPrevented) {
-      addLog(`🛡️ ${defName} が ${enemy.name} の攻撃を防御します！ (目標値: ${enemy.level})`, 'combat');
+      const displayTitle = attack.targetName ? `${enemy.name} の〈時空牙〉 (対象: ${attack.targetName})` : enemy.name;
+      addLog(`🛡️ ${defName} が ${displayTitle} の攻撃を防御します！ (目標値: ${enemy.level})`, 'combat');
       roll = await rollD6(true);
       if (isHero) {
         if (character.value.equippedArmor) modifier += character.value.equippedArmor.modDef;
         if (character.value.equippedShield) modifier += 1; // shield armor block
         // Protection Miracle buff
         modifier += combatState.buffs.defenseBonus;
+
+        // Apply confusion berserk modifier
+        if (attack.type === 'slash_eye' && (combatState as any).isBerserk) {
+          modifier -= 2;
+          (combatState as any).isBerserk = false; // consume berserk
+          addLog('👁️ シーリーンの【斬視】に対し狂乱ペナルティ -2！', 'error');
+        }
+
+        // Apply confusion clinging modifier
+        if ((combatState as any).isClinging) {
+          modifier -= 2;
+          addLog('🌀 狂気効果：しがみつかれているため防御判定に -2！', 'error');
+        }
         
         // Apply status effect modifiers
         playerActiveStatusEffectRules.value.forEach(rule => {
@@ -762,6 +919,138 @@ export function useCombat() {
     // Remove from queue
     queue.splice(idx, 1);
     (combatState as any).activeAttacks = queue;
+
+    if (!defSuccess) {
+      // 1. Crocodile Clamp Check
+      if (roll === 1 && enemy.name === '砂漠ワニ') {
+        (combatState as any).isCrocodileClamped = true;
+        addLog('🐊 砂漠ワニが噛みついたまま離れなくなりました！ (毎ラウンド終了時にダメージ2を受けます)', 'error');
+      }
+
+      // 2. Chronovals Slash Wind Check
+      if (enemy.name === '刻の悪魔クロノヴァルス' && attack.type === 'wind') {
+        (combatState as any).chronovalsWindPenalty = true;
+        addLog('🌪️ 斬撃風の直撃により体勢が崩れました！ 次回の攻撃ロールに -1 のペナルティが課されます。', 'error');
+
+        addLog('🌪️ 壺の破損チェックを行います。1d6を振り、1（ファンブル）が出ると封印の壺が破損します。', 'info');
+        const potRoll = await rollD6(true);
+        if (potRoll === 1) {
+          const hasRose = character.value.items.some(i => i.name === '水晶の薔薇');
+          const hasAmulet = character.value.items.some(i => i.name === '天使の護符');
+          const hasOfuda = character.value.items.some(i => i.name === '八百万のお札');
+
+          let saved = false;
+          if (hasAmulet && !hasRose) {
+            addLog('👼 天使の護符の加護により、封印の壺は守られました！', 'success');
+            saved = true;
+          } else if (hasOfuda) {
+            const ofudaIdx = character.value.items.findIndex(i => i.name === '八百万のお札');
+            character.value.items.splice(ofudaIdx, 1);
+            addLog('📜 八百万のお札が身代わりとなり消滅しました。封印の壺は無事です！', 'success');
+            saved = true;
+          }
+
+          if (!saved) {
+            const potIdx = character.value.items.findIndex(i => i.name === '封印の壺');
+            if (potIdx !== -1) {
+              character.value.items[potIdx].name = '割れた封印の壺';
+              character.value.items[potIdx].description = '💀 粉々に割れてしまい、もう悪魔の封印には使えなくなってしまった粘土の壺。';
+              addLog('💀 封印の壺が砕け散って「割れた封印の壺」になってしまいました！', 'error');
+            }
+          }
+        }
+      }
+
+      // 3. Shireen Evil Eye Check
+      if (attack.type === 'evil_eye') {
+        const res = await rollSpellResistance(5);
+        if (!res.success) {
+          if (isHero) {
+            (combatState as any).isCharmed = true;
+            addLog('👁️ シーリーンの【邪視】により魅了されました！ 戦闘終了まで攻撃ロールに -2。', 'error');
+          } else {
+            const f = followers.value.find(fol => fol.id === defenderId);
+            if (f) {
+              f.lifeCurrent = 0;
+              const charmedLevel = f.skill + 4;
+              combatState.enemies.push({
+                id: Math.random().toString(36).substring(2, 9),
+                name: `魅了された${f.name}`,
+                level: charmedLevel,
+                lifeMax: 2,
+                lifeCurrent: 2,
+                attackCount: 1,
+                tags: ["strong"],
+                count: 1
+              });
+              addLog(`👁️ 従者 ${f.name} は【邪視】に魅了され、敵に寝返って襲いかかってきました！`, 'error');
+            }
+          }
+        }
+      }
+
+      // 4. Shireen Slash Eye Check
+      if (attack.type === 'slash_eye') {
+        addLog('👁️ シーリーンの【斬視】が走りました！ 防具の損壊チェックを行います。', 'info');
+        const res = await rollSpellResistance(5);
+        if (!res.success) {
+          if (character.value.equippedArmor) {
+            addLog(`💀 装備していた防具 [${character.value.equippedArmor.name}] が破壊されました！`, 'error');
+            const idx = character.value.armors.findIndex(a => a.name === character.value.equippedArmor!.name);
+            if (idx !== -1) character.value.armors.splice(idx, 1);
+            character.value.equippedArmor = null;
+          } else if (character.value.equippedShield) {
+            addLog(`💀 装備していた盾 [${character.value.equippedShield.name}] が破壊されました！`, 'error');
+            const idx = character.value.shields.findIndex(s => s.name === character.value.equippedShield!.name);
+            if (idx !== -1) character.value.shields.splice(idx, 1);
+            character.value.equippedShield = null;
+          }
+        }
+      }
+
+      // 5. Shireen Mad Eye Check
+      if (attack.type === 'mad_eye') {
+        addLog('👁️ シーリーンの【狂視】により、精神が狂気に侵されます！', 'error');
+        const res = await rollSpellResistance(5);
+        if (!res.success) {
+          const cRoll = Math.floor(Math.random() * 6) + 1;
+          addLog(`🎲 狂気ロール: 出目 ${cRoll}`, 'info');
+          if (cRoll === 1) {
+            (combatState as any).isStunned = true;
+            addLog('🌀 狂気効果：狂乱状態で行動不能になりました！ 次のラウンドは攻撃も防御もできません。', 'error');
+          } else if (cRoll === 2) {
+            character.value.hasActiveLantern = false;
+            addLog('🌀 狂気効果：恐怖のあまりランタンの火を消してしまいました！ 周囲が暗闇に包まれます。', 'error');
+          } else if (cRoll === 3) {
+            if (character.value.items.length > 0) {
+              const itemIdx = Math.floor(Math.random() * character.value.items.length);
+              const lostItem = character.value.items[itemIdx];
+              character.value.items.splice(itemIdx, 1);
+              addLog(`🌀 狂気効果：狂乱して所持品を投げ捨ててしまいました！ [${lostItem.name}] を破壊。`, 'error');
+            } else {
+              addLog('🌀 狂気効果：所持品がないため、破壊効果は発生しませんでした。', 'info');
+            }
+          } else if (cRoll === 4) {
+            (combatState as any).isClinging = true;
+            addLog('🌀 狂気効果：狂乱して仲間に抱きつき、攻撃の邪魔をします！ 全員の判定ロールに -2。', 'error');
+          } else if (cRoll === 5) {
+            character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
+            addLog(`🌀 狂気効果：自傷行為に走り、生命力に1点のダメージを受けました！ (生命力: ${character.value.lifeCurrent})`, 'error');
+            if (character.value.lifeCurrent <= 0) {
+              handleDeath();
+              return;
+            }
+          } else if (cRoll === 6) {
+            (combatState as any).isBerserk = true;
+            addLog('🌀 狂気効果：半狂乱状態で興奮状態になり、攻撃ロールに +2 のボーナス！ しかし次の防御で強制的に斬視を受けます！', 'success');
+          }
+        }
+      }
+    }
+
+    if (queue.length === 0) {
+      await handleRoundEndEffects();
+    }
   }
 
   // Cast spells in Round 0 or close combat (Rule 19)
@@ -1168,6 +1457,14 @@ export function useCombat() {
   // End Combat and trigger treasure reward or escape
   function endCombat(isVictory: boolean, getLoot = true) {
     if (combatState.isOver) return;
+
+    // Time-Eating Roar check at death
+    if (isVictory && activeEvent.value?.d66Code === 'Final3' && !(combatState as any).roarCheckedThisCombat) {
+      (combatState as any).pendingRoarCheck = 'death';
+      addLog('😈 刻の悪魔クロノヴァルスは生命力が0になりましたが、その歪んだ肉体から最後の『時喰いの咆哮』を放ちました！', 'error');
+      return;
+    }
+
     (combatState as any).activeAttacks = [];
     combatState.isOver = true;
 
@@ -1178,6 +1475,122 @@ export function useCombat() {
     } else {
       combatState.resultType = 'escaped';
       addLog('🏃 戦闘から逃れました。結果を承認してください。', 'info');
+    }
+  }
+
+  function checkCombatVictory() {
+    if (combatState.enemies.length === 0) {
+      if (activeEvent.value?.d66Code === 'Final3' && !(combatState as any).roarCheckedThisCombat) {
+        (combatState as any).pendingRoarCheck = 'death';
+        addLog('😈 刻の悪魔クロノヴァルスは生命力が0になりましたが、その歪んだ肉体から最後の『時喰いの咆哮』を放ちました！', 'error');
+        return true;
+      }
+      endCombat(true);
+      return true;
+    }
+    return false;
+  }
+
+  async function rollSpellResistance(target = 5) {
+    const isMagic = character.value.subStatType === 'magic';
+    const subStatVal = isMagic ? character.value.subStatCurrent : 0;
+    const hasRose = character.value.items.some(i => i.name === '水晶の薔薇');
+    const hasHelmet = character.value.equippedArmor?.name === '天使のヘルメット';
+    
+    let bonus = 0;
+    if (activeEvent.value?.d66Code === 'Final3') {
+      if (hasRose) bonus += 2;
+      if (hasHelmet) bonus += 2;
+    }
+    
+    addLog(`🔮 対魔法判定ロール開始 (目標値: ${target}, サブ魔力: +${subStatVal}, 特殊加算: +${bonus})`, 'info');
+    const roll = await rollD6(true);
+    const total = roll + subStatVal + bonus;
+    
+    if (roll === 1) {
+      addLog(`🎲 ファンブル！ (出目: 1)`, 'error');
+      return { success: false, fumble: true, roll, total };
+    }
+    
+    if (total >= target) {
+      addLog(`✨ 判定成功！ (ロール計: ${total} >= ${target})`, 'success');
+      return { success: true, fumble: false, roll, total };
+    } else {
+      addLog(`😢 判定失敗... (ロール計: ${total} < ${target})`, 'error');
+      return { success: false, fumble: false, roll, total };
+    }
+  }
+
+  async function resolveChronovalsRoar() {
+    const checkType = (combatState as any).pendingRoarCheck;
+    if (!checkType) return;
+    
+    const res = await rollSpellResistance(5);
+    if (!res.success) {
+      const rewindAmount = res.fumble ? 2 : 1;
+      (combatState as any).pendingRoarCheck = null;
+      combatState.active = false;
+      restorePyramidBossSnapshot(rewindAmount);
+    } else {
+      addLog(`🛡️ 悪魔の『時喰いの咆哮』を精神力で耐え抜いた！`, 'success');
+      if (checkType === 'start') {
+        (combatState as any).pendingRoarCheck = null;
+      } else if (checkType === 'death') {
+        (combatState as any).pendingRoarCheck = null;
+        (combatState as any).roarCheckedThisCombat = true;
+        
+        const sealingPotIdx = character.value.items.findIndex(i => i.name === '封印の壺');
+        if (sealingPotIdx !== -1) {
+          character.value.items.splice(sealingPotIdx, 1);
+          addLog(`🏺 封印の壺の古代文字が光り輝き、刻の悪魔クロノヴァルスを壺の中へ吸い込んで封印しました！`, 'success');
+          (activeEvent.value as any).isResolved = true;
+          (activeEvent.value as any).resolutionText = "🏺 刻の悪魔クロノヴァルスを封印の壺に封じ込め、ピラミッドのクリスタルの光は消え去りました。\n宿願は果たされ、ポロメイア王国とアルマシウダの双方が平和を分かち合う未来が訪れます！";
+          endCombat(true, false);
+        } else {
+          addLog(`⚠️ 封印の壺を所持していない（または壊れている）ため、悪魔を完全に封印できませんでした。`, 'error');
+          (activeEvent.value as any).isResolved = true;
+          (activeEvent.value as any).resolutionText = "⚠️ 封印の壺が手元にないため、クロノヴァルスは時を置いて再び復活しました。これまでの冒険の時間は悪魔の力によってすべて奪われ、消失してしまいました...";
+          endCombat(true, false);
+        }
+      }
+    }
+  }
+
+  async function handleRoundEndEffects() {
+    const hasIceMist = combatState.enemies.some(e => e.name === '氷霧の精霊');
+    if (hasIceMist) {
+      addLog('❄️ 氷霧の精霊の凍てつく霧が部屋全体に充満しています！ 全員防御判定ロールを行います。', 'error');
+      const rollHero = await rollD6(true);
+      if (rollHero < 3) {
+        character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
+        addLog(`😢 主人公は寒冷ダメージを受けました。(生命力: ${character.value.lifeCurrent})`, 'damage');
+        if (character.value.lifeCurrent <= 0) {
+          handleDeath();
+          return;
+        }
+      } else {
+        addLog('🛡️ 主人公は寒冷ダメージを防ぎました。', 'success');
+      }
+      const activeFollowers = followers.value.filter(f => f.lifeCurrent > 0);
+      for (const f of activeFollowers) {
+        const rollF = await rollD6(true);
+        if (rollF < 3) {
+          f.lifeCurrent = 0;
+          addLog(`💀 従者 ${f.name} は凍死しました。`, 'error');
+        } else {
+          addLog(`🛡️ 従者 ${f.name} は寒冷ダメージを防ぎました。`, 'success');
+        }
+      }
+    }
+
+    if ((combatState as any).isCrocodileClamped) {
+      addLog('🐊 砂漠ワニの噛みつき回転攻撃が発生！', 'error');
+      character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 2);
+      addLog(`💥 主人公は噛みつき回転により 2 点のダメージを受けました。(生命力: ${character.value.lifeCurrent})`, 'damage');
+      if (character.value.lifeCurrent <= 0) {
+        handleDeath();
+        return;
+      }
     }
   }
 
@@ -1439,6 +1852,52 @@ export function useCombat() {
 
   // Confirm combat and move back or forward in the dungeon
   function confirmCombatResult() {
+    if (activeEvent.value?.d66Code === 'Final2' && combatState.resultType === 'victory') {
+      const isFactionA = character.value.subStatType === 'magic' || character.value.subStatType === 'luck';
+      let goldReward = 30;
+      if (!isFactionA) {
+        const d1 = Math.floor(Math.random() * 6) + 1;
+        const d2 = Math.floor(Math.random() * 6) + 1;
+        const d3 = Math.floor(Math.random() * 6) + 1;
+        goldReward = 20 + d1 + d2 + d3;
+        addLog(`🎲 金貨ロール (3d6: ${d1}+${d2}+${d3})`, 'roll');
+      }
+      character.value.gold += goldReward;
+      character.value.exp += 1;
+      character.value.items.push({
+        name: 'プラチナコイン',
+        type: 'gem_large',
+        goldCost: 0,
+        description: '異端者シーリーンや悪魔と取引するためのプラチナの硬貨。価値はないが極めて貴重。',
+        value: 0
+      } as any);
+
+      pyramidRunCount.value = 3;
+      dungeonDepth.value = 0;
+      activeEvent.value = null;
+      combatState.active = false;
+      combatState.isOver = false;
+      combatState.resultType = null;
+      currentScreen.value = 'levelup';
+      addLog(`🎉 異端者シーリーンまたは至高のヘラクレオスを撃破し、2回目の冒険をクリアしました！ 金貨${goldReward}枚、1 Exp、プラチナコインを獲得し、レベルアップ画面へ移行します。`, 'success');
+      return;
+    }
+
+    if (activeEvent.value?.d66Code === 'Final3' && combatState.resultType === 'victory') {
+      if ((combatState as any).isAnotherEnding) {
+        pyramidRunCount.value = 1;
+        dungeonDepth.value = 0;
+        activeEvent.value = null;
+        combatState.active = false;
+        combatState.isOver = false;
+        combatState.resultType = null;
+        (combatState as any).isAnotherEnding = false;
+        currentScreen.value = 'levelup';
+        addLog('🌀 悪魔を封印できなかったため、世界線がリセットされ、1回目の冒険から再挑戦となります...', 'error');
+        return;
+      }
+    }
+
     clearDiceTray();
     activeEvent.value = null; // Clear active event so explore screen is ready for next room roll
     combatState.active = false;
@@ -1652,5 +2111,6 @@ export function useCombat() {
     skipDeflect,
     executeDeflect,
     fireHolyArrow,
+    resolveChronovalsRoar,
   };
 }

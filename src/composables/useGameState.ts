@@ -165,6 +165,33 @@ const combatState = reactive({
   peacefulText: null as string | null,
 });
 
+// Chronodemon Scenario State
+const pyramidRunCount = ref<number>(1);
+const pyramidBossSnapshot = ref<any>(null);
+
+function savePyramidBossSnapshot() {
+  pyramidBossSnapshot.value = {
+    character: JSON.parse(JSON.stringify(character.value)),
+    followers: JSON.parse(JSON.stringify(followers.value)),
+    dungeonDepth: dungeonDepth.value
+  };
+  addLog('🧭 決戦前チェックポイント：冒険者の現在の状態を一時保存しました。', 'info');
+}
+
+function restorePyramidBossSnapshot(rewindAmount: number) {
+  if (!pyramidBossSnapshot.value) return;
+  character.value = JSON.parse(JSON.stringify(pyramidBossSnapshot.value.character));
+  followers.value = JSON.parse(JSON.stringify(pyramidBossSnapshot.value.followers));
+  dungeonDepth.value = Math.max(0, pyramidBossSnapshot.value.dungeonDepth - rewindAmount);
+  activeEvent.value = null;
+  currentScreen.value = 'explore';
+  combatState.active = false;
+  combatState.isOver = false;
+  combatState.enemies = [];
+  addLog(`🌀 時の巻き戻しが発生！ 悪魔の咆哮により、探索段階が ${rewindAmount} 部屋分戻されました！`, 'error');
+}
+
+
 // Logs Manager
 function addLog(text: string, type: 'info' | 'roll' | 'combat' | 'error' | 'success' | 'damage' = 'info') {
   logs.value.push({
@@ -971,6 +998,8 @@ function initNewCharacter(name: string, subStat: Character['subStatType']) {
 
   followers.value = [];
   dungeonDepth.value = 0;
+  pyramidRunCount.value = 1;
+  pyramidBossSnapshot.value = null;
   clearLogs();
   
   // Set default initial equipment based on sub-stat
@@ -1124,5 +1153,11 @@ export function useGameState() {
     clearDiceTray,
     forgetSpell,
     castCreateWeaponSpell,
+
+    // Chronodemon Scenario Exports
+    pyramidRunCount,
+    pyramidBossSnapshot,
+    savePyramidBossSnapshot,
+    restorePyramidBossSnapshot,
   };
 }

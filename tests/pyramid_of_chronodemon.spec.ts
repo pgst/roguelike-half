@@ -107,7 +107,7 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
     // 4. Dungeon Exploration
     if (await page.locator('.explorer-card').isVisible({ timeout: 0 })) {
       const proceedBtn = page.locator('button:has-text("次の小部屋へ進む")');
-      const trapBtn = page.locator('button:has-text("判定ロールに挑戦する"), button:has-text("で挑戦")');
+      const trapBtn = page.locator('button:has-text("判定ロールに挑戦する"), button:has-text("で挑戦"), button:has-text("器用判定ロールを行う")');
       const treasureBtn = page.locator('button:has-text("宝物を入手する")');
       const restHealBtn = page.locator('button:has-text("怪我を癒やす"), button:has-text("魔力/運気を回復")');
       const fightBribeBtn = page.locator('button:has-text("交渉決裂！戦う！")');
@@ -117,8 +117,36 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
       const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
       const exploreBtn = page.locator('button:has-text("d66を振って次の部屋を探索する")');
 
+      // Pyramid Choice buttons
+      const choiceGolemBtn = page.locator('button:has-text("至高のヘラクレオスと戦う")');
+      const choiceShireenBtn = page.locator('button:has-text("異端者シーリーンと戦う")');
+      const crocodileBribeFood = page.locator('button:has-text("食料 2 個を差し出して")');
+
+      // Skeleton Event buttons
+      const contactBtn = page.locator('button:has-text("接触を試みる")');
+      const skeletonLeaveBtn = page.locator('button:has-text("見つからないように立ち去る"), button:has-text("取引もアドバイスも受けずに立ち去る")');
+      const tradeBtn = page.locator('button:has-text("交換を申し出る")');
+      const adviceBtn = page.locator('button:has-text("の部屋へ")');
+      const skeletonConfirmBtn = page.locator('button:has-text("取引を終了して結果を確定する"), button:has-text("結果を確定する")');
+
       if (await proceedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(proceedBtn)) {
         if (await safeClick(proceedBtn, 'Proceed to next room')) actionCount++;
+      } else if (await contactBtn.isVisible({ timeout: 0 }) && await isElementEnabled(contactBtn)) {
+        if (await safeClick(contactBtn, 'Contact skeleton')) actionCount++;
+      } else if (await tradeBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(tradeBtn.first())) {
+        if (await safeClick(tradeBtn.first(), 'Offer weapon trade')) actionCount++;
+      } else if (await adviceBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(adviceBtn.first())) {
+        if (await safeClick(adviceBtn.first(), 'Select direction advice')) actionCount++;
+      } else if (await skeletonConfirmBtn.isVisible({ timeout: 0 }) && await isElementEnabled(skeletonConfirmBtn)) {
+        if (await safeClick(skeletonConfirmBtn, 'Confirm skeleton event')) actionCount++;
+      } else if (await skeletonLeaveBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(skeletonLeaveBtn.first())) {
+        if (await safeClick(skeletonLeaveBtn.first(), 'Leave skeleton encounter')) actionCount++;
+      } else if (await choiceGolemBtn.isVisible({ timeout: 0 }) && await isElementEnabled(choiceGolemBtn)) {
+        if (await safeClick(choiceGolemBtn, 'Fight Supreme Heracles')) actionCount++;
+      } else if (await choiceShireenBtn.isVisible({ timeout: 0 }) && await isElementEnabled(choiceShireenBtn)) {
+        if (await safeClick(choiceShireenBtn, 'Fight Shireen')) actionCount++;
+      } else if (await crocodileBribeFood.isVisible({ timeout: 0 }) && await isElementEnabled(crocodileBribeFood)) {
+        if (await safeClick(crocodileBribeFood, 'Bribe crocodile with food')) actionCount++;
       } else if (await trapBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(trapBtn.first())) {
         if (await safeClick(trapBtn.first(), 'Attempt trap roll')) actionCount++;
       } else if (await treasureBtn.isVisible({ timeout: 0 }) && await isElementEnabled(treasureBtn)) {
@@ -126,7 +154,7 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
       } else if (await restHealBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(restHealBtn.first())) {
         if (await safeClick(restHealBtn.first(), 'Select rest healing')) actionCount++;
       } else if (await fightBribeBtn.isVisible({ timeout: 0 }) && await isElementEnabled(fightBribeBtn)) {
-        if (await safeClick(fightBribeBtn, 'Fight goblin negotiator')) actionCount++;
+        if (await safeClick(fightBribeBtn, 'Fight goblin negotiator / crocodile')) actionCount++;
       } else if (await npcPriestBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(npcPriestBtn.first())) {
         if (await safeClick(npcPriestBtn.first(), 'Request priest healing')) actionCount++;
       } else if (await npcMercenaryBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(npcMercenaryBtn.first())) {
@@ -143,6 +171,9 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
 
     // 5. Combat
     if (await page.locator('.combat-card').isVisible({ timeout: 0 })) {
+      const roarBtn = page.locator('button:has-text("抵抗判定を行う")');
+      const clueBtn = page.locator('button:has-text("手がかりを消費")');
+
       const coverBtn = page.locator('button:has-text("を基準にしてかばう")');
       const cancelCoverBtn = page.locator('button:has-text("かばうのを見送る")');
       const defendBtn = page.locator('button:has-text("主人公が防御する")');
@@ -162,7 +193,11 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
       const sheetText = await page.locator('.adventure-sheet').textContent();
       const cannotAttack = sheetText?.includes('麻痺') || sheetText?.includes('石化') || sheetText?.includes('気絶');
 
-      if (await deflectBtn.isVisible({ timeout: 0 }) && await isElementEnabled(deflectBtn)) {
+      if (await roarBtn.isVisible({ timeout: 0 }) && await isElementEnabled(roarBtn)) {
+        if (await safeClick(roarBtn, 'Attempt Chronovals Roar resistance check')) actionCount++;
+      } else if (await clueBtn.isVisible({ timeout: 0 }) && await isElementEnabled(clueBtn)) {
+        if (await safeClick(clueBtn, 'Spend Clue to bypass Shireen future sight')) actionCount++;
+      } else if (await deflectBtn.isVisible({ timeout: 0 }) && await isElementEnabled(deflectBtn)) {
         if (await safeClick(deflectBtn, 'Use deflect miracle')) actionCount++;
       } else if (await skipDeflectBtn.isVisible({ timeout: 0 }) && await isElementEnabled(skipDeflectBtn)) {
         if (await safeClick(skipDeflectBtn, 'Skip deflect miracle')) actionCount++;

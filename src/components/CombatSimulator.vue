@@ -38,12 +38,22 @@ const {
   applyFriendshipReaction,
   skipDeflect,
   executeDeflect,
-  fireHolyArrow
+  fireHolyArrow,
+  resolveChronovalsRoar
 } = useCombat();
 
 const activeAttacks = computed(() => (combatState as any).activeAttacks || []);
 
 const hasHolyWater = computed(() => character.value.items.some(i => i.type === 'holywater'));
+
+function spendShireenClue() {
+  const clueIdx = character.value.items.findIndex(i => i.type === 'clue');
+  if (clueIdx !== -1) {
+    character.value.items.splice(clueIdx, 1);
+    (combatState as any).shireenClueSpent = true;
+    addLog('🔍 手がかりを消費して、シーリーンの未来視（回避能力）を無効化しました！', 'success');
+  }
+}
 
 const isRound0SpellDisabled = computed(() => {
   if (combatState.round !== 0) return false;
@@ -123,6 +133,26 @@ function closeRangedRound() {
 
 <template>
   <div class="combat-card paper-sheet">
+    <!-- CHRONOVALS ROAR RESISTANCE OVERLAY -->
+    <div v-if="combatState.pendingRoarCheck" class="roar-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;">
+      <div class="roar-box paper-sheet" style="max-width: 500px; width: 100%; border: 3px double #8c1c1c; padding: 25px; text-align: center; background: #fffcf5; box-shadow: var(--card-shadow); border-radius: 6px;">
+        <h3 style="color: #8c1c1c; font-family: 'Noto Serif JP', serif; font-size: 1.3rem; margin-bottom: 15px; font-weight: bold;">
+          😈 刻の悪魔クロノヴァルス：時喰いの咆哮
+        </h3>
+        <p style="font-size: 0.95rem; line-height: 1.6; color: var(--ink-dark); margin-bottom: 20px;">
+          悪魔が空間を引き裂き、時間を巻き戻す魔力の咆哮を放ちました！<br/>
+          対魔法ロール（目標値: 5）に失敗すると、これまでの時間が巻き戻されてしまいます！
+        </p>
+        <div v-if="character.items.some(i => i.name === '水晶の薔薇') || (character.equippedArmor && character.equippedArmor.name === '天使のヘルメット')" style="margin-bottom: 15px; padding: 8px; background: rgba(40, 167, 69, 0.05); border: 1px dashed green; border-radius: 4px; font-size: 0.85rem; color: green; font-weight: bold;">
+          🛡️ 特殊加算対象：
+          <span v-if="character.items.some(i => i.name === '水晶の薔薇')">「水晶の薔薇」(+2) </span>
+          <span v-if="character.equippedArmor && character.equippedArmor.name === '天使のヘルメット'">「天使のヘルメット」(+2) </span>
+        </div>
+        <button @click="resolveChronovalsRoar" class="btn-ink btn-large btn-primary-ink" style="width: 100%; font-size: 1.1rem; justify-content: center;">
+          🎲 抵抗判定を行う (対魔法ロール)
+        </button>
+      </div>
+    </div>
     <div class="combat-header">
       <h2>⚔️ 戦闘シーン</h2>
       <div class="badge-round">
@@ -384,6 +414,13 @@ function closeRangedRound() {
 
     <!-- Normal Actions Panel (Only visible when no pending enemy attacks and combat is not over) -->
     <div v-else class="actions-panel">
+      <!-- Shireen Clue spend action -->
+      <div v-if="combatState.enemies.some(e => e.name === '異端者シーリーン') && !(combatState as any).shireenClueSpent && character.items.some(i => i.type === 'clue')" style="margin-bottom: 15px; padding: 10px; background: #f0f7f4; border: 1px solid #c2e0d1; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;">
+        <span style="font-size: 0.85rem; color: #1e5a38; line-height: 1.4;">🔍 シーリーンは未来を予知してすべての通常攻撃を回避します。「手がかり」を1個消費して彼女の未来視を見破り、通常武器でも攻撃を命中させられるようにしますか？</span>
+        <button @click="spendShireenClue" class="btn-ink btn-mini" style="background: #e1f5fe; border-color: #29b6f6; color: #0288d1; font-weight: bold; flex-shrink: 0; padding: 5px 10px;">
+          🔍 手がかりを消費
+        </button>
+      </div>
       <!-- Round 0 (Ranged/Magic only) -->
       <div v-if="combatState.round === 0" class="ranged-phase">
         <h3 class="section-title">🏹 第0ラウンド行動 (遠距離攻撃 & 先制呪文)</h3>
