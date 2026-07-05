@@ -11,8 +11,7 @@ const {
   logs,
   dungeonDepth,
   totalRoomsToClear,
-  isSwitchingWeapons,
-  castCreateWeaponSpell
+  isSwitchingWeapons
 } = useGameState();
 
 const showSummonSelector = ref(false);
@@ -39,7 +38,8 @@ const {
   skipDeflect,
   executeDeflect,
   fireHolyArrow,
-  resolveChronovalsRoar
+  resolveChronovalsRoar,
+  resolveCreateWeaponSpell
 } = useCombat();
 
 const activeAttacks = computed(() => (combatState as any).activeAttacks || []);
@@ -623,29 +623,29 @@ function closeRangedRound() {
               <div>
                 <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-bottom: 5px;">⚔️ 武器を創造:</div>
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                  <button @click="castCreateWeaponSpell('weapon', 'light'); showSummonSelector = false" class="btn-ink btn-mini">軽い武器</button>
-                  <button @click="castCreateWeaponSpell('weapon', 'oneHanded'); showSummonSelector = false" class="btn-ink btn-mini">片手武器</button>
-                  <button @click="castCreateWeaponSpell('weapon', 'twoHanded'); showSummonSelector = false" class="btn-ink btn-mini">両手武器</button>
-                  <button @click="castCreateWeaponSpell('weapon', 'sling'); showSummonSelector = false" class="btn-ink btn-mini">スリング</button>
-                  <button @click="castCreateWeaponSpell('weapon', 'bow'); showSummonSelector = false" class="btn-ink btn-mini">弓矢</button>
+                  <button @click="resolveCreateWeaponSpell('weapon', 'light'); showSummonSelector = false" class="btn-ink btn-mini">軽い武器</button>
+                  <button @click="resolveCreateWeaponSpell('weapon', 'oneHanded'); showSummonSelector = false" class="btn-ink btn-mini">片手武器</button>
+                  <button @click="resolveCreateWeaponSpell('weapon', 'twoHanded'); showSummonSelector = false" class="btn-ink btn-mini">両手武器</button>
+                  <button @click="resolveCreateWeaponSpell('weapon', 'sling'); showSummonSelector = false" class="btn-ink btn-mini">スリング</button>
+                  <button @click="resolveCreateWeaponSpell('weapon', 'bow'); showSummonSelector = false" class="btn-ink btn-mini">弓矢</button>
                 </div>
               </div>
               <!-- Armor Category -->
               <div>
                 <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-bottom: 5px;">🛡️ 防具を創造:</div>
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                  <button @click="castCreateWeaponSpell('armor', 'cloth'); showSummonSelector = false" class="btn-ink btn-mini">布鎧</button>
-                  <button @click="castCreateWeaponSpell('armor', 'leather'); showSummonSelector = false" class="btn-ink btn-mini">革鎧</button>
-                  <button @click="castCreateWeaponSpell('armor', 'chain'); showSummonSelector = false" class="btn-ink btn-mini">鎖鎧</button>
-                  <button @click="castCreateWeaponSpell('armor', 'plate'); showSummonSelector = false" class="btn-ink btn-mini">板金鎧</button>
+                  <button @click="resolveCreateWeaponSpell('armor', 'cloth'); showSummonSelector = false" class="btn-ink btn-mini">布鎧</button>
+                  <button @click="resolveCreateWeaponSpell('armor', 'leather'); showSummonSelector = false" class="btn-ink btn-mini">革鎧</button>
+                  <button @click="resolveCreateWeaponSpell('armor', 'chain'); showSummonSelector = false" class="btn-ink btn-mini">鎖鎧</button>
+                  <button @click="resolveCreateWeaponSpell('armor', 'plate'); showSummonSelector = false" class="btn-ink btn-mini">板金鎧</button>
                 </div>
               </div>
               <!-- Shield Category -->
               <div>
                 <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-bottom: 5px;">🛡️ 盾を創造:</div>
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                  <button @click="castCreateWeaponSpell('shield', 'wood'); showSummonSelector = false" class="btn-ink btn-mini">木盾</button>
-                  <button @click="castCreateWeaponSpell('shield', 'round'); showSummonSelector = false" class="btn-ink btn-mini">丸盾</button>
+                  <button @click="resolveCreateWeaponSpell('shield', 'wood'); showSummonSelector = false" class="btn-ink btn-mini">木盾</button>
+                  <button @click="resolveCreateWeaponSpell('shield', 'round'); showSummonSelector = false" class="btn-ink btn-mini">丸盾</button>
                 </div>
               </div>
               <button @click="showSummonSelector = false" class="btn-ink btn-mini btn-secondary" style="margin-top: 5px; align-self: flex-end;">キャンセル</button>

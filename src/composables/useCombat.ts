@@ -17,7 +17,8 @@ export function useCombat() {
     carriesLantern,
     playerActiveStatusEffectRules,
     pyramidRunCount,
-    restorePyramidBossSnapshot
+    restorePyramidBossSnapshot,
+    castCreateWeaponSpell
   } = useGameState();
 
   // Helper: check if enemy group is Undead, Golem, etc.
@@ -1238,6 +1239,24 @@ export function useCombat() {
     }
   }
 
+  async function resolveCreateWeaponSpell(category: 'weapon' | 'armor' | 'shield', itemKey: string) {
+    castCreateWeaponSpell(category, itemKey);
+    if (combatState.active) {
+      if (combatState.round === 0) {
+        combatState.hasRangedFired = true;
+        addLog('第0ラウンドの魔術詠唱が完了しました。', 'info');
+      } else {
+        await executeFollowerAttacks();
+        checkEnemyRetreat();
+        if (combatState.enemies.length === 0) {
+          endCombat(true);
+          return;
+        }
+        await executeEnemyAttacks();
+      }
+    }
+  }
+
   // Cast miracles (Rule 20)
   async function castMiracle(miracleName: string, _targetEnemyId?: string) {
     if (combatState.isOver) return;
@@ -1451,6 +1470,21 @@ export function useCombat() {
     if (combatState.enemies.length === 0) {
       combatState.pendingHolyArrow = 0;
       endCombat(true);
+    }
+
+    if (combatState.pendingHolyArrow === 0 && combatState.enemies.length > 0) {
+      if (combatState.round === 0) {
+        combatState.hasRangedFired = true;
+        addLog('第0ラウンドの奇跡発動が完了しました。', 'info');
+      } else {
+        await executeFollowerAttacks();
+        checkEnemyRetreat();
+        if (combatState.enemies.length === 0) {
+          endCombat(true);
+          return;
+        }
+        await executeEnemyAttacks();
+      }
     }
   }
 
@@ -2101,5 +2135,6 @@ export function useCombat() {
     executeDeflect,
     fireHolyArrow,
     resolveChronovalsRoar,
+    resolveCreateWeaponSpell,
   };
 }

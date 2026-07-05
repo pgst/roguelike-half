@@ -17,13 +17,12 @@ const {
   useFood,
   useHealingPotion,
   dismissFollower,
-  currentBackpackCount,
-  castCreateWeaponSpell
+  currentBackpackCount
 } = useGameState();
 
 const showSummonSelector = ref(false);
 
-const { activateWarDoll } = useCombat();
+const { activateWarDoll, resolveCreateWeaponSpell } = useCombat();
 
 const activeFollowerCount = computed(() => followers.value.length);
 
@@ -136,29 +135,29 @@ const maxBackpackSlots = computed(() => {
           <div>
             <div style="font-weight: bold; color: #705844; margin-bottom: 3px; font-size: 0.75rem;">⚔️ 武器を創造:</div>
             <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-              <button @click="castCreateWeaponSpell('weapon', 'light'); showSummonSelector = false" class="btn-ink btn-mini">軽い武器</button>
-              <button @click="castCreateWeaponSpell('weapon', 'oneHanded'); showSummonSelector = false" class="btn-ink btn-mini">片手武器</button>
-              <button @click="castCreateWeaponSpell('weapon', 'twoHanded'); showSummonSelector = false" class="btn-ink btn-mini">両手武器</button>
-              <button @click="castCreateWeaponSpell('weapon', 'sling'); showSummonSelector = false" class="btn-ink btn-mini">スリング</button>
-              <button @click="castCreateWeaponSpell('weapon', 'bow'); showSummonSelector = false" class="btn-ink btn-mini">弓矢</button>
+              <button @click="resolveCreateWeaponSpell('weapon', 'light'); showSummonSelector = false" class="btn-ink btn-mini">軽い武器</button>
+              <button @click="resolveCreateWeaponSpell('weapon', 'oneHanded'); showSummonSelector = false" class="btn-ink btn-mini">片手武器</button>
+              <button @click="resolveCreateWeaponSpell('weapon', 'twoHanded'); showSummonSelector = false" class="btn-ink btn-mini">両手武器</button>
+              <button @click="resolveCreateWeaponSpell('weapon', 'sling'); showSummonSelector = false" class="btn-ink btn-mini">スリング</button>
+              <button @click="resolveCreateWeaponSpell('weapon', 'bow'); showSummonSelector = false" class="btn-ink btn-mini">弓矢</button>
             </div>
           </div>
           <!-- Armors -->
           <div>
             <div style="font-weight: bold; color: #705844; margin-bottom: 3px; font-size: 0.75rem;">🛡️ 防具を創造:</div>
             <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-              <button @click="castCreateWeaponSpell('armor', 'cloth'); showSummonSelector = false" class="btn-ink btn-mini">布鎧</button>
-              <button @click="castCreateWeaponSpell('armor', 'leather'); showSummonSelector = false" class="btn-ink btn-mini">革鎧</button>
-              <button @click="castCreateWeaponSpell('armor', 'chain'); showSummonSelector = false" class="btn-ink btn-mini">鎖鎧</button>
-              <button @click="castCreateWeaponSpell('armor', 'plate'); showSummonSelector = false" class="btn-ink btn-mini">板金鎧</button>
+              <button @click="resolveCreateWeaponSpell('armor', 'cloth'); showSummonSelector = false" class="btn-ink btn-mini">布鎧</button>
+              <button @click="resolveCreateWeaponSpell('armor', 'leather'); showSummonSelector = false" class="btn-ink btn-mini">革鎧</button>
+              <button @click="resolveCreateWeaponSpell('armor', 'chain'); showSummonSelector = false" class="btn-ink btn-mini">鎖鎧</button>
+              <button @click="resolveCreateWeaponSpell('armor', 'plate'); showSummonSelector = false" class="btn-ink btn-mini">板金鎧</button>
             </div>
           </div>
           <!-- Shields -->
           <div>
             <div style="font-weight: bold; color: #705844; margin-bottom: 3px; font-size: 0.75rem;">🛡️ 盾を創造:</div>
             <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-              <button @click="castCreateWeaponSpell('shield', 'wood'); showSummonSelector = false" class="btn-ink btn-mini">木盾</button>
-              <button @click="castCreateWeaponSpell('shield', 'round'); showSummonSelector = false" class="btn-ink btn-mini">丸盾</button>
+              <button @click="resolveCreateWeaponSpell('shield', 'wood'); showSummonSelector = false" class="btn-ink btn-mini">木盾</button>
+              <button @click="resolveCreateWeaponSpell('shield', 'round'); showSummonSelector = false" class="btn-ink btn-mini">丸盾</button>
             </div>
           </div>
         </div>
