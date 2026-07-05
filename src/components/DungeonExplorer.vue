@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useGameState } from '../composables/useGameState';
 import { useDungeon } from '../composables/useDungeon';
 import { useCombat } from '../composables/useCombat';
@@ -17,7 +17,10 @@ const {
   logs,
   combatState,
   clearDiceTray,
-  diceTray
+  diceTray,
+  activeScenario,
+  nextRoomTensDigitOverride,
+  rollD6
 } = useGameState();
 
 const { 
@@ -290,6 +293,84 @@ function startGoblinFight() {
   addLog('⚔️ 交渉決裂！ゴブリンの交渉人が襲いかかってきました！', 'combat');
   currentScreen.value = 'combat';
 }
+
+// --- Custom Skeleton Encounter (33) Logic ---
+const skeletonReaction = ref<number | null>(null);
+const isSkeletonTraded = ref<boolean>(false);
+const hasChosenTensDigit = ref<boolean>(false);
+
+watch(activeEvent, (newEvent) => {
+  if (!newEvent || newEvent.d66Code !== '33') {
+    skeletonReaction.value = null;
+    isSkeletonTraded.value = false;
+    hasChosenTensDigit.value = false;
+  }
+});
+
+async function rollSkeletonReaction() {
+  addLog('砂掃きの骸骨の反応を確認します。1d6を振ります...', 'info');
+  const roll = await rollD6();
+  skeletonReaction.value = roll;
+  if (roll <= 3) {
+    addLog(`反応: 【友好的】 (出目: ${roll}) - 骸骨はミロスとの契約について語り、ピラミッドのアドバイス（次の出目操作）と武器交換を提案してきました。`, 'success');
+  } else if (roll <= 5) {
+    addLog(`反応: 【中立】 (出目: ${roll}) - 骸骨はあなたの武器に興味を持ち、武器交換を提案してきました。`, 'info');
+  } else {
+    addLog(`反応: 【逃走】 (出目: ${roll}) - 骸骨は驚いて逃げ出しました！`, 'info');
+  }
+}
+
+function tradeWeaponWithSkeleton(weaponName: string) {
+  if (!activeEvent.value) return;
+  const idx = character.value.weapons.findIndex(w => w.name === weaponName);
+  if (idx === -1) return;
+
+  const tradedWeapon = character.value.weapons[idx];
+  character.value.weapons.splice(idx, 1);
+  if (character.value.equippedWeapon?.name === weaponName) {
+    character.value.equippedWeapon = null;
+  }
+
+  const ribSword: Weapon = {
+    name: '古竜の肋骨剣',
+    type: 'one-handed',
+    modAttack: 0,
+    attribute: 'strike',
+    goldCost: 25,
+    isMagic: true,
+    description: '古竜の肋骨から作られた太い片手剣。打撃属性。弱い敵との戦闘でクリティカル時に衝撃波で追加1d3体撃破。5回ファンブルで破損。',
+    fumblesCount: 0
+  };
+  character.value.weapons.push(ribSword);
+
+  isSkeletonTraded.value = true;
+  addLog(`🤝 骸骨に [${tradedWeapon.name}] を手渡し、代わりに『古竜の肋骨剣』を受け取りました！`, 'success');
+}
+
+function selectSkeletonTensDigit(digit: number) {
+  nextRoomTensDigitOverride.value = digit;
+  hasChosenTensDigit.value = true;
+  addLog(`Res: 骸骨のアドバイスに従い、次の部屋探索の十の位を [ ${digit} ] に指定しました。`, 'success');
+  resolveSkeletonEvent();
+}
+
+function resolveSkeletonEvent() {
+  if (!activeEvent.value) return;
+
+  let rText = '🧹 砂掃きの骸骨との遭遇を終えました。';
+  if (isSkeletonTraded.value) {
+    rText += '\n• 特性【斬撃】の片手武器を渡し、代わりに『古竜の肋骨剣』を獲得しました。';
+  } else {
+    rText += '\n• 武器の交換は行いませんでした。';
+  }
+  if (nextRoomTensDigitOverride.value !== null) {
+    rText += `\n• 次回部屋探索時の十の位の出目に [ ${nextRoomTensDigitOverride.value} ] を指定されました。`;
+  }
+
+  (activeEvent.value as any).isResolved = true;
+  (activeEvent.value as any).resolutionText = rText;
+}
+// ---------------------------------------------
 </script>
 
 <template>
@@ -358,6 +439,93 @@ function startGoblinFight() {
         <div v-else-if="activeEvent.type === 'rest'" class="button-group">
           <button @click="resolveRestRoom('life')" class="btn-ink">❤️ 怪我を癒やす (生命力+2)</button>
           <button @click="resolveRestRoom('sub')" class="btn-ink">🔮 魔力/運気を回復 (副能力値全快)</button>
+        </div>
+
+        <!-- Custom Skeleton Event (33) -->
+        <div v-else-if="activeEvent.d66Code === '33' && activeScenario?.id === 'pyramid_of_chronodemon'" class="skeleton-event-panel" style="width: 100%;">
+          <div v-if="skeletonReaction === null">
+            <p style="margin-bottom: 20px; font-style: italic;">
+              箒を持った骸骨がピラミッドの床を静かに掃除しています。彼に接触しますか？それとも立ち去りますか？
+            </p>
+            <div class="button-group" style="display: flex; gap: 10px;">
+              <button @click="rollSkeletonReaction" class="btn-ink btn-primary-ink" style="flex: 1;">
+                🎲 接触を試みる (反応チェックを行う)
+              </button>
+              <button @click="activeEvent = null; dungeonDepth++" class="btn-ink btn-secondary" style="flex: 1;">
+                🏃 見つからないように立ち去る
+              </button>
+            </div>
+          </div>
+
+          <div v-else>
+            <!-- Show Reaction Result -->
+            <div class="reaction-result-box" style="padding: 10px; background: rgba(92, 75, 61, 0.05); border: 1px solid var(--ink-dark); border-radius: 4px; margin-bottom: 15px; text-align: center;">
+              <b>反応チェック結果:</b> 
+              <span v-if="skeletonReaction <= 3" style="color: var(--ink-dark); font-weight: bold;">【友好的】 (出目: {{ skeletonReaction }})</span>
+              <span v-else-if="skeletonReaction <= 5" style="color: var(--ink-dark); font-weight: bold;">【中立】 (出目: {{ skeletonReaction }})</span>
+              <span v-else style="color: #8c1c1c; font-weight: bold;">【逃走】 (出目: {{ skeletonReaction }})</span>
+            </div>
+
+            <!-- Flee Outcome -->
+            <div v-if="skeletonReaction === 6">
+              <p style="margin-bottom: 15px;">骸骨はあなたを見ると、持っていた箒を置いて慌てて逃げ去ってしまいました。</p>
+              <button @click="activeEvent = null; dungeonDepth++" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
+                🚪 部屋を立ち去る
+              </button>
+            </div>
+
+            <!-- Friendly or Neutral Outcome -->
+            <div v-else>
+              <!-- 1. Weapon Trade Section -->
+              <div v-if="!isSkeletonTraded" class="trade-section" style="margin-bottom: 20px; border-bottom: 1px dashed rgba(92,75,61,0.2); padding-bottom: 20px;">
+                <p style="margin-bottom: 10px; font-size: 0.95rem;">
+                  骸骨はあなたの持つ武器に興味深そうに視線を向けています。<br/>
+                  ピラミッドの石壁にある隙間に <b>特性【斬撃】の「片手武器」</b> を差し出せば、代わりに『古竜の肋骨剣』と交換してくれるようです。
+                </p>
+                
+                <!-- Eligible Weapons list -->
+                <div v-if="character.weapons.filter(w => w.type === 'one-handed' && w.attribute === 'slash').length > 0" style="width: 100%;">
+                  <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px; width: 100%;">
+                    <div v-for="w in character.weapons.filter(w => w.type === 'one-handed' && w.attribute === 'slash')" :key="w.name" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border: 1px dashed rgba(92,75,61,0.4); border-radius: 4px;">
+                      <span>🗡️ {{ w.name }} (斬撃)</span>
+                      <button @click="tradeWeaponWithSkeleton(w.name)" class="btn-ink btn-mini">🤝 交換を申し出る</button>
+                    </div>
+                  </div>
+                </div>
+                <div v-else style="color: #8c1c1c; font-size: 0.85rem; margin-top: 10px; font-style: italic;">
+                  ⚠️ 条件に合う武器（【斬撃】の片手武器）を所持していません。
+                </div>
+              </div>
+              <div v-else style="margin-bottom: 20px; text-align: center; color: green; font-weight: bold;">
+                🤝 『古竜の肋骨剣』と交換しました！
+              </div>
+
+              <!-- 2. Advice (Next Tens Digit) Section for Friendly reaction -->
+              <div v-if="skeletonReaction <= 3 && !hasChosenTensDigit" class="advice-section" style="margin-top: 15px; border-top: 1px dashed rgba(92,75,61,0.2); padding-top: 15px;">
+                <p style="margin-bottom: 10px; font-size: 0.95rem;">
+                  骸骨はピラミッドの内部構造に詳しいため、次の部屋の案内をしてくれます。<br/>
+                  <b>次に進む部屋の出目の十の位を選択してください：</b>
+                </p>
+                <div class="digit-buttons" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                  <button v-for="d in [1, 2, 3, 4, 5, 6]" :key="d" @click="selectSkeletonTensDigit(d)" class="btn-ink" style="justify-content: center;">
+                    🚪 {{ d }}の部屋へ (d66: {{ d }}X)
+                  </button>
+                </div>
+              </div>
+
+              <!-- 3. Resolution confirm button -->
+              <div v-if="skeletonReaction > 3 || hasChosenTensDigit" style="margin-top: 15px;">
+                <button @click="resolveSkeletonEvent" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
+                  ✔️ 取引を終了して結果を確定する
+                </button>
+              </div>
+              <div v-else-if="skeletonReaction <= 3 && !hasChosenTensDigit" style="margin-top: 15px; text-align: center;">
+                <button @click="resolveSkeletonEvent" class="btn-ink btn-secondary" style="width: 100%;">
+                  🏃 取引もアドバイスも受けずに立ち去る
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Merchant NPC Interaction -->

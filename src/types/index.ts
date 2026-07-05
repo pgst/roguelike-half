@@ -8,6 +8,7 @@ export interface Weapon {
   magicChargesCurrent?: number;
   magicChargesMax?: number;
   description: string;
+  fumblesCount?: number;
 }
 
 export interface Armor {

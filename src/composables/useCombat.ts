@@ -342,6 +342,22 @@ export function useCombat() {
     const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + attackStat + modifier;
     const hit = roll === 6 || (roll !== 1 && total >= enemy.level);
 
+    // --- CUSTOM LOGIC: Ancient Dragon's Rib-Sword Fumble Check ---
+    if (roll === 1 && character.value.equippedWeapon?.name === '古竜の肋骨剣') {
+      const weapon = character.value.equippedWeapon;
+      weapon.fumblesCount = (weapon.fumblesCount || 0) + 1;
+      addLog(`⚠️ 古竜の肋骨剣に負荷がかかりました！ (通算ファンブル回数: ${weapon.fumblesCount}/5)`, 'error');
+      if (weapon.fumblesCount >= 5) {
+        addLog('💀 古竜の肋骨剣は激しい負荷に耐えきれず、粉々に砕け散りました！', 'error');
+        const idx = character.value.weapons.findIndex(w => w.name === '古竜の肋骨剣');
+        if (idx !== -1) {
+          character.value.weapons.splice(idx, 1);
+        }
+        character.value.equippedWeapon = null;
+      }
+    }
+    // -------------------------------------------------------------
+
     if (isStrengthAttack) {
       character.value.subStatCurrent--;
       addLog(`全力攻撃により、筋力点を1点消費。(残り: ${character.value.subStatCurrent})`, 'info');
@@ -360,6 +376,24 @@ export function useCombat() {
         addLog(`💀 ${enemy.name} を撃破しました！`, 'success');
         combatState.enemies.splice(enemyIndex, 1);
       }
+
+      // --- CUSTOM LOGIC: Ancient Dragon's Rib-Sword Shockwave ---
+      if (roll === 6 && character.value.equippedWeapon?.name === '古竜の肋骨剣' && enemy.tags.includes('weak')) {
+        const addKillCount = Math.floor(Math.random() * 3) + 1;
+        addLog(`✨ 古竜の肋骨剣の衝撃波が発生！ 1d3体をさらに撃破します (ロール: ${addKillCount}体)`, 'success');
+        
+        let killed = 0;
+        for (let i = combatState.enemies.length - 1; i >= 0; i--) {
+          if (killed >= addKillCount) break;
+          const targetEnemy = combatState.enemies[i];
+          if (targetEnemy.tags.includes('weak')) {
+            addLog(`💥 衝撃波の波動が ${targetEnemy.name} を切り裂き、即座に撃破した！`, 'success');
+            combatState.enemies.splice(i, 1);
+            killed++;
+          }
+        }
+      }
+      // ----------------------------------------------------------
 
       if (combatState.enemies.length === 0) {
         endCombat(true);

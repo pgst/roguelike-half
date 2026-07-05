@@ -20,6 +20,7 @@ const activeScenario = ref<Scenario | null>(null);
 // Central State
 const currentScreen = ref<'scenario_select' | 'creator' | 'explore' | 'combat' | 'levelup' | 'gameover' | 'success'>('scenario_select');
 const isCharacterCreated = ref<boolean>(false);
+const nextRoomTensDigitOverride = ref<number | null>(null);
 const dungeonDepth = ref<number>(0);
 const totalRoomsToClear = computed(() => activeScenario.value ? activeScenario.value.totalRoomsToClear : 8);
 const logs = ref<{ id: string; text: string; type: 'info' | 'roll' | 'combat' | 'error' | 'success' | 'damage' }[]>([]);
@@ -218,7 +219,11 @@ function rollD66(): Promise<{ d1: number; d2: number; value: number }> {
     diceTray.isFumble = false;
 
     setTimeout(() => {
-      const d1 = Math.floor(Math.random() * 6) + 1;
+      let d1 = Math.floor(Math.random() * 6) + 1;
+      if (nextRoomTensDigitOverride.value !== null) {
+        d1 = nextRoomTensDigitOverride.value;
+        nextRoomTensDigitOverride.value = null; // Consume override
+      }
       const d2 = Math.floor(Math.random() * 6) + 1;
       const value = d1 * 10 + d2;
       diceTray.d1 = d1;
@@ -1061,6 +1066,7 @@ export function useGameState() {
     // State
     currentScreen,
     isCharacterCreated,
+    nextRoomTensDigitOverride,
     character,
     followers,
     activeEvent,
