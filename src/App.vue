@@ -537,7 +537,7 @@ watch(() => logs.value.length, async () => {
             
             <div class="market-grid-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
               <!-- Left: Gear Shop -->
-              <div class="shop-column" style="background: rgba(255,255,255,0.3); border: 1px solid #c2b09a; padding: 15px; border-radius: 4px; max-height: 250px; overflow-y: auto;">
+              <div class="shop-column" style="background: rgba(255,255,255,0.3); border: 1px solid #c2b09a; padding: 15px; border-radius: 4px; max-height: 400px; overflow-y: auto;">
                 <h4 style="margin: 0 0 10px 0; font-family: 'Noto Serif JP', serif; font-size: 0.9rem; color: var(--ink-dark); border-bottom: 1px dashed #c2b09a; padding-bottom: 3px;">🛡️ 装備品・道具の店</h4>
                 
                 <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -586,7 +586,7 @@ watch(() => logs.value.length, async () => {
               </div>
 
               <!-- Right: Followers Recruiting -->
-              <div class="recruiter-column" style="background: rgba(255,255,255,0.3); border: 1px solid #c2b09a; padding: 15px; border-radius: 4px; max-height: 250px; overflow-y: auto;">
+              <div class="recruiter-column" style="background: rgba(255,255,255,0.3); border: 1px solid #c2b09a; padding: 15px; border-radius: 4px; max-height: 400px; overflow-y: auto;">
                 <h4 style="margin: 0 0 10px 0; font-family: 'Noto Serif JP', serif; font-size: 0.9rem; color: var(--ink-dark); border-bottom: 1px dashed #c2b09a; padding-bottom: 3px;">👥 従者のスカウト・雇用</h4>
                 
                 <div style="display: flex; flex-direction: column; gap: 10px;">
