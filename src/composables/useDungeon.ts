@@ -1,5 +1,7 @@
 import { useGameState } from './useGameState';
 import type { Enemy } from '../types';
+import { runScenarioHook } from './scenarioPlugins';
+import { setPyramidHelpers } from './scenarioPlugins/pyramidPlugin';
 
 export function useDungeon() {
   const { 
@@ -21,6 +23,8 @@ export function useDungeon() {
     savePyramidBossSnapshot
   } = useGameState();
 
+  setPyramidHelpers(addLog, startEncounter);
+
   // Action: Explore next room
   async function exploreNextRoom() {
     if (currentScreen.value !== 'explore') return;
@@ -34,6 +38,8 @@ export function useDungeon() {
     if (activeScenario.value.id === 'pyramid_of_chronodemon') {
       const run = pyramidRunCount.value;
       const depth = dungeonDepth.value; // 0-indexed room index
+
+
 
       // 1. Room 4 (depth 3) is always the Middle Event
       if (depth === 3) {
@@ -164,7 +170,8 @@ export function useDungeon() {
 
       // Check perception
       const hasScout = followers.value.some(f => f.type === 'scout');
-      const hasDexPerception = character.value.subStatType === 'dexterity' && character.value.subStatCurrent > 0;
+      const hasBrooch = character.value.items.some(i => i.id === 'golden_brooch' && i.charges !== undefined && i.charges > 0);
+      const hasDexPerception = (character.value.subStatType === 'dexterity' && character.value.subStatCurrent > 0) || hasBrooch;
 
       if (hasScout || hasDexPerception) {
         combatState.pendingPerception = {
@@ -201,7 +208,8 @@ export function useDungeon() {
 
     // Check if player has options to use Perception (察知) (Rule 25 & Scout Follower)
     const hasScout = followers.value.some(f => f.type === 'scout');
-    const hasDexPerception = character.value.subStatType === 'dexterity' && character.value.subStatCurrent > 0;
+    const hasBrooch = character.value.items.some(i => i.id === 'golden_brooch' && i.charges !== undefined && i.charges > 0);
+    const hasDexPerception = (character.value.subStatType === 'dexterity' && character.value.subStatCurrent > 0) || hasBrooch;
 
     if (hasScout || hasDexPerception) {
       // Pause in pending Perception state!
@@ -221,6 +229,9 @@ export function useDungeon() {
   function activateRoomEvent(event: any) {
     activeEvent.value = JSON.parse(JSON.stringify(event));
     addLog(`探索対象決定: ${activeEvent.value!.title}`, 'info');
+
+    // Run scenario plugin explore room hook!
+    runScenarioHook(activeScenario.value?.id, 'onExploreRoom', activeEvent.value, character, followers);
 
     // Trigger event effect
     if (activeEvent.value!.type === 'encounter') {
@@ -274,20 +285,49 @@ export function useDungeon() {
   async function executePerceptionHero() {
     if (!combatState.pendingPerception) return;
 
-    addLog('主人公が器用点【察知】を行います！ (目標値: 4)', 'info');
+    const brooch = character.value.items.find(i => i.id === 'golden_brooch' && i.charges !== undefined && i.charges > 0);
+    const isDex = character.value.subStatType === 'dexterity';
+    
+    if (brooch) {
+      addLog('お守り『黄金虫のブローチ』の力で【察知】を行います！ (目標値: 4)', 'info');
+    } else {
+      addLog('主人公が器用点【察知】を行います！ (目標値: 4)', 'info');
+    }
+    
     const roll = await rollD6(true);
     let modifier = 0;
     if (!carriesLantern.value) {
       modifier -= 2;
       addLog('暗闇のため主人公の察知判定に -2 のペナルティ！', 'error');
     }
-    const val = character.value.subStatCurrent; // 消費前の器用点を用いて判定
+    
+    let val = 0;
+    if (isDex) {
+      val = character.value.subStatCurrent; // 消費前の器用点を用いて判定
+      if (brooch) {
+        modifier += 1;
+        addLog('ブローチの魔力により、器用点判定に +1 のボーナス！', 'success');
+      }
+    } else {
+      val = character.value.skillCurrent;
+      addLog('副能力値が器用点ではないため、技量点を使用して判定します。', 'info');
+    }
+    
     const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
     const success = roll === 6 || (roll !== 1 && total >= 4);
 
-    // 判定後に器用点を1点消費
-    character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
-    addLog(`察知により器用点を1点消費しました。(残り: ${character.value.subStatCurrent}点)`, 'info');
+    if (brooch) {
+      brooch.charges = (brooch.charges || 2) - 1;
+      addLog(`黄金虫のブローチの魔力を消費しました。(残り耐久: ${brooch.charges}/2)`, 'info');
+      if (brooch.charges <= 0) {
+        character.value.items = character.value.items.filter(i => i.id !== 'golden_brooch');
+        addLog('💥 黄金虫のブローチは激しいヒビが入り、砕け散ってしまいました！', 'error');
+      }
+    } else {
+      // 判定後に器用点を1点消費
+      character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
+      addLog(`察知により器用点を1点消費しました。(残り: ${character.value.subStatCurrent}点)`, 'info');
+    }
 
     if (success) {
       addLog(`🧭 主人公の察知成功！危険を感知し、別の進路を選びます。(ロール計: ${roll === 6 ? 'クリティカル' : total} >= 4)`, 'success');
@@ -333,6 +373,11 @@ export function useDungeon() {
 
     addLog(`クリーチャーと遭遇！戦闘に入ります。 (${combatState.enemies.length}体の敵)`, 'combat');
     currentScreen.value = 'combat';
+
+    if (activeEvent.value.d66Code === 'Final3') {
+      (combatState as any).pendingRoarCheck = 'start';
+      addLog('👿 刻の悪魔クロノヴァルスが降臨し、空間が歪む『時喰いの咆哮』を放ちました！', 'error');
+    }
   }
 
   // Handle Trap Roll Resolution

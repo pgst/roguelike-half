@@ -117,6 +117,9 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
       const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
       const exploreBtn = page.locator('button:has-text("d66を振って次の部屋を探索する")');
 
+      // Custom Choices button
+      const customChoiceBtn = page.locator('.custom-choices-panel button.btn-ink:not([disabled])');
+
       // Pyramid Choice buttons
       const choiceGolemBtn = page.locator('button:has-text("至高のヘラクレオスと戦う")');
       const choiceShireenBtn = page.locator('button:has-text("異端者シーリーンと戦う")');
@@ -131,6 +134,8 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
 
       if (await proceedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(proceedBtn)) {
         if (await safeClick(proceedBtn, 'Proceed to next room')) actionCount++;
+      } else if (await customChoiceBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(customChoiceBtn.first())) {
+        if (await safeClick(customChoiceBtn.first(), 'Click scenario plugin custom choice')) actionCount++;
       } else if (await contactBtn.isVisible({ timeout: 0 }) && await isElementEnabled(contactBtn)) {
         if (await safeClick(contactBtn, 'Contact skeleton')) actionCount++;
       } else if (await tradeBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(tradeBtn.first())) {

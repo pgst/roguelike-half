@@ -367,12 +367,18 @@ const currentBackpackCount = computed(() => {
   return equipmentCount + goldSlots + foodSlots;
 });
 
-const isBackpackFull = computed(() => {
+const maxBackpackSlots = computed(() => {
   // Follower Porter gives +3 slots
   const porterBonus = followers.value.filter(f => f.type === 'porter').length * 3;
-  const maxSlots = character.value.lifeMax + porterBonus;
+  return character.value.lifeMax + porterBonus;
+});
 
-  return currentBackpackCount.value >= maxSlots;
+const isBackpackFull = computed(() => {
+  return currentBackpackCount.value >= maxBackpackSlots.value;
+});
+
+const isBackpackOverLimit = computed(() => {
+  return currentBackpackCount.value > maxBackpackSlots.value;
 });
 
 const hasSwordbearer = computed(() => followers.value.some(f => f.type === 'swordbearer'));
@@ -732,6 +738,51 @@ function sellItem(itemId: string) {
     } else {
       addLog(`${item.name}は売却できません。`, 'error');
     }
+  }
+}
+
+function discardWeapon(weaponName: string) {
+  const idx = character.value.weapons.findIndex(w => w.name === weaponName);
+  if (idx !== -1) {
+    const w = character.value.weapons[idx];
+    character.value.weapons.splice(idx, 1);
+    if (character.value.equippedWeapon?.name === weaponName) {
+      character.value.equippedWeapon = null;
+    }
+    addLog(`🎒 背負い袋から武器 [${w.name}] を廃棄しました。`, 'info');
+  }
+}
+
+function discardArmor(armorName: string) {
+  const idx = character.value.armors.findIndex(a => a.name === armorName);
+  if (idx !== -1) {
+    const a = character.value.armors[idx];
+    character.value.armors.splice(idx, 1);
+    if (character.value.equippedArmor?.name === armorName) {
+      character.value.equippedArmor = null;
+    }
+    addLog(`🎒 背負い袋から防具 [${a.name}] を廃棄しました。`, 'info');
+  }
+}
+
+function discardShield(shieldName: string) {
+  const idx = character.value.shields.findIndex(s => s.name === shieldName);
+  if (idx !== -1) {
+    const s = character.value.shields[idx];
+    character.value.shields.splice(idx, 1);
+    if (character.value.equippedShield?.name === shieldName) {
+      character.value.equippedShield = null;
+    }
+    addLog(`🎒 背負い袋から盾 [${s.name}] を廃棄しました。`, 'info');
+  }
+}
+
+function discardGeneralItem(itemId: string) {
+  const idx = character.value.items.findIndex(i => i.id === itemId);
+  if (idx !== -1) {
+    const item = character.value.items[idx];
+    character.value.items.splice(idx, 1);
+    addLog(`🎒 背負い袋から道具 [${item.name}] を廃棄しました。`, 'info');
   }
 }
 
@@ -1149,6 +1200,7 @@ export function useGameState() {
     carriesLantern,
     getRollModifier,
     isBackpackFull,
+    isBackpackOverLimit,
     currentBackpackCount,
     hasSwordbearer,
     isSwitchingWeapons,
@@ -1177,6 +1229,10 @@ export function useGameState() {
     equipArmor,
     equipShield,
     sellItem,
+    discardWeapon,
+    discardArmor,
+    discardShield,
+    discardGeneralItem,
 
     // Consumption / Restore
     useFood,

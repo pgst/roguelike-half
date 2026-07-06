@@ -38,19 +38,19 @@ test.describe('砂掃きの骸骨 (Sand Cleaning Skeleton) 取引＆アドバイ
     await startBtn.click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
+    // 起源の選択（アルマシウダ帝国を選択して開始。ブローチを持たないので察知判定が発生せず、オリジナルテストと同様の挙動になる）
+    const customChoiceBtn = page.locator('.custom-choices-panel button.btn-ink:not([disabled])');
+    if (await customChoiceBtn.nth(1).isVisible({ timeout: 1000 })) {
+      await customChoiceBtn.nth(1).click({ force: true });
+      await page.waitForTimeout(500);
+    }
+
     // 4. d66 = 33 (砂掃きの骸骨), 反応チェックの出目を 2 (友好的) に固定
     await setupMockRandom(page, 33, 2);
 
     // 次の部屋を探索
     await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
     await page.waitForTimeout(500);
-
-    // 察知せずに部屋に入る
-    const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
-    if (await skipPerceptionBtn.count() > 0 && await skipPerceptionBtn.isVisible()) {
-      await skipPerceptionBtn.click({ force: true });
-      await page.waitForTimeout(500);
-    }
 
     // 接触を試みる (反応チェック)
     const contactBtn = page.locator('button:has-text("接触を試みる")');

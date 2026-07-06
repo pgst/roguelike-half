@@ -35,10 +35,11 @@ export interface Shield {
 export interface GeneralItem {
   id: string;
   name: string;
-  type: 'lantern' | 'rope' | 'holywater' | 'healingpotion' | 'accessory' | 'gem_small' | 'gem_large' | 'magic_flute' | 'magic_staff' | 'magic_monocle' | 'magic_shield' | 'magic_doll' | 'clue';
+  type: 'lantern' | 'rope' | 'holywater' | 'healingpotion' | 'accessory' | 'gem_small' | 'gem_large' | 'magic_flute' | 'magic_staff' | 'magic_monocle' | 'magic_shield' | 'magic_doll' | 'clue' | 'quest';
   goldCost: number;
   chargesCurrent?: number;
   chargesMax?: number;
+  charges?: number; // 【追加】 シナリオ固有アイテムの使用回数カウンター
   value: number; // Sell value, 0 if not sellable
   description: string;
 }
@@ -116,6 +117,7 @@ export interface DungeonEvent {
   isResolved?: boolean;
   resolutionText?: string;
   statusEffect?: string; // 【追加】 罠によって受ける状態異常（例: '呪い', '石化', '麻痺'）
+  customChoices?: any[]; // 【追加】 シナリオ固有の選択肢を注入するためのフィールド
 }
 
 export interface StatusEffectRule {

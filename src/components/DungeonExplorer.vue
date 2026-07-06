@@ -22,7 +22,12 @@ const {
   nextRoomTensDigitOverride,
   rollD6,
   pyramidRunCount,
-  handleDeath
+  handleDeath,
+  carriesLantern,
+  playerActiveStatusEffectRules,
+  isBackpackFull,
+  isBackpackOverLimit,
+  equipArmor
 } = useGameState();
 
 const { 
@@ -40,6 +45,24 @@ const showMerchant = ref(false);
 
 // Pyramid of Chronodemon Scenario Custom State & Logic
 const final1Step = ref<number>(1);
+
+function choosePyramidOrigin(origin: 'polomeia' | 'almaciuda') {
+  (character.value as any).pyramidOriginChosen = true;
+  if (origin === 'polomeia') {
+    character.value.items.push({
+      id: 'golden_brooch',
+      name: '黄金虫のブローチ',
+      type: 'accessory',
+      goldCost: 0,
+      description: '【シナリオ限定】器用点以外でも察知を行える（器用点なら察知+1修正）。2回使用で破損。冒険終了時に要返却。',
+      value: 0,
+      charges: 2
+    } as any);
+    addLog('👑 王からお守りとして『黄金虫のブローチ』を授かりました！ (背負い袋に追加)', 'success');
+  } else {
+    addLog('🦂 アルマシウダ帝国の大人として探索に向かいます。', 'info');
+  }
+}
 
 function completePyramidRun() {
   if (activeEvent.value?.d66Code === 'Final1') {
@@ -211,6 +234,10 @@ const hireableFollowers = [
 ];
 
 function buyWeaponFromMerchant(w: Weapon) {
+  if (isBackpackFull.value) {
+    addLog('🎒 背負い袋が満杯のため、これ以上アイテムを購入できません！', 'error');
+    return;
+  }
   if (character.value.gold < w.goldCost) {
     addLog('金貨が足りません！', 'error');
     return;
@@ -225,12 +252,27 @@ function buyArmorFromMerchant(a: Armor) {
     addLog('金貨が足りません！', 'error');
     return;
   }
+  
+  if (character.value.armors.length >= 1) {
+    const oldArmor = character.value.armors[0];
+    if (character.value.equippedArmor?.name === oldArmor.name) {
+      equipArmor(null);
+    }
+    character.value.armors = [];
+    addLog(`古い防具 [${oldArmor.name}] を処分しました。`, 'info');
+  }
+
   character.value.gold -= a.goldCost;
   character.value.armors.push({ ...a });
   addLog(`行商人から [${a.name}] を購入しました。(金貨${a.goldCost}枚消費)`, 'success');
+  equipArmor(character.value.armors[0]);
 }
 
 function buyShieldFromMerchant(s: Shield) {
+  if (isBackpackFull.value) {
+    addLog('🎒 背負い袋が満杯のため、これ以上アイテムを購入できません！', 'error');
+    return;
+  }
   if (character.value.gold < s.goldCost) {
     addLog('金貨が足りません！', 'error');
     return;
@@ -241,6 +283,10 @@ function buyShieldFromMerchant(s: Shield) {
 }
 
 function buyItemFromMerchant(item: Omit<GeneralItem, 'id'>) {
+  if (isBackpackFull.value) {
+    addLog('🎒 背負い袋が満杯のため、これ以上アイテムを購入できません！', 'error');
+    return;
+  }
   if (character.value.gold < item.goldCost) {
     addLog('金貨が足りません！', 'error');
     return;
@@ -374,7 +420,73 @@ function resolveRestRoom(option: 'life' | 'sub') {
   (activeEvent.value as any).resolutionText = text;
 }
 
+async function handleCustomChoiceClick(choice: any) {
+  if (choice.checkStat) {
+    addLog(`🧭 独自判定開始: 【${choice.checkStat.toUpperCase()}】判定ロール (目標値: ${choice.checkTarget || 3})`, 'info');
+    const roll = await rollD6(true);
+    let modifier = 0;
+    if (!carriesLantern.value) {
+      modifier -= 2;
+      addLog('暗闇のため判定に -2 のペナルティ！', 'error');
+    }
+    
+    // Check status effect modSkill (penalties)
+    playerActiveStatusEffectRules.value.forEach(rule => {
+      if (rule.modSkill) {
+        modifier += rule.modSkill;
+        addLog(`状態異常ペナルティにより判定に ${rule.modSkill} の修正が入ります。`, 'error');
+      }
+    });
+
+    // Armor bonuses for dexterity
+    if (choice.checkStat === 'dexterity' && character.value.equippedArmor) {
+      const arm = character.value.equippedArmor;
+      if (arm.modDex > 0) {
+        modifier += arm.modDex;
+        addLog(`防具 [${arm.name}] の効果で器用判定に +${arm.modDex}`, 'success');
+      }
+    }
+
+    let statVal = 0;
+    let isUsingSubStat = false;
+    if (choice.checkStat === 'skill') {
+      statVal = character.value.skillCurrent;
+    } else {
+      const isSubMatch = character.value.subStatType === choice.checkStat;
+      if (isSubMatch && character.value.subStatCurrent > 0) {
+        statVal = character.value.subStatCurrent;
+        isUsingSubStat = true;
+        addLog(`得意な副能力値【${choice.checkStat.toUpperCase()}】を技量点の代わりに使用します。(現在値: ${statVal})`, 'success');
+      } else {
+        statVal = character.value.skillCurrent;
+        if (isSubMatch) {
+          addLog(`副能力値が0点以下のため、技量点を使用します。`, 'error');
+        } else {
+          addLog(`技量点を使用して判定を行います。(現在値: ${statVal})`, 'info');
+        }
+      }
+    }
+    
+    const target = choice.checkTarget || 3;
+    const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + statVal + modifier;
+    const success = roll === 6 || (roll !== 1 && total >= target);
+    
+    if (isUsingSubStat) {
+      character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
+      addLog(`判定終了後、副能力値を1点消費しました。(残り: ${character.value.subStatCurrent}点)`, 'info');
+    }
+    
+    choice.onSelect({ success, roll, total });
+  } else {
+    choice.onSelect();
+  }
+}
+
 function confirmEventResolution() {
+  if (isBackpackOverLimit.value) {
+    addLog('🎒 背負い袋が容量制限を超過しています！ 不要なアイテムを捨てるか、装備を変更して整理してください。', 'error');
+    return;
+  }
   if (activeEvent.value?.d66Code === 'Final1' || activeEvent.value?.d66Code === 'Final2') {
     completePyramidRun();
     return;
@@ -525,7 +637,11 @@ function resolveSkeletonEvent() {
         <p class="event-description resolved-desc" style="white-space: pre-line; background: rgba(225, 218, 205, 0.4); padding: 15px; border-radius: 4px; border: 1px dashed rgba(92, 75, 61, 0.4); font-size: 0.95rem; color: var(--ink-light); line-height: 1.6; text-align: left; opacity: 0.9;">
           {{ (activeEvent as any).resolutionText }}
         </p>
-        <button @click="confirmEventResolution" class="btn-ink btn-large btn-primary-ink" style="margin-top: 15px; width: 100%;">
+        <div v-if="isBackpackOverLimit" class="overlimit-warning-banner" style="background: rgba(140, 28, 28, 0.1); border: 1px solid #8c1c1c; padding: 12px; border-radius: 4px; color: #8c1c1c; font-size: 0.9rem; margin-top: 10px; margin-bottom: 10px; text-align: left;">
+          ⚠️ <b>背負い袋の容量制限を超過しています！</b><br/>
+          右側の「キャラクター記録紙」から、不要な武器・道具を「捨てる」か、装備を変更して空きスロットを作ってください。（整理が完了するまで次の部屋に進めません）
+        </div>
+        <button @click="confirmEventResolution" class="btn-ink btn-large btn-primary-ink" :disabled="isBackpackOverLimit" style="margin-top: 15px; width: 100%;">
           🚪 次の小部屋へ進む
         </button>
       </div>
@@ -540,8 +656,24 @@ function resolveSkeletonEvent() {
         <p class="event-description">{{ activeEvent.description }}</p>
 
         <div class="event-actions">
+        <!-- Scenario Plugin Custom Choices (Dynamic Choices) -->
+        <div v-if="activeEvent.customChoices" class="custom-choices-panel" style="width: 100%; margin-bottom: 10px;">
+          <div class="button-group" style="display: flex; flex-direction: column; gap: 8px;">
+            <button 
+              v-for="choice in activeEvent.customChoices" 
+              :key="choice.id"
+              @click="handleCustomChoiceClick(choice)"
+              class="btn-ink"
+              :disabled="choice.disabled || diceTray.isRolling"
+              style="width: 100%; justify-content: center;"
+            >
+              {{ choice.label }}
+            </button>
+          </div>
+        </div>
+
         <!-- Trap Actions -->
-        <div v-if="activeEvent.type === 'trap'">
+        <div v-else-if="activeEvent.type === 'trap'">
           <!-- Damage Target Selection Panel -->
           <div v-if="combatState.pendingTrapDamage" class="trap-damage-target-select" style="margin-top: 15px; border: 1px dashed #8c1c1c; padding: 15px; border-radius: 4px; background: rgba(140, 28, 28, 0.05); text-align: left; width: 100%;">
             <h4 style="color: #8c1c1c; margin-top: 0; margin-bottom: 10px; font-weight: bold; display: flex; align-items: center; gap: 6px;">
@@ -764,7 +896,7 @@ function resolveSkeletonEvent() {
                 <div class="merch-grid">
                   <div v-for="w in merchantGoods.weapons" :key="w.name" class="merch-item">
                     <span>{{ w.name }} ({{ w.goldCost }}g)</span>
-                    <button @click="buyWeaponFromMerchant(w)" class="btn-ink btn-mini" :disabled="character.gold < w.goldCost">購入</button>
+                    <button @click="buyWeaponFromMerchant(w)" class="btn-ink btn-mini" :disabled="character.gold < w.goldCost || isBackpackFull">購入</button>
                   </div>
                 </div>
               </div>
@@ -786,7 +918,7 @@ function resolveSkeletonEvent() {
                 <div class="merch-grid">
                   <div v-for="s in merchantGoods.shields" :key="s.name" class="merch-item">
                     <span>{{ s.name }} ({{ s.goldCost }}g)</span>
-                    <button @click="buyShieldFromMerchant(s)" class="btn-ink btn-mini" :disabled="character.gold < s.goldCost">購入</button>
+                    <button @click="buyShieldFromMerchant(s)" class="btn-ink btn-mini" :disabled="character.gold < s.goldCost || isBackpackFull">購入</button>
                   </div>
                 </div>
               </div>
@@ -797,7 +929,7 @@ function resolveSkeletonEvent() {
                 <div class="merch-grid">
                   <div v-for="i in merchantGoods.items" :key="i.name" class="merch-item">
                     <span>{{ i.name }} ({{ i.goldCost }}g)</span>
-                    <button @click="buyItemFromMerchant(i)" class="btn-ink btn-mini" :disabled="character.gold < i.goldCost">購入</button>
+                    <button @click="buyItemFromMerchant(i)" class="btn-ink btn-mini" :disabled="character.gold < i.goldCost || isBackpackFull">購入</button>
                   </div>
                 </div>
               </div>
@@ -847,7 +979,11 @@ function resolveSkeletonEvent() {
 
         <!-- Fallback explore room clear -->
         <div v-else>
-          <button @click="confirmEventResolution" class="btn-ink">次の小部屋へ進む</button>
+          <div v-if="isBackpackOverLimit" class="overlimit-warning-banner" style="background: rgba(140, 28, 28, 0.1); border: 1px solid #8c1c1c; padding: 12px; border-radius: 4px; color: #8c1c1c; font-size: 0.9rem; margin-bottom: 10px; text-align: left;">
+            ⚠️ <b>背負い袋の容量制限を超過しています！</b><br/>
+            右側の「キャラクター記録紙」から、不要な武器・道具を「捨てる」か、装備を変更して空きスロットを作ってください。（整理が完了するまで次の部屋に進めません）
+          </div>
+          <button @click="confirmEventResolution" class="btn-ink" :disabled="isBackpackOverLimit">次の小部屋へ進む</button>
         </div>
       </div>
       </div>
@@ -890,13 +1026,28 @@ function resolveSkeletonEvent() {
 
     <!-- Normal exploration deck -->
     <div v-else class="exploration-deck">
-      <div class="adventure-text">
-        <p>d66ダイスを振ってその「できごと」を確認してください。</p>
-      </div>
+      <template v-if="activeScenario?.id === 'pyramid_of_chronodemon' && pyramidRunCount === 1 && !(character as any).pyramidOriginChosen">
+        <div class="adventure-text" style="margin-bottom: 15px;">
+          <p>📜 ピラミッドの探索を開始するにあたり、君の所属（出自）を選択してください。</p>
+        </div>
+        <div class="custom-choices-panel" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+          <button @click="choosePyramidOrigin('polomeia')" class="btn-ink btn-large" style="justify-content: center;">
+            👑 ポロメイア王国の若者として開始 (ブローチ獲得)
+          </button>
+          <button @click="choosePyramidOrigin('almaciuda')" class="btn-ink btn-large" style="justify-content: center;">
+            🦂 アルマシウダ帝国の大人として開始
+          </button>
+        </div>
+      </template>
+      <template v-else>
+        <div class="adventure-text">
+          <p>d66ダイスを振ってその「できごと」を確認してください。</p>
+        </div>
 
-      <button @click="exploreNextRoom" class="btn-ink btn-large btn-explore">
-        🎲 d66を振って次の部屋を探索する
-      </button>
+        <button @click="exploreNextRoom" class="btn-ink btn-large btn-explore">
+          🎲 d66を振って次の部屋を探索する
+        </button>
+      </template>
     </div>
   </div>
 </template>

@@ -41,6 +41,13 @@ export function useCombat() {
       }
     }
     
+    // Ant-man acid spit penalty for followers
+    if ((combatState as any).followerAccuracyModifiers && (combatState as any).followerAccuracyModifiers[follower.name]) {
+      const penalty = (combatState as any).followerAccuracyModifiers[follower.name];
+      modifier += penalty;
+      addLog(`🤢 ギ酸の唾による ${follower.name} の視界不良ペナルティ ${penalty}！`, 'error');
+    }
+
     const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + follower.skill + modifier;
     let hit = roll === 6 || (roll !== 1 && total >= target.level);
     
@@ -370,6 +377,12 @@ export function useCombat() {
     if ((combatState as any).isCharmed) {
       modifier -= 2;
       addLog('👁️ 邪視による攻撃ペナルティ -2！', 'error');
+    }
+
+    // Ant-man acid spit penalty
+    if ((combatState as any).antSpitPenalty) {
+      modifier -= 1;
+      addLog('🤢 ギ酸の唾による視界不良ペナルティ -1！', 'error');
     }
 
     // Lantern penalty

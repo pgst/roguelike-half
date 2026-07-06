@@ -14,6 +14,10 @@ const {
   equipArmor,
   equipShield,
   sellItem,
+  discardWeapon,
+  discardArmor,
+  discardShield,
+  discardGeneralItem,
   useFood,
   useHealingPotion,
   dismissFollower,
@@ -194,21 +198,30 @@ const maxBackpackSlots = computed(() => {
       <!-- Weapons in bag -->
       <div v-for="w in character.weapons" :key="w.name" class="bag-item" v-show="character.equippedWeapon?.name !== w.name">
         <span class="item-name"><span class="item-category-label">[武器]</span> {{ w.name }}</span>
-        <button @click="equipWeapon(w)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedWeapon">装備</button>
+        <div class="item-actions">
+          <button @click="equipWeapon(w)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedWeapon">装備</button>
+          <button @click="discardWeapon(w.name)" class="btn-ink btn-mini" style="background: #8c1c1c; border-color: #8c1c1c; color: white;">捨てる</button>
+        </div>
       </div>
 
       <!-- Armors in bag -->
       <div v-for="a in character.armors" :key="a.name" class="bag-item" v-show="character.equippedArmor?.name !== a.name">
         <span class="item-name"><span class="item-category-label">[防具]</span> {{ a.name }}</span>
-        <button @click="equipArmor(a)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedArmor">装備</button>
+        <div class="item-actions">
+          <button @click="equipArmor(a)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedArmor">装備</button>
+          <button @click="discardArmor(a.name)" class="btn-ink btn-mini" style="background: #8c1c1c; border-color: #8c1c1c; color: white;">捨てる</button>
+        </div>
       </div>
 
       <!-- Shields in bag -->
       <div v-for="s in character.shields" :key="s.name" class="bag-item" v-show="character.equippedShield?.name !== s.name">
         <span class="item-name"><span class="item-category-label">[盾]</span> {{ s.name }}</span>
-        <button @click="equipShield(s)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedShield">装備</button>
+        <div class="item-actions">
+          <button @click="equipShield(s)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedShield">装備</button>
+          <button @click="discardShield(s.name)" class="btn-ink btn-mini" style="background: #8c1c1c; border-color: #8c1c1c; color: white;">捨てる</button>
+        </div>
       </div>
-      <!-- Spell: Create Weapon outside combat -->
+      <!-- General items -->
       <div v-for="i in character.items" :key="i.id" class="bag-item">
         <span class="item-name">
           <span class="item-category-label" v-if="['lantern', 'rope'].includes(i.type)">[道具]</span>
@@ -222,6 +235,7 @@ const maxBackpackSlots = computed(() => {
           <button v-if="i.type === 'healingpotion'" @click="useHealingPotion" class="btn-ink btn-mini">飲む</button>
           <button v-if="i.type === 'magic_doll'" @click="activateWarDoll(i.id)" class="btn-ink btn-mini">起動(1EXP)</button>
           <button v-if="i.value > 0 && currentScreen === 'levelup'" @click="sellItem(i.id)" class="btn-ink btn-mini sell-btn">売却</button>
+          <button @click="discardGeneralItem(i.id)" class="btn-ink btn-mini" style="background: #8c1c1c; border-color: #8c1c1c; color: white;">捨てる</button>
         </div>
       </div>
 

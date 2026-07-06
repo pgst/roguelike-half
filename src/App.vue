@@ -3,6 +3,7 @@ import { computed, ref, watch, nextTick } from 'vue';
 import { useGameState } from './composables/useGameState';
 import { DEFAULT_ITEMS, DEFAULT_WEAPONS, DEFAULT_SHIELDS, DEFAULT_ARMORS } from './composables/useGameState';
 import type { Weapon, Armor, Shield, GeneralItem } from './types';
+import { runScenarioHook } from './composables/scenarioPlugins';
 import ScenarioSelector from './components/ScenarioSelector.vue';
 import CharacterCreator from './components/CharacterCreator.vue';
 import AdventureSheet from './components/AdventureSheet.vue';
@@ -31,7 +32,8 @@ const {
   addLog,
   clearLogs,
   forgetSpell,
-  activeScenario
+  activeScenario,
+  isBackpackFull
 } = useGameState();
 
 const ALL_SPELLS = [
@@ -139,6 +141,10 @@ const selectedFollowerAttrib = ref<Record<string, 'strike' | 'slash'>>({
 const selectedMageSpell = ref('炎球');
 
 function buyWeapon(w: Weapon) {
+  if (isBackpackFull.value) {
+    addLog('🎒 背負い袋が満杯のため購入できません！', 'error');
+    return;
+  }
   if (character.value.gold < w.goldCost) return;
   character.value.gold -= w.goldCost;
   character.value.weapons.push({ ...w });
@@ -165,6 +171,10 @@ function buyArmor(a: Armor) {
 }
 
 function buyShield(s: Shield) {
+  if (isBackpackFull.value) {
+    addLog('🎒 背負い袋が満杯のため購入できません！', 'error');
+    return;
+  }
   if (character.value.gold < s.goldCost) return;
   character.value.gold -= s.goldCost;
   character.value.shields.push({ ...s });
@@ -172,6 +182,10 @@ function buyShield(s: Shield) {
 }
 
 function buyItem(item: Omit<GeneralItem, 'id'>) {
+  if (isBackpackFull.value) {
+    addLog('🎒 背負い袋が満杯のため購入できません！', 'error');
+    return;
+  }
   if (character.value.gold < item.goldCost) return;
   character.value.gold -= item.goldCost;
   character.value.items.push({
@@ -192,6 +206,7 @@ function buyChurchBlessing() {
 
 // Resolve dungeon victory, move to next adventure level-up
 function proceedToNextAdventure() {
+  runScenarioHook(activeScenario.value?.id, 'onAdventureEnd', character, followers);
   restoreStatsAfterAdventure();
   // Clear depth
   dungeonDepth.value = 0;
@@ -307,6 +322,7 @@ function startAdventure() {
   }
   currentScreen.value = 'explore';
   addLog('🧭 さあ、暗い地下迷宮へと歩みを進めましょう！ 生きて宝を持ち帰るために。', 'success');
+  runScenarioHook(activeScenario.value?.id, 'onAdventureStart', character, followers);
 }
 
 const logbookRef = ref<HTMLElement | null>(null);
@@ -545,7 +561,7 @@ watch(() => logs.value.length, async () => {
                   <div style="font-weight: bold; font-size: 0.75rem; color: #705844;">近接/射撃武器:</div>
                   <div v-for="w in townWeapons" :key="w.name" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; border-bottom: 1px dashed #e8e0d4; padding: 3px 0;">
                     <span>{{ w.name }} ({{ w.goldCost }}g)</span>
-                    <button @click="buyWeapon(w)" class="btn-ink btn-mini" :disabled="character.gold < w.goldCost">購入</button>
+                    <button @click="buyWeapon(w)" class="btn-ink btn-mini" :disabled="character.gold < w.goldCost || isBackpackFull">購入</button>
                   </div>
 
                   <!-- Armors -->
@@ -559,14 +575,14 @@ watch(() => logs.value.length, async () => {
                   <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-top: 5px;">防盾:</div>
                   <div v-for="s in townShields" :key="s.name" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; border-bottom: 1px dashed #e8e0d4; padding: 3px 0;">
                     <span>{{ s.name }} ({{ s.goldCost }}g)</span>
-                    <button @click="buyShield(s)" class="btn-ink btn-mini" :disabled="character.gold < s.goldCost">購入</button>
+                    <button @click="buyShield(s)" class="btn-ink btn-mini" :disabled="character.gold < s.goldCost || isBackpackFull">購入</button>
                   </div>
 
                   <!-- Consumables -->
                   <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-top: 5px;">一般道具・消耗品:</div>
                   <div v-for="i in townItems" :key="i.name" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; border-bottom: 1px dashed #e8e0d4; padding: 3px 0;">
                     <span>{{ i.name }} ({{ i.goldCost }}g)</span>
-                    <button @click="buyItem(i)" class="btn-ink btn-mini" :disabled="character.gold < i.goldCost">購入</button>
+                    <button @click="buyItem(i)" class="btn-ink btn-mini" :disabled="character.gold < i.goldCost || isBackpackFull">購入</button>
                   </div>
 
                   <!-- Church Services -->
