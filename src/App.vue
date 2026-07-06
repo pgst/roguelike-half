@@ -181,6 +181,15 @@ function buyItem(item: Omit<GeneralItem, 'id'>) {
   addLog(`街の市場で [${item.name}] を購入しました。(金貨${item.goldCost}枚消費)`, 'success');
 }
 
+function buyChurchBlessing() {
+  if (character.value.gold < 50) return;
+  if (!character.value.statusEffects || character.value.statusEffects.length === 0) return;
+  
+  character.value.gold -= 50;
+  character.value.statusEffects = [];
+  addLog('⛪ 教会で『祝福の魔法』を受け、すべての状態異常が回復しました。(金貨50枚消費)', 'success');
+}
+
 // Resolve dungeon victory, move to next adventure level-up
 function proceedToNextAdventure() {
   restoreStatsAfterAdventure();
@@ -558,6 +567,20 @@ watch(() => logs.value.length, async () => {
                   <div v-for="i in townItems" :key="i.name" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; border-bottom: 1px dashed #e8e0d4; padding: 3px 0;">
                     <span>{{ i.name }} ({{ i.goldCost }}g)</span>
                     <button @click="buyItem(i)" class="btn-ink btn-mini" :disabled="character.gold < i.goldCost">購入</button>
+                  </div>
+
+                  <!-- Church Services -->
+                  <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-top: 5px;">教会サービス:</div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; border-bottom: 1px dashed #e8e0d4; padding: 3px 0;">
+                    <span>⛪ 【祝福】の呪文 (50g)</span>
+                    <button 
+                      @click="buyChurchBlessing" 
+                      class="btn-ink btn-mini" 
+                      :disabled="character.gold < 50 || !character.statusEffects || character.statusEffects.length === 0"
+                      :title="!character.statusEffects || character.statusEffects.length === 0 ? '治療が必要な状態異常はありません' : '金貨50枚で状態異常を治療'"
+                    >
+                      購入
+                    </button>
                   </div>
                 </div>
               </div>

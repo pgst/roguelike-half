@@ -1126,6 +1126,9 @@ function clearDiceTray() {
 }
 
 export function useGameState() {
+  if (typeof window !== 'undefined') {
+    (window as any).character = character;
+  }
   return {
     // State
     currentScreen,

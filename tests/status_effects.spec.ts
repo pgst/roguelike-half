@@ -185,4 +185,47 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
     expect(logsText).toContain('状態異常ペナルティにより判定に -1 の修正');
   });
 
+  test('教会での【祝福】の呪文：状態異常を受けて帰還した主人公が、街の教会で金貨50枚を支払い状態異常を回復できること', async ({ page }) => {
+    await page.goto('/');
+    await disableAnimations(page);
+
+    // 1. シナリオ選択
+    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
+    await page.waitForTimeout(500);
+
+    // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
+    await page.fill('#char-name', 'テスト教会祝福');
+    await page.locator('.archetype-card').nth(3).click({ force: true });
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+
+    // 3. テストのために金貨50枚と「呪い」状態異常をセットする
+    await page.evaluate(() => {
+      if ((window as any).character) {
+        (window as any).character.value.gold = 50;
+        (window as any).character.value.statusEffects = ['curse'];
+      }
+    });
+    await page.waitForTimeout(200);
+
+    // 4. 教会の購入ボタンがあることを確認して有効であることを確認
+    const blessingBtn = page.locator('.shop-column > div > div').filter({ hasText: '【祝福】の呪文' }).locator('button');
+    await expect(blessingBtn).toBeVisible({ timeout: 5000 });
+    await expect(blessingBtn).toBeEnabled();
+
+    // 5. 祝福を購入する
+    await blessingBtn.click({ force: true });
+    await page.waitForTimeout(500);
+
+    // 金貨が0枚になり、状態異常が消え、ログが残ることを確認
+    const postGoldText = await page.locator('.town-market').textContent();
+    expect(postGoldText).toContain('所持金貨: 0 枚');
+
+    const logbook = page.locator('.logbook-entries');
+    await expect(logbook).toContainText('教会で『祝福の魔法』を受け、すべての状態異常が回復しました', { timeout: 5000 });
+
+    // 祝福ボタンが disabled になっていることを確認（状態異常がないため）
+    await expect(blessingBtn).toBeDisabled();
+  });
+
 });
