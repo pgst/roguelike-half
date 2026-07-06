@@ -3,16 +3,31 @@ import type { Character, Follower, Enemy, Weapon, Armor, Shield, GeneralItem, Du
 
 // Load Scenarios
 const scenarioModules = import.meta.glob<{ default: any }>('../data/scenarios/*.json', { eager: true });
+function getStartLevel(recommendedLevel: string): number {
+  const match = recommendedLevel.match(/\d+/);
+  return match ? parseInt(match[0], 10) : 0;
+}
+
 const availableScenarios = computed<Scenario[]>(() => {
-  const list: Scenario[] = [];
+  const list: { scenario: Scenario; path: string }[] = [];
   for (const path in scenarioModules) {
     const mod = scenarioModules[path];
     const data = mod.default || mod;
     if (data && data.id) {
-      list.push(data as Scenario);
+      list.push({ scenario: data as Scenario, path });
     }
   }
-  return list;
+
+  list.sort((a, b) => {
+    const levelA = getStartLevel(a.scenario.recommendedLevel || '');
+    const levelB = getStartLevel(b.scenario.recommendedLevel || '');
+    if (levelA !== levelB) {
+      return levelA - levelB;
+    }
+    return a.path.localeCompare(b.path);
+  });
+
+  return list.map(item => item.scenario);
 });
 
 const activeScenario = ref<Scenario | null>(null);
@@ -173,6 +188,16 @@ const combatState = reactive({
     actionType: 'hostile' | 'bribe' | 'flee' | 'neutral' | 'hospitable' | 'outnumbered_flee' | 'outnumbered_hostile';
   } | null,
   peacefulText: null as string | null,
+  pendingTrapDamage: null as {
+    damage: number;
+    statusEffect?: string;
+    stat: string;
+    target: number;
+    roll: number;
+    total: number;
+    chooseCount?: number;
+    chosenIds?: string[];
+  } | null,
 });
 
 // Chronodemon Scenario State

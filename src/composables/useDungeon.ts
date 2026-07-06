@@ -422,41 +422,362 @@ export function useDungeon() {
       return true;
     } else {
       addLog(`💥 トラップ判定に失敗しました！ (ロール計: ${roll === 1 ? 'ファンブル' : total} < 目標: ${target})`, 'error');
-      let damageTaken = 0;
-      if (damage > 0) {
-        character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - damage);
-        damageTaken = damage;
-        addLog(`主人公は ${damage} 点のダメージを受けました。(現在生命力: ${character.value.lifeCurrent})`, 'damage');
-      }
 
-      let effectApplied = '';
-      if (activeEvent.value && (activeEvent.value as any).statusEffect) {
-        const eff = (activeEvent.value as any).statusEffect;
-        if (!character.value.statusEffects) {
-          character.value.statusEffects = [];
-        }
-        if (!character.value.statusEffects.includes(eff)) {
-          character.value.statusEffects.push(eff);
-          effectApplied = eff;
-          addLog(`主人公は状態異常【${eff}】を受けました！`, 'error');
-        }
-      }
+      const scope = getTrapTargetScope(activeEvent.value);
+      const validFollowers = followers.value.filter(f => f.lifeCurrent > 0 && f.name !== 'ウォー・ドール');
 
-      if (character.value.lifeCurrent <= 0) {
-        currentScreen.value = 'gameover';
+      if (scope === 'all') {
+        if (damage > 0) {
+          character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - damage);
+          addLog(`主人公は ${damage} 点のダメージを受けました。(現在生命力: ${character.value.lifeCurrent})`, 'damage');
+          
+          validFollowers.forEach(f => {
+            f.lifeCurrent = 0;
+            addLog(`💀 従者 ${f.name} は罠のダメージを受け、死亡しました...`, 'error');
+          });
+        }
+
+        if (activeEvent.value && (activeEvent.value as any).statusEffect) {
+          const eff = (activeEvent.value as any).statusEffect;
+          if (!character.value.statusEffects) {
+            character.value.statusEffects = [];
+          }
+          if (!character.value.statusEffects.includes(eff)) {
+            character.value.statusEffects.push(eff);
+            addLog(`主人公は状態異常【${eff}】を受けました！`, 'error');
+          }
+        }
+
+        if (character.value.lifeCurrent <= 0) {
+          currentScreen.value = 'gameover';
+          return false;
+        }
+
+        if (activeEvent.value) {
+          (activeEvent.value as any).isResolved = true;
+          (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
+判定能力: ${stat.toUpperCase()} (目標値: ${target})
+判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
+
+全体トラップが発動し、主人公と生存しているすべての従者がダメージを受けました。`;
+        }
         return false;
-      }
+      } else if (scope === 'random') {
+        const candidates = ['hero', ...validFollowers.map(f => f.id)];
+        const randIndex = Math.floor(Math.random() * candidates.length);
+        const chosenId = candidates[randIndex];
+        
+        let targetName = '主人公';
+        if (chosenId === 'hero') {
+          if (damage > 0) {
+            character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - damage);
+            addLog(`主人公はランダム対象に選ばれ、${damage} 点のダメージを受けました。(現在生命力: ${character.value.lifeCurrent})`, 'damage');
+          }
+          if (activeEvent.value && (activeEvent.value as any).statusEffect) {
+            const eff = (activeEvent.value as any).statusEffect;
+            if (!character.value.statusEffects) {
+              character.value.statusEffects = [];
+            }
+            if (!character.value.statusEffects.includes(eff)) {
+              character.value.statusEffects.push(eff);
+              addLog(`主人公は状態異常【${eff}】を受けました！`, 'error');
+            }
+          }
+          if (character.value.lifeCurrent <= 0) {
+            currentScreen.value = 'gameover';
+            return false;
+          }
+        } else {
+          const follower = validFollowers.find(f => f.id === chosenId);
+          if (follower) {
+            targetName = follower.name;
+            follower.lifeCurrent = 0;
+            addLog(`💀 従者 ${follower.name} がランダム対象に選ばれ、ダメージを受けて死亡しました...`, 'error');
+          }
+        }
 
-      if (activeEvent.value) {
-        (activeEvent.value as any).isResolved = true;
-        (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
+        if (activeEvent.value) {
+          (activeEvent.value as any).isResolved = true;
+          (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
+判定能力: ${stat.toUpperCase()} (目標値: ${target})
+判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
+
+ランダム選択の罠により、${targetName} がダメージを受けました。`;
+        }
+        return false;
+      } else if (scope === 'non_combatants') {
+        const nonCombatants = validFollowers.filter(f => f.isCombatant === false || f.type === 'captive');
+        let chosenId = 'hero';
+        
+        if (nonCombatants.length > 0) {
+          const randIndex = Math.floor(Math.random() * nonCombatants.length);
+          chosenId = nonCombatants[randIndex].id;
+        } else {
+          // Fallback to random 1 from general pool
+          const candidates = ['hero', ...validFollowers.map(f => f.id)];
+          const randIndex = Math.floor(Math.random() * candidates.length);
+          chosenId = candidates[randIndex];
+        }
+
+        let targetName = '主人公';
+        if (chosenId === 'hero') {
+          if (damage > 0) {
+            character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - damage);
+            addLog(`主人公は対象に選ばれ、${damage} 点のダメージを受けました。(現在生命力: ${character.value.lifeCurrent})`, 'damage');
+          }
+          if (activeEvent.value && (activeEvent.value as any).statusEffect) {
+            const eff = (activeEvent.value as any).statusEffect;
+            if (!character.value.statusEffects) {
+              character.value.statusEffects = [];
+            }
+            if (!character.value.statusEffects.includes(eff)) {
+              character.value.statusEffects.push(eff);
+              addLog(`主人公は状態異常【${eff}】を受けました！`, 'error');
+            }
+          }
+          if (character.value.lifeCurrent <= 0) {
+            currentScreen.value = 'gameover';
+            return false;
+          }
+        } else {
+          const follower = validFollowers.find(f => f.id === chosenId);
+          if (follower) {
+            targetName = follower.name;
+            follower.lifeCurrent = 0;
+            if (follower.type === 'captive') {
+              addLog(`💀 捕虜 ${follower.name} が優先対象に選ばれ、身代わりとなって死亡しました。`, 'error');
+            } else {
+              addLog(`💀 従者 ${follower.name} が対象に選ばれ、死亡しました...`, 'error');
+            }
+          }
+        }
+
+        if (activeEvent.value) {
+          (activeEvent.value as any).isResolved = true;
+          (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
+判定能力: ${stat.toUpperCase()} (目標値: ${target})
+判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
+
+非戦闘員優先の罠により、${targetName} がダメージを受けました。`;
+        }
+        return false;
+      } else if (scope === 'choose_1d3') {
+        // Roll 1d3 to determine number of targets
+        const countRoll = Math.floor(Math.random() * 3) + 1;
+        addLog(`🎯 罠の対象者数を決定するため 1d3 をロール: 出目 ${countRoll}`, 'roll');
+        
+        const totalValidTargets = 1 + validFollowers.length; // Hero + valid followers
+        
+        if (totalValidTargets <= countRoll) {
+          // Everyone is affected
+          if (damage > 0) {
+            character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - damage);
+            addLog(`主人公は全員対象となり、${damage} 点のダメージを受けました。(現在生命力: ${character.value.lifeCurrent})`, 'damage');
+            
+            validFollowers.forEach(f => {
+              f.lifeCurrent = 0;
+              addLog(`💀 従者 ${f.name} は全員対象となり、死亡しました...`, 'error');
+            });
+          }
+
+          if (activeEvent.value && (activeEvent.value as any).statusEffect) {
+            const eff = (activeEvent.value as any).statusEffect;
+            if (!character.value.statusEffects) {
+              character.value.statusEffects = [];
+            }
+            if (!character.value.statusEffects.includes(eff)) {
+              character.value.statusEffects.push(eff);
+              addLog(`主人公は状態異常【${eff}】を受けました！`, 'error');
+            }
+          }
+
+          if (character.value.lifeCurrent <= 0) {
+            currentScreen.value = 'gameover';
+            return false;
+          }
+
+          if (activeEvent.value) {
+            (activeEvent.value as any).isResolved = true;
+            (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
+判定能力: ${stat.toUpperCase()} (目標値: ${target})
+判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
+
+対象者数（1d3: ${countRoll}人）がパーティメンバー数以上のための全員が対象となり、ダメージを受けました。`;
+          }
+          return false;
+        } else {
+          // Pause and request user choice for countRoll targets
+          combatState.pendingTrapDamage = {
+            damage,
+            statusEffect: (activeEvent.value as any).statusEffect,
+            stat,
+            target,
+            roll,
+            total,
+            chooseCount: countRoll,
+            chosenIds: []
+          };
+          addLog(`⚠️ 罠が作動しました！ ${countRoll} 人の対象者を順に選択してください。`, 'error');
+          return false;
+        }
+      } else {
+        // Default / 1-person choose
+        if (validFollowers.length > 0) {
+          combatState.pendingTrapDamage = {
+            damage,
+            statusEffect: (activeEvent.value as any).statusEffect,
+            stat,
+            target,
+            roll,
+            total
+          };
+          addLog('⚠️ 罠が作動しました！ダメージを受けるキャラクター（主人公または従者）を選択してください。', 'error');
+          return false;
+        } else {
+          let damageTaken = 0;
+          if (damage > 0) {
+            character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - damage);
+            damageTaken = damage;
+            addLog(`主人公は ${damage} 点のダメージを受けました。(現在生命力: ${character.value.lifeCurrent})`, 'damage');
+          }
+
+          let effectApplied = '';
+          if (activeEvent.value && (activeEvent.value as any).statusEffect) {
+            const eff = (activeEvent.value as any).statusEffect;
+            if (!character.value.statusEffects) {
+              character.value.statusEffects = [];
+            }
+            if (!character.value.statusEffects.includes(eff)) {
+              character.value.statusEffects.push(eff);
+              effectApplied = eff;
+              addLog(`主人公は状態異常【${eff}】を受けました！`, 'error');
+            }
+          }
+
+          if (character.value.lifeCurrent <= 0) {
+            currentScreen.value = 'gameover';
+            return false;
+          }
+
+          if (activeEvent.value) {
+            (activeEvent.value as any).isResolved = true;
+            (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
 判定能力: ${stat.toUpperCase()} (目標値: ${target})
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 罠を発動させてしまい、${damageTaken > 0 ? `生命力に ${damageTaken} 点のダメージを受けました！` : ''}${effectApplied ? `さらに状態異常【${effectApplied}】を受けました！` : ''}${damageTaken === 0 && !effectApplied ? '何も起こりませんでした。' : ''} (残り生命力: ${character.value.lifeCurrent})`;
+          }
+          return false;
+        }
       }
-      return false;
     }
+  }
+
+  // Helper to determine target scope of trap (e.g. from JSON or description keywords)
+  function getTrapTargetScope(event: any): 'random' | 'choose_1d3' | 'all' | 'non_combatants' | 'default' {
+    if (!event) return 'default';
+    if (event.trapTargetScope) {
+      return event.trapTargetScope;
+    }
+    const desc = event.description || '';
+    const title = event.title || '';
+    if (desc.includes('全員') || desc.includes('全員が対象') || desc.includes('全員に')) {
+      return 'all';
+    }
+    if (desc.includes('非戦闘') || desc.includes('戦闘に参加しない従者') || desc.includes('戦闘外の従者')) {
+      return 'non_combatants';
+    }
+    if (desc.includes('1d3人') || desc.includes('1d3名') || title.includes('矢狭間') || desc.includes('矢狭間')) {
+      return 'choose_1d3';
+    }
+    if (desc.includes('ランダム') || desc.includes('ランダムで') || desc.includes('ランダムに1人') || desc.includes('ランダムに１人') || title.includes('投げ槍') || title.includes('油の入った壷') || title.includes('警報')) {
+      return 'random';
+    }
+    return 'default';
+  }
+
+  function resolveTrapDamageTarget(targetId: 'hero' | string) {
+    if (!combatState.pendingTrapDamage || !activeEvent.value) return;
+
+    const pending = combatState.pendingTrapDamage;
+    const { damage, statusEffect, stat, target, roll, total } = pending;
+
+    // Check if it's a multi-choice trap
+    if (pending.chooseCount && pending.chooseCount > 1) {
+      if (!pending.chosenIds) {
+        pending.chosenIds = [];
+      }
+      if (!pending.chosenIds.includes(targetId)) {
+        pending.chosenIds.push(targetId);
+      }
+      
+      // Reduce chooseCount
+      pending.chooseCount--;
+      
+      // Log selection
+      let selectedName = '主人公';
+      if (targetId !== 'hero') {
+        const follower = followers.value.find(f => f.id === targetId);
+        if (follower) selectedName = follower.name;
+      }
+      addLog(`🎯 対象選択: ${selectedName} が対象に選ばれました。 (あと ${pending.chooseCount} 人)`, 'info');
+      
+      // Still need to choose more targets, keep UI open
+      return;
+    }
+
+    // This is the final or only target!
+    let allTargets = [targetId];
+    if (pending.chosenIds) {
+      allTargets = [...pending.chosenIds, targetId];
+    }
+
+    combatState.pendingTrapDamage = null;
+
+    let resolutionNames: string[] = [];
+
+    allTargets.forEach(tid => {
+      if (tid === 'hero') {
+        resolutionNames.push('主人公');
+        if (damage > 0) {
+          character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - damage);
+          addLog(`主人公は罠のダメージを受けました。(現在生命力: ${character.value.lifeCurrent})`, 'damage');
+        }
+        if (statusEffect) {
+          if (!character.value.statusEffects) {
+            character.value.statusEffects = [];
+          }
+          if (!character.value.statusEffects.includes(statusEffect)) {
+            character.value.statusEffects.push(statusEffect);
+            addLog(`主人公は状態異常【${statusEffect}】を受けました！`, 'error');
+          }
+        }
+      } else {
+        const follower = followers.value.find(f => f.id === tid);
+        if (follower) {
+          resolutionNames.push(follower.name);
+          follower.lifeCurrent = 0;
+          if (follower.type === 'captive') {
+            addLog(`💀 捕虜の ${follower.name} を罠の身代わりにし、ダメージを肩代わりさせました。(捕虜は死亡)`, 'error');
+          } else {
+            addLog(`💀 従者 ${follower.name} が罠のダメージを引き受け、身代わりとなって死亡しました...`, 'error');
+          }
+        }
+      }
+    });
+
+    if (character.value.lifeCurrent <= 0) {
+      currentScreen.value = 'gameover';
+      return;
+    }
+
+    // Set trap event as resolved
+    (activeEvent.value as any).isResolved = true;
+    (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
+判定能力: ${stat.toUpperCase()} (目標値: ${target})
+判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${total - roll} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
+
+罠を発動させてしまい、${resolutionNames.join('、')} がダメージを受けました！`;
   }
 
   return {
@@ -466,5 +787,6 @@ export function useDungeon() {
     executePerceptionScout,
     executePerceptionHero,
     startEncounter,
+    resolveTrapDamageTarget,
   };
 }

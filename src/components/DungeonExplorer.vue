@@ -31,7 +31,8 @@ const {
   confirmPerceptionSkip, 
   executePerceptionScout, 
   executePerceptionHero,
-  startEncounter
+  startEncounter,
+  resolveTrapDamageTarget
 } = useDungeon();
 const { resolveLoot } = useCombat();
 
@@ -541,17 +542,55 @@ function resolveSkeletonEvent() {
         <div class="event-actions">
         <!-- Trap Actions -->
         <div v-if="activeEvent.type === 'trap'">
-          <div v-if="activeEvent.trapStat && character.subStatType === activeEvent.trapStat && character.subStatCurrent > 0" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button @click="resolveTrapCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
-              {{ activeEvent.trapStat === 'strength' ? '💪' : activeEvent.trapStat === 'dexterity' ? '🏹' : activeEvent.trapStat === 'magic' ? '🔮' : '✨' }} 副能力値【{{ activeEvent.trapStat === 'strength' ? '筋力点' : activeEvent.trapStat === 'dexterity' ? '器用点' : activeEvent.trapStat === 'magic' ? '魔術点' : activeEvent.trapStat === 'luck' ? '幸運点' : activeEvent.trapStat }}】で挑戦 (判定値: {{ character.subStatCurrent }} / 1点消費)
-            </button>
-            <button @click="resolveTrapCheck(false)" class="btn-ink" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
-              🎲 技量点で挑戦 (判定値: {{ character.skillCurrent }} / 消費なし)
-            </button>
+          <!-- Damage Target Selection Panel -->
+          <div v-if="combatState.pendingTrapDamage" class="trap-damage-target-select" style="margin-top: 15px; border: 1px dashed #8c1c1c; padding: 15px; border-radius: 4px; background: rgba(140, 28, 28, 0.05); text-align: left; width: 100%;">
+            <h4 style="color: #8c1c1c; margin-top: 0; margin-bottom: 10px; font-weight: bold; display: flex; align-items: center; gap: 6px;">
+              ⚠️ ダメージ対象の選択
+            </h4>
+            <p style="font-size: 0.9rem; margin-bottom: 15px; line-height: 1.4; color: var(--ink-dark);">
+              <span v-if="combatState.pendingTrapDamage.chooseCount">
+                罠が発動しました！あと <b>{{ combatState.pendingTrapDamage.chooseCount }}人</b> の対象者を選択してください。
+              </span>
+              <span v-else>
+                罠が発動してしまいました。ダメージ（{{ combatState.pendingTrapDamage.damage }}点）および状態異常を引き受けるキャラクターを選択してください。
+              </span>
+              <br/>
+              <span style="font-size: 0.85rem; opacity: 0.8;">※『ウォー・ドール』は罠の対象になりません。</span>
+            </p>
+            <div class="button-group" style="display: flex; flex-direction: column; gap: 8px;">
+              <button 
+                v-if="!combatState.pendingTrapDamage?.chosenIds?.includes('hero')"
+                @click="resolveTrapDamageTarget('hero')" 
+                class="btn-ink btn-strength" 
+                style="justify-content: center; background: #8c1c1c; color: white; border-color: #8c1c1c;"
+              >
+                👤 主人公が受ける (生命力 -{{ combatState.pendingTrapDamage?.damage }})
+              </button>
+              <button 
+                v-for="follower in followers.filter(f => f.lifeCurrent > 0 && f.name !== 'ウォー・ドール' && !combatState.pendingTrapDamage?.chosenIds?.includes(f.id))" 
+                :key="follower.id"
+                @click="resolveTrapDamageTarget(follower.id)"
+                class="btn-ink btn-primary-ink"
+                style="justify-content: center; background: #e07a5f; border-color: #e07a5f; color: white;"
+              >
+                👥 {{ follower.name }} に身代わりになってもらう (死亡します)
+              </button>
+            </div>
           </div>
-          <button v-else @click="resolveTrapCheck(true)" class="btn-ink" style="width: 100%; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
-            🎲 判定ロールに挑戦する (技量点判定値: {{ character.skillCurrent }} / 目標値: {{ activeEvent.trapTarget }})
-          </button>
+          <!-- Trap Challenge Options -->
+          <template v-else>
+            <div v-if="activeEvent.trapStat && character.subStatType === activeEvent.trapStat && character.subStatCurrent > 0" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button @click="resolveTrapCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
+                {{ activeEvent.trapStat === 'strength' ? '💪' : activeEvent.trapStat === 'dexterity' ? '🏹' : activeEvent.trapStat === 'magic' ? '🔮' : '✨' }} 副能力値【{{ activeEvent.trapStat === 'strength' ? '筋力点' : activeEvent.trapStat === 'dexterity' ? '器用点' : activeEvent.trapStat === 'magic' ? '魔術点' : activeEvent.trapStat === 'luck' ? '幸運点' : activeEvent.trapStat }}】で挑戦 (判定値: {{ character.subStatCurrent }} / 1点消費)
+              </button>
+              <button @click="resolveTrapCheck(false)" class="btn-ink" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
+                🎲 技量点で挑戦 (判定値: {{ character.skillCurrent }} / 消費なし)
+              </button>
+            </div>
+            <button v-else @click="resolveTrapCheck(true)" class="btn-ink" style="width: 100%; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
+              🎲 判定ロールに挑戦する (技量点判定値: {{ character.skillCurrent }} / 目標値: {{ activeEvent.trapTarget }})
+            </button>
+          </template>
         </div>
 
         <!-- Treasure Actions -->

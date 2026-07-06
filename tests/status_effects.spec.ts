@@ -8,7 +8,7 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
     await disableAnimations(page);
 
     // 1. シナリオ選択
-    await page.locator('.scenario-card').first().click({ force: true });
+    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
     await page.waitForTimeout(500);
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
@@ -118,7 +118,7 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
     await disableAnimations(page);
 
     // 1. シナリオ選択
-    await page.locator('.scenario-card').first().click({ force: true });
+    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
     await page.waitForTimeout(500);
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
