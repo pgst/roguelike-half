@@ -39,8 +39,19 @@ const {
   executeDeflect,
   fireHolyArrow,
   resolveChronovalsRoar,
-  resolveCreateWeaponSpell
+  resolveCreateWeaponSpell,
+  castFollowerSpell
 } = useCombat();
+
+const magesWithMagic = computed(() => {
+  return followers.value.filter(f => 
+    f.type === 'mage' && 
+    f.magicCurrent !== undefined && 
+    f.magicCurrent > 0 && 
+    f.lifeCurrent > 0 && 
+    !(f.statusEffects && (f.statusEffects.includes('麻痺') || f.statusEffects.includes('石化')))
+  );
+});
 
 const activeAttacks = computed(() => (combatState as any).activeAttacks || []);
 
@@ -650,6 +661,26 @@ function closeRangedRound() {
               </div>
               <button @click="showSummonSelector = false" class="btn-ink btn-mini btn-secondary" style="margin-top: 5px; align-self: flex-end;">キャンセル</button>
             </div>
+          </div>
+        </div>
+
+        <!-- Follower Wizard Spells -->
+        <div v-if="magesWithMagic.length > 0 && activeAttacks.length === 0 && combatState.pendingHolyArrow === 0" class="follower-magic-phase" style="margin-top: 15px; padding: 15px; border: 1px dashed #705844; border-radius: 6px; background: rgba(112, 88, 68, 0.05); width: 100%;">
+          <h3 class="section-title" style="margin-top: 0; color: #705844; border-bottom: 1px dashed #705844; padding-bottom: 5px; margin-bottom: 10px;">👥 従者魔術師の呪文詠唱</h3>
+          <p style="font-size: 0.85rem; color: var(--ink-light); margin: 0 0 10px 0; font-style: italic; line-height: 1.4;">
+            従者魔術師に指示を出し、魔術点（MP）を消費して覚えている呪文を唱えさせます（各従者1戦闘につき1回限り）。
+          </p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button 
+              v-for="mage in magesWithMagic" 
+              :key="mage.id"
+              @click="castFollowerSpell(mage.id)"
+              class="btn-ink btn-spell"
+              style="font-size: 0.9rem; padding: 6px 12px;"
+              :disabled="isRound0SpellDisabled"
+            >
+              🔮 {{ mage.name }} の呪文 [{{ mage.magicList && mage.magicList[0] ? mage.magicList[0] : '炎球' }}]
+            </button>
           </div>
         </div>
 

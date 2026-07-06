@@ -514,69 +514,7 @@ export function useCombat() {
       if (combatState.enemies.length === 0) break;
       const target = combatState.enemies[0]; // Auto-target first enemy
       
-      // Mage Follower spellcasting (Rule 33)
-      if (follower.type === 'mage' && follower.magicCurrent !== undefined && follower.magicCurrent > 0) {
-        follower.magicCurrent--;
-        const spellName = (follower.magicList && follower.magicList.length > 0) ? follower.magicList[0] : '炎球';
-        addLog(`🔮 従者の魔術師 ${follower.name} が呪文 [${spellName}] を唱えた！ (魔術点消費。残り: ${follower.magicCurrent})`, 'success');
-        
-        const spellRoll = await rollD6(true);
-        let modifier = 0;
-        if (!carriesLantern.value) {
-          modifier -= 2;
-          addLog('暗闇のため従者の魔術判定に -2 のペナルティ！', 'error');
-        }
-        const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0 + modifier;
-        const spellHit = spellRoll === 6 || (spellRoll !== 1 && spellTotal >= target.level);
-        
-        if (spellName === '気絶') {
-          if (!target.tags.includes('weak')) {
-            addLog('【気絶】は「弱いクリーチャー」にしか効果がありません。通常攻撃に切り替えます。', 'error');
-            follower.magicCurrent++; // refund
-            // Fall through to normal attack
-          } else if (hasTag(target, 'undead') || hasTag(target, 'golem') || hasTag(target, 'plant')) {
-            addLog('アンデッドやゴーレム、植物などには【気絶】の効果はありません！', 'error');
-            continue;
-          } else {
-            if (spellHit) {
-              addLog(`💤 成功！ ${target.name} は深い眠りに落ちた。(撃破扱い)`, 'success');
-              combatState.enemies.shift();
-            } else {
-              addLog(`💨 呪文は抵抗された！`, 'error');
-            }
-            continue;
-          }
-        } else if (spellName === '氷槍') {
-          if (spellHit) {
-            target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
-            addLog(`❄️ 直撃！ ${target.name} に極大の2点ダメージ！`, 'success');
-            if (target.lifeCurrent <= 0) {
-              addLog(`💀 ${target.name} は砕け散った！`, 'success');
-              combatState.enemies.shift();
-            }
-          } else {
-            addLog(`💨 氷槍は回避された。`, 'error');
-          }
-          continue;
-        } else if (spellName === '速撃') {
-          combatState.hasQuickStrikeActive = true;
-          addLog('【速撃】の効果により、戦闘の主導権を奪取します！', 'success');
-          continue;
-        } else {
-          // Default: 炎球
-          if (spellHit) {
-            target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
-            addLog(`🎯 炎球が命中！ ${target.name} に1点のダメージ。 (ロール計: ${spellRoll === 6 ? 'クリティカル' : spellTotal})`, 'success');
-            if (target.lifeCurrent <= 0) {
-              addLog(`💀 ${target.name} は崩れ落ちた。`, 'success');
-              combatState.enemies.shift();
-            }
-          } else {
-            addLog(`💨 炎球は ${target.name} に回避された。(ロール計: ${spellRoll === 1 ? 'ファンブル' : spellTotal} < ${target.level})`, 'info');
-          }
-          continue;
-        }
-      }
+
 
       // Archer specific rules (Rule 271)
       if (follower.type === 'archer') {
@@ -1051,6 +989,193 @@ export function useCombat() {
 
     if (queue.length === 0) {
       await handleRoundEndEffects();
+    }
+  }
+
+  // Cast follower spells manually (Rule 33)
+  async function castFollowerSpell(followerId: string, targetEnemyId?: string) {
+    if (combatState.isOver) return;
+    const follower = followers.value.find(f => f.id === followerId);
+    if (!follower || follower.type !== 'mage') return;
+    if (follower.lifeCurrent <= 0) return;
+    if (follower.statusEffects && (follower.statusEffects.includes('麻痺') || follower.statusEffects.includes('石化'))) {
+      addLog(`⚠️ 従者の魔術師 ${follower.name} は動けないため、魔法を唱えられません！`, 'error');
+      return;
+    }
+    if (follower.magicCurrent === undefined || follower.magicCurrent < 1) {
+      addLog(`従者の魔術師 ${follower.name} の魔術点が足りません！`, 'error');
+      return;
+    }
+
+    const spellName = (follower.magicList && follower.magicList.length > 0) ? follower.magicList[0] : '炎球';
+    addLog(`🔮 従者の魔術師 ${follower.name} が呪文 [${spellName}] を唱えた！ (魔術点消費。残り: ${follower.magicCurrent - 1})`, 'success');
+    
+    follower.magicCurrent--;
+
+    const enemies = combatState.enemies;
+
+    if (spellName === '気絶') {
+      const target = targetEnemyId ? enemies.find(e => e.id === targetEnemyId) : enemies[0];
+      if (!target) {
+        follower.magicCurrent++; // refund
+        return;
+      }
+      if (!target.tags.includes('weak')) {
+        addLog('【気絶】は「弱いクリーチャー」にしか効果がありません。', 'error');
+        follower.magicCurrent++; // refund
+        return;
+      }
+      if (hasTag(target, 'undead') || hasTag(target, 'golem') || hasTag(target, 'plant')) {
+        addLog('アンデッドやゴーレム、植物などには【気絶】の効果はありません！', 'error');
+        follower.magicCurrent++; // refund
+        return;
+      }
+
+      const spellRoll = await rollD6(true);
+      let modifier = 0;
+      if (!carriesLantern.value) {
+        modifier -= 2;
+        addLog('暗闇のため従者の魔術判定に -2 のペナルティ！', 'error');
+      }
+      const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0 + modifier;
+      const spellHit = spellRoll === 6 || (spellRoll !== 1 && spellTotal >= target.level);
+
+      if (spellHit) {
+        addLog(`💤 成功！ ${target.name} は深い眠りに落ちた。(撃破扱い)`, 'success');
+        const idx = enemies.findIndex(e => e.id === target.id);
+        enemies.splice(idx, 1);
+        
+        let excess = spellTotal - target.level;
+        while (excess >= 2 && enemies.length > 0) {
+          const nextWeak = enemies.find(e => e.tags.includes('weak') && !hasTag(e, 'undead') && !hasTag(e, 'golem') && !hasTag(e, 'plant'));
+          if (nextWeak) {
+            addLog(`💤 追加で ${nextWeak.name} も眠りに落ちた。`, 'success');
+            const nIdx = enemies.findIndex(e => e.id === nextWeak.id);
+            enemies.splice(nIdx, 1);
+            excess -= 2;
+          } else {
+            break;
+          }
+        }
+      } else {
+        addLog(`💨 呪文は抵抗された！`, 'error');
+      }
+
+    } else if (spellName === '氷槍') {
+      const target = targetEnemyId ? enemies.find(e => e.id === targetEnemyId) : enemies[0];
+      if (!target) {
+        follower.magicCurrent++; // refund
+        return;
+      }
+
+      const spellRoll = await rollD6(true);
+      let modifier = 0;
+      if (!carriesLantern.value) {
+        modifier -= 2;
+        addLog('暗闇のため従者の魔術判定に -2 のペナルティ！', 'error');
+      }
+      const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0 + modifier;
+      const spellHit = spellRoll === 6 || (spellRoll !== 1 && spellTotal >= target.level);
+
+      if (spellHit) {
+        target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
+        addLog(`❄️ 直撃！ ${target.name} に極大の2点ダメージ！`, 'success');
+        if (target.lifeCurrent <= 0) {
+          addLog(`💀 ${target.name} は砕け散った！`, 'success');
+          const idx = enemies.findIndex(e => e.id === target.id);
+          enemies.splice(idx, 1);
+        }
+      } else {
+        addLog(`💨 氷槍は回避された。`, 'error');
+      }
+
+    } else if (spellName === '速撃') {
+      combatState.hasQuickStrikeActive = true;
+      addLog('【速撃】の効果により、戦闘の主導権を奪取します！', 'success');
+
+    } else if (spellName === '炎球') {
+      addLog('火炎球を放ちます！魔術判定ロール...', 'info');
+      // Check narrow space
+      let isNarrow = false;
+      const spaceRoll = await rollD6();
+      if (spaceRoll <= 3) {
+        isNarrow = true;
+        addLog('廊下のような【狭い場所】のため、炎球の威力が高まります！', 'success');
+      } else {
+        addLog('ホールのような【広い場所】のため、炎球の威力が拡散します。', 'info');
+      }
+
+      const spellRoll = await rollD6(true);
+      let modifier = 0;
+      if (!carriesLantern.value) {
+        modifier -= 2;
+        addLog('暗闇のため従者の魔術判定に -2 のペナルティ！', 'error');
+      }
+      const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0 + modifier;
+
+      if (isNarrow) {
+        let hits = 1;
+        if (enemies.length > 0) {
+          const firstEnemy = enemies[0];
+          if (spellRoll === 6) {
+            hits = 99;
+          } else if (spellRoll !== 1 && spellTotal >= firstEnemy.level) {
+            hits = 1 + (spellTotal - firstEnemy.level);
+          } else {
+            hits = 0;
+          }
+        } else {
+          hits = 0;
+        }
+
+        if (hits > 0) {
+          let hitCount = 0;
+          for (let i = 0; i < enemies.length; i++) {
+            if (hitCount >= hits) break;
+            const e = enemies[i];
+            e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
+            addLog(`🔥 ${e.name} に炎球が炸裂！ 1点ダメージを与えた！`, 'success');
+            hitCount++;
+          }
+        } else {
+          addLog('💨 炎球は不発、または回避された！', 'error');
+        }
+      } else {
+        if (enemies.length > 0) {
+          const firstEnemy = enemies[0];
+          let totalHits = 0;
+          if (spellRoll === 6) {
+            totalHits = 99;
+          } else if (spellRoll !== 1 && spellTotal >= firstEnemy.level) {
+            totalHits = Math.floor(spellTotal / firstEnemy.level);
+          }
+          
+          if (totalHits > 0) {
+            let hitCount = 0;
+            for (let i = 0; i < enemies.length; i++) {
+              if (hitCount >= totalHits) break;
+              const e = enemies[i];
+              e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
+              addLog(`🔥 ${e.name} に炎球が直撃！ 1点ダメージ！`, 'success');
+              hitCount++;
+            }
+          } else {
+            addLog(`💨 炎球は ${firstEnemy.name} に回避された。(ロール計: ${spellRoll === 1 ? 'ファンブル' : spellTotal} < ${firstEnemy.level})`, 'info');
+          }
+        }
+      }
+
+      combatState.enemies = enemies.filter(e => {
+        if (e.lifeCurrent <= 0) {
+          addLog(`💀 ${e.name} は力尽きた。`, 'success');
+          return false;
+        }
+        return true;
+      });
+    }
+
+    if (combatState.enemies.length === 0) {
+      endCombat(true);
     }
   }
 
@@ -2136,5 +2261,6 @@ export function useCombat() {
     fireHolyArrow,
     resolveChronovalsRoar,
     resolveCreateWeaponSpell,
+    castFollowerSpell,
   };
 }
