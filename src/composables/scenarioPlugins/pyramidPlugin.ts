@@ -36,6 +36,7 @@ export const pyramidPlugin = {
 
     if (run === 1) {
       (character.value as any).pyramidOriginChosen = false;
+      (character.value as any).pyramidIntroRead = false;
     }
 
     // Reset preparation state for the new run

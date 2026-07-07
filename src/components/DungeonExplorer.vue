@@ -1158,17 +1158,29 @@ function resolveSkeletonEvent() {
     <div v-else class="exploration-deck">
       <!-- 1周目の出自選択 -->
       <template v-if="activeScenario?.id === 'pyramid_of_chronodemon' && pyramidRunCount === 1 && !(character as any).pyramidOriginChosen">
-        <div class="adventure-text" style="margin-bottom: 15px;">
-          <p>📜 ピラミッドの探索を開始するにあたり、君の所属（出自）を選択してください。</p>
-        </div>
-        <div class="custom-choices-panel" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
-          <button @click="choosePyramidOrigin('polomeia')" class="btn-ink btn-large" style="justify-content: center;">
-            👑 ポロメイア王国の若者として開始 (ブローチ獲得)
+        <!-- 共通プロローグをまず読ませる -->
+        <template v-if="!(character as any).pyramidIntroRead">
+          <div class="adventure-text" style="margin-bottom: 15px; font-size: 0.95rem; line-height: 1.6; max-height: 300px; overflow-y: auto; padding: 10px; border: 1px dashed var(--ink-dark); border-radius: 4px; background: #faf6f0; text-align: left;">
+            <p style="white-space: pre-wrap; font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0;">{{ (activeScenario as any).prologues?.["1"]?.common?.text }}</p>
+          </div>
+          <button @click="(character as any).pyramidIntroRead = true" class="btn-ink btn-large" style="justify-content: center; width: 100%;">
+            📜 背景を確認し、自分の所属（出自）の選択へ進む
           </button>
-          <button @click="choosePyramidOrigin('almaciuda')" class="btn-ink btn-large" style="justify-content: center;">
-            🦂 アルマシウダ帝国の大人として開始
-          </button>
-        </div>
+        </template>
+        <!-- その後、出自を選択させる -->
+        <template v-else>
+          <div class="adventure-text" style="margin-bottom: 15px;">
+            <p>📜 君のキャラクターの資質（年齢や出自）に見合った〈冒険の始まり〉を選んでください。</p>
+          </div>
+          <div class="custom-choices-panel" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            <button @click="choosePyramidOrigin('polomeia')" class="btn-ink btn-large" style="justify-content: center;">
+              👑 ポロメイア王国の若者として開始 (ブローチ獲得)
+            </button>
+            <button @click="choosePyramidOrigin('almaciuda')" class="btn-ink btn-large" style="justify-content: center;">
+              🦂 アルマシウダ帝国の大人として開始
+            </button>
+          </div>
+        </template>
       </template>
 
       <!-- 各周回の準備フェーズ (プロローグ読了・アイテム配布) -->

@@ -121,6 +121,7 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
       const prepBtn = page.locator('button:has-text("状況を確認して支給品を受け取る")');
       const finishSliderBtn = page.locator('button:has-text("取引を終えて探索を開始する")');
       const sliderForgeBtn = page.locator('.slider-shop-panel button:has-text("加工する")');
+      const viewOriginChoicesBtn = page.locator('button:has-text("背景を確認し、自分の所属（出自）の選択へ進む")');
 
       // Custom Choices button
       const customChoiceBtn = page.locator('.custom-choices-panel button.btn-ink:not([disabled])');
@@ -139,6 +140,8 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
 
       if (await proceedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(proceedBtn)) {
         if (await safeClick(proceedBtn, 'Proceed to next room')) actionCount++;
+      } else if (await viewOriginChoicesBtn.isVisible({ timeout: 0 }) && await isElementEnabled(viewOriginChoicesBtn)) {
+        if (await safeClick(viewOriginChoicesBtn, 'View origin choices after introduction')) actionCount++;
       } else if (await prepBtn.isVisible({ timeout: 0 }) && await isElementEnabled(prepBtn)) {
         if (await safeClick(prepBtn, 'Read prologue and receive rewards')) actionCount++;
       } else if (await sliderForgeBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(sliderForgeBtn.first())) {
