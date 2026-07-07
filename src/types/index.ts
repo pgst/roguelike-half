@@ -96,7 +96,7 @@ export interface Enemy {
   lifeMax: number;
   lifeCurrent: number;
   attackCount: number;
-  tags: ('undead' | 'golem' | 'weak' | 'strong' | 'plant' | 'weapon' | 'structure')[];
+  tags: ('undead' | 'golem' | 'weak' | 'strong' | 'plant' | 'weapon' | 'structure' | 'demon')[];
   special?: string;
   count: number; // for groups of weak enemies
   isRanged?: boolean; // 【追加】 飛び道具（遠距離攻撃）を行うクリーチャーかの判定フラグ

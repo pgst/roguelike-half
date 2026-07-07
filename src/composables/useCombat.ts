@@ -2136,7 +2136,7 @@ export function useCombat() {
         (combatState as any).isAnotherEnding = false;
         currentScreen.value = 'levelup';
 
-        const epilogue = activeScenario.value?.epilogues?.["3"]?.another;
+        const epilogue = (activeScenario.value as any)?.epilogues?.["3"]?.another;
         if (epilogue) {
           const paragraphs = epilogue.text.split('\n');
           paragraphs.forEach((p: string) => {
@@ -2148,7 +2148,7 @@ export function useCombat() {
         addLog('🌀 悪魔を封印できなかったため、世界線がリセットされ、1回目の冒険から再挑戦となります...', 'error');
         return;
       } else {
-        const epilogue = activeScenario.value?.epilogues?.["3"]?.success;
+        const epilogue = (activeScenario.value as any)?.epilogues?.["3"]?.success;
         if (epilogue) {
           const paragraphs = epilogue.text.split('\n');
           paragraphs.forEach((p: string) => {
