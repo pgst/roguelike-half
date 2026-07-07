@@ -117,6 +117,11 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
       const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
       const exploreBtn = page.locator('button:has-text("d66を振って次の部屋を探索する")');
 
+      // 準備フェーズ・スライダー商会用ボタン
+      const prepBtn = page.locator('button:has-text("状況を確認して支給品を受け取る")');
+      const finishSliderBtn = page.locator('button:has-text("取引を終えて探索を開始する")');
+      const sliderForgeBtn = page.locator('.slider-shop-panel button:has-text("加工する")');
+
       // Custom Choices button
       const customChoiceBtn = page.locator('.custom-choices-panel button.btn-ink:not([disabled])');
 
@@ -134,6 +139,12 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
 
       if (await proceedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(proceedBtn)) {
         if (await safeClick(proceedBtn, 'Proceed to next room')) actionCount++;
+      } else if (await prepBtn.isVisible({ timeout: 0 }) && await isElementEnabled(prepBtn)) {
+        if (await safeClick(prepBtn, 'Read prologue and receive rewards')) actionCount++;
+      } else if (await sliderForgeBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(sliderForgeBtn.first())) {
+        if (await safeClick(sliderForgeBtn.first(), 'Forge equipment at Slider shop')) actionCount++;
+      } else if (await finishSliderBtn.isVisible({ timeout: 0 }) && await isElementEnabled(finishSliderBtn)) {
+        if (await safeClick(finishSliderBtn, 'Finish Slider shop and start exploration')) actionCount++;
       } else if (await customChoiceBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(customChoiceBtn.first())) {
         if (await safeClick(customChoiceBtn.first(), 'Click scenario plugin custom choice')) actionCount++;
       } else if (await contactBtn.isVisible({ timeout: 0 }) && await isElementEnabled(contactBtn)) {

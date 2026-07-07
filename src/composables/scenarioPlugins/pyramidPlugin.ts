@@ -20,28 +20,27 @@ export const pyramidPlugin = {
     // Reset food to 2 at the start of each adventure run (cannot carry over, max 2)
     character.value.food = 2;
 
-    // 1. Check if run count is defined
     const run = (character.value as any).pyramidRunCount || 1;
     
     // Clear previous scenario items to prevent duplicates
     character.value.items = character.value.items.filter(
-      i => i.id !== 'golden_brooch' && i.id !== 'sealing_pot' && i.id !== 'cactus_earrings'
+      i => i.id !== 'golden_brooch' && i.id !== 'sealing_pot' && i.id !== 'cactus_earrings' &&
+           i.id !== 'angels_helmet' && i.id !== 'angels_amulet' && i.id !== 'demon_slayer_sword'
+    );
+    character.value.weapons = character.value.weapons.filter(
+      w => w.name !== '悪魔殺しの剣' && w.name !== 'シルバーダガー'
+    );
+    character.value.shields = character.value.shields.filter(
+      s => s.name !== '大地の大盾'
     );
 
     if (run === 1) {
       (character.value as any).pyramidOriginChosen = false;
-    } else if (run === 3) {
-      // Third run gives the Sealing Pot automatically
-      character.value.items.push({
-        id: 'sealing_pot',
-        name: '封印の壺',
-        type: 'quest',
-        goldCost: 0,
-        description: '【シナリオ限定】刻の悪魔クロノヴァルスを封印するための古代の壺。',
-        value: 0
-      } as any);
-      addLogFn('🏺 司祭たちから、クロノヴァルスを封じるための『封印の壺』を受け取りました！', 'success');
     }
+
+    // Reset preparation state for the new run
+    (character.value as any).pyramidPrepRun = 0;
+    (character.value as any).pyramidSliderShopDone = false;
   },
 
   onCombatStart(combatState: any, _character: Ref<Character>, followers: Ref<Follower[]>) {

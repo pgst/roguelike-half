@@ -18,7 +18,8 @@ export function useCombat() {
     playerActiveStatusEffectRules,
     pyramidRunCount,
     restorePyramidBossSnapshot,
-    castCreateWeaponSpell
+    castCreateWeaponSpell,
+    activeScenario
   } = useGameState();
 
   // Helper: check if enemy group is Undead, Golem, etc.
@@ -385,6 +386,16 @@ export function useCombat() {
       addLog('🤢 ギ酸の唾による視界不良ペナルティ -1！', 'error');
     }
 
+    // Custom Scenario Weapons modifier
+    if (character.value.equippedWeapon?.name === '悪魔殺しの剣' && enemy.tags.includes('demon')) {
+      modifier += 1;
+      addLog('⚔️ 悪魔殺しの剣の特効ボーナス：攻撃ロール +1！', 'success');
+    }
+    if (character.value.equippedWeapon?.name === 'シルバーダガー' && (enemy.tags.includes('demon') || enemy.tags.includes('undead'))) {
+      modifier += 1;
+      addLog('⚔️ シルバーダガーの特効ボーナス：攻撃ロール +1！', 'success');
+    }
+
     // Lantern penalty
     if (!carriesLantern.value) {
       modifier -= 2;
@@ -456,8 +467,62 @@ export function useCombat() {
     }
 
     if (hit) {
-      enemy.lifeCurrent = Math.max(0, enemy.lifeCurrent - 1);
-      addLog(`🎯 命中！ ${enemy.name} に1点のダメージを与えた！ (ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${enemy.level})`, 'success');
+      let damage = 1;
+
+      // Custom Scenario Weapons damage bonus
+      if (character.value.equippedWeapon?.name === '悪魔殺しの剣' && enemy.tags.includes('demon')) {
+        damage += 1;
+        addLog('⚔️ 悪魔殺しの剣の特効ボーナス：ダメージ +1！', 'success');
+      }
+      if (character.value.equippedWeapon?.name === 'シルバーダガー' && (enemy.tags.includes('demon') || enemy.tags.includes('undead'))) {
+        damage += 1;
+        addLog('⚔️ シルバーダガーの特効ボーナス：ダメージ +1！', 'success');
+      }
+
+      // Ranged combat special arrows damage bonus and consumption
+      if (combatState.round === 0 && character.value.equippedWeapon?.type === 'ranged') {
+        const silverArrow = character.value.items.find(i => i.name === '白銀の矢');
+        const lavaArrow = character.value.items.find(i => i.name === '溶岩の矢');
+
+        const consumeArrowLocal = (arrowItem: any) => {
+          if (arrowItem.charges !== undefined && arrowItem.charges > 0) {
+            arrowItem.charges--;
+            if (arrowItem.charges <= 0) {
+              character.value.items = character.value.items.filter(i => i.id !== arrowItem.id);
+              addLog(`🏹 『${arrowItem.name}』を使い果たしました。`, 'info');
+            } else {
+              addLog(`🏹 『${arrowItem.name}』を1本消費しました。(残り: ${arrowItem.charges}本)`, 'info');
+            }
+          } else {
+            character.value.items = character.value.items.filter(i => i.id !== arrowItem.id);
+            addLog(`🏹 『${arrowItem.name}』を消費しました。`, 'info');
+          }
+        };
+
+        if (enemy.tags.includes('demon') || enemy.tags.includes('undead')) {
+          if (silverArrow) {
+            consumeArrowLocal(silverArrow);
+            damage += 1;
+            addLog('🏹 白銀の矢を放ち、悪魔/アンデッドの肉体を浄化した！ (追加ダメージ +1)', 'success');
+          } else if (lavaArrow) {
+            consumeArrowLocal(lavaArrow);
+            damage += 1;
+            addLog('🏹 溶岩の矢を放ち、熱風が敵を包み込んだ！ (追加ダメージ +1)', 'success');
+          }
+        } else {
+          if (lavaArrow) {
+            consumeArrowLocal(lavaArrow);
+            damage += 1;
+            addLog('🏹 溶岩の矢を放ち、熱風が敵を包み込んだ！ (追加ダメージ +1)', 'success');
+          } else if (silverArrow) {
+            consumeArrowLocal(silverArrow);
+            addLog('🏹 白銀の矢を放った。(通常ダメージ)', 'info');
+          }
+        }
+      }
+
+      enemy.lifeCurrent = Math.max(0, enemy.lifeCurrent - damage);
+      addLog(`🎯 命中！ ${enemy.name} に ${damage} 点のダメージを与えた！ (ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${enemy.level})`, 'success');
       
       // Check if enemy died (Move before critical double attack)
       if (enemy.lifeCurrent <= 0) {
@@ -2014,17 +2079,24 @@ export function useCombat() {
   // Confirm combat and move back or forward in the dungeon
   function confirmCombatResult() {
     if (activeEvent.value?.d66Code === 'Final2' && combatState.resultType === 'victory') {
-      const isFactionA = character.value.subStatType === 'magic' || character.value.subStatType === 'luck';
+      const scenarioData = activeScenario.value;
+      const origin = (character.value as any).pyramidOrigin || 'polomeia';
+      const epilogue = (scenarioData as any)?.epilogues?.["2"]?.[origin];
+
       let goldReward = 30;
-      if (!isFactionA) {
-        const d1 = Math.floor(Math.random() * 6) + 1;
-        const d2 = Math.floor(Math.random() * 6) + 1;
-        const d3 = Math.floor(Math.random() * 6) + 1;
-        goldReward = 20 + d1 + d2 + d3;
-        addLog(`🎲 金貨ロール (3d6: ${d1}+${d2}+${d3})`, 'roll');
+      if (epilogue && epilogue.goldBase && epilogue.goldDiceCount) {
+        goldReward = epilogue.goldBase;
+        const rolls = [];
+        for (let i = 0; i < epilogue.goldDiceCount; i++) {
+          const d = Math.floor(Math.random() * 6) + 1;
+          rolls.push(d);
+          goldReward += d;
+        }
+        addLog(`🎲 金貨ロール (3d6: ${rolls.join('+')})`, 'roll');
       }
+
       character.value.gold += goldReward;
-      character.value.exp += 1;
+      character.value.exp += epilogue?.exp || 1;
       character.value.items.push({
         name: 'プラチナコイン',
         type: 'gem_large',
@@ -2032,6 +2104,15 @@ export function useCombat() {
         description: '異端者シーリーンや悪魔と取引するためのプラチナの硬貨。価値はないが極めて貴重。',
         value: 0
       } as any);
+
+      if (epilogue) {
+        const paragraphs = epilogue.text.split('\n');
+        paragraphs.forEach((p: string) => {
+          if (p.trim()) {
+            addLog(p.trim(), 'info');
+          }
+        });
+      }
 
       pyramidRunCount.value = 3;
       dungeonDepth.value = 0;
@@ -2054,7 +2135,36 @@ export function useCombat() {
         combatState.resultType = null;
         (combatState as any).isAnotherEnding = false;
         currentScreen.value = 'levelup';
+
+        const epilogue = activeScenario.value?.epilogues?.["3"]?.another;
+        if (epilogue) {
+          const paragraphs = epilogue.text.split('\n');
+          paragraphs.forEach((p: string) => {
+            if (p.trim()) {
+              addLog(p.trim(), 'error');
+            }
+          });
+        }
         addLog('🌀 悪魔を封印できなかったため、世界線がリセットされ、1回目の冒険から再挑戦となります...', 'error');
+        return;
+      } else {
+        const epilogue = activeScenario.value?.epilogues?.["3"]?.success;
+        if (epilogue) {
+          const paragraphs = epilogue.text.split('\n');
+          paragraphs.forEach((p: string) => {
+            if (p.trim()) {
+              addLog(p.trim(), 'success');
+            }
+          });
+        }
+        character.value.exp += epilogue?.exp || 2;
+
+        clearDiceTray();
+        activeEvent.value = null;
+        combatState.active = false;
+        combatState.isOver = false;
+        combatState.resultType = null;
+        currentScreen.value = 'success';
         return;
       }
     }

@@ -46,8 +46,27 @@ const showMerchant = ref(false);
 // Pyramid of Chronodemon Scenario Custom State & Logic
 const final1Step = ref<number>(1);
 
+function addStoryLogs(text: string) {
+  const paragraphs = text.split('\n');
+  paragraphs.forEach(p => {
+    if (p.trim()) {
+      addLog(p.trim(), 'info');
+    }
+  });
+}
+
 function choosePyramidOrigin(origin: 'polomeia' | 'almaciuda') {
   (character.value as any).pyramidOriginChosen = true;
+  (character.value as any).pyramidOrigin = origin;
+
+  const scenarioData = activeScenario.value;
+  if (scenarioData && (scenarioData as any).prologues) {
+    const prologue = (scenarioData as any).prologues["1"]?.[origin];
+    if (prologue) {
+      addStoryLogs(prologue.text);
+    }
+  }
+
   if (origin === 'polomeia') {
     character.value.items.push({
       id: 'golden_brooch',
@@ -58,10 +77,107 @@ function choosePyramidOrigin(origin: 'polomeia' | 'almaciuda') {
       value: 0,
       charges: 2
     } as any);
-    addLog('👑 王からお守りとして『黄金虫のブローチ』を授かりました！ (背負い袋に追加)', 'success');
-  } else {
-    addLog('🦂 アルマシウダ帝国の大人として探索に向かいます。', 'info');
   }
+
+  // Mark run 1 prep completed
+  (character.value as any).pyramidPrepRun = 1;
+  (character.value as any).pyramidSliderShopDone = true;
+}
+
+function startPyramidPrep() {
+  const run = pyramidRunCount.value;
+  const origin = (character.value as any).pyramidOrigin || 'polomeia';
+  const scenarioData = activeScenario.value;
+  if (!scenarioData || !(scenarioData as any).prologues) return;
+
+  let storyText = '';
+  if (run === 1) {
+    storyText = (scenarioData as any).prologues["1"]?.[origin]?.text || '';
+  } else if (run === 2) {
+    storyText = (scenarioData as any).prologues["2"]?.[origin]?.text || '';
+  } else if (run === 3) {
+    storyText = (scenarioData as any).prologues["3"]?.common?.text || '';
+  }
+
+  if (storyText) {
+    addStoryLogs(storyText);
+  }
+
+  // Items distribution for Run 3
+  if (run === 3) {
+    const rewardKey = origin === 'polomeia' ? 'rewardItemsPolomeia' : 'rewardItemsAlmaciuda';
+    const rewards = (scenarioData as any).prologues["3"]?.common?.[rewardKey];
+    if (rewards) {
+      rewards.forEach((r: any) => {
+        if (r.type === 'one-handed') {
+          if (!character.value.weapons.some(w => w.name === r.name)) {
+            character.value.weapons.push({ ...r });
+            addLog(`⚔️ 支給品 『${r.name}』 を受け取りました！`, 'success');
+          }
+        } else {
+          if (!character.value.items.some(i => i.id === r.id)) {
+            character.value.items.push({ ...r });
+            addLog(`🎒 支給品 『${r.name}』 を受け取りました！`, 'success');
+          }
+        }
+      });
+    }
+  }
+
+  (character.value as any).pyramidPrepRun = run;
+
+  if (run === 3) {
+    (character.value as any).pyramidSliderShopDone = false;
+  } else {
+    (character.value as any).pyramidSliderShopDone = true;
+  }
+}
+
+const sliderRecipes = computed(() => {
+  if (activeScenario.value?.id === 'pyramid_of_chronodemon') {
+    return (activeScenario.value as any).sliderShop?.recipes || [];
+  }
+  return [];
+});
+
+function hasMaterial(itemName: string): boolean {
+  return character.value.items.some(i => i.name === itemName);
+}
+
+function canForge(recipe: any): boolean {
+  if (!hasMaterial(recipe.requiredItem)) return false;
+  if (character.value.gold < recipe.goldCost) return false;
+  return true;
+}
+
+function forgeItem(recipe: any) {
+  if (!canForge(recipe)) return;
+
+  character.value.gold -= recipe.goldCost;
+
+  const matIdx = character.value.items.findIndex(i => i.name === recipe.requiredItem);
+  if (matIdx !== -1) {
+    character.value.items.splice(matIdx, 1);
+  }
+
+  const res = recipe.result;
+  if (recipe.type === 'weapon') {
+    character.value.weapons.push({ ...res });
+  } else if (recipe.type === 'shield') {
+    character.value.shields.push({ ...res });
+  } else {
+    character.value.items.push({
+      id: Math.random().toString(36).substring(2, 9),
+      ...res,
+      charges: recipe.type === 'arrow' ? 1 : undefined
+    });
+  }
+  addLog(`🔨 『${recipe.requiredItem}』を加工して『${res.name}』を製作しました！ (金貨 ${recipe.goldCost} 枚消費)`, 'success');
+}
+
+function finishSliderShop() {
+  (character.value as any).pyramidSliderShopDone = true;
+  addLog('🚪 スライダー商会での準備を終え、ピラミッドの探索を開始します！', 'success');
 }
 
 function completePyramidRun() {
@@ -102,14 +218,24 @@ async function rollFinal1Trap() {
   if (step < 3) {
     final1Step.value++;
   } else {
-    const d1 = Math.floor(Math.random() * 6) + 1;
-    const d2 = Math.floor(Math.random() * 6) + 1;
-    const d3 = Math.floor(Math.random() * 6) + 1;
-    const goldReward = 10 + d1 + d2 + d3;
-    addLog(`🎲 金貨ロール (3d6: ${d1}+${d2}+${d3})`, 'roll');
-    
+    const scenarioData = activeScenario.value;
+    const origin = (character.value as any).pyramidOrigin || 'polomeia';
+    const epilogue = (scenarioData as any)?.epilogues?.["1"]?.[origin];
+
+    let goldReward = 20;
+    if (epilogue && epilogue.goldBase && epilogue.goldDiceCount) {
+      goldReward = epilogue.goldBase;
+      const rolls = [];
+      for (let i = 0; i < epilogue.goldDiceCount; i++) {
+        const d = Math.floor(Math.random() * 6) + 1;
+        rolls.push(d);
+        goldReward += d;
+      }
+      addLog(`🎲 金貨ロール (3d6: ${rolls.join('+')})`, 'roll');
+    }
+
     character.value.gold += goldReward;
-    character.value.exp += 1;
+    character.value.exp += epilogue?.exp || 1;
     character.value.items.push({
       name: 'プラチナコイン',
       type: 'gem_large',
@@ -117,8 +243,12 @@ async function rollFinal1Trap() {
       description: '異端者シーリーンや悪魔と取引するためのプラチナの硬貨。価値はないが極めて貴重。',
       value: 0
     } as any);
-    
-    const rText = `🎉 無事に崩落する床を渡りきりました！\n地面に落ちていた皮袋から、金貨 ${goldReward} 枚、1 Exp、そして謎のプラチナコインを獲得しました！`;
+
+    if (epilogue) {
+      addStoryLogs(epilogue.text);
+    }
+
+    const rText = `🎉 無事に崩落する床を渡りきりました！\n金貨 ${goldReward} 枚、1 Exp、そしてプラチナコインを獲得し、次の冒険の準備へ向かいます。`;
     (activeEvent.value as any).isResolved = true;
     (activeEvent.value as any).resolutionText = rText;
     addLog(rText, 'success');
@@ -1026,6 +1156,7 @@ function resolveSkeletonEvent() {
 
     <!-- Normal exploration deck -->
     <div v-else class="exploration-deck">
+      <!-- 1周目の出自選択 -->
       <template v-if="activeScenario?.id === 'pyramid_of_chronodemon' && pyramidRunCount === 1 && !(character as any).pyramidOriginChosen">
         <div class="adventure-text" style="margin-bottom: 15px;">
           <p>📜 ピラミッドの探索を開始するにあたり、君の所属（出自）を選択してください。</p>
@@ -1039,6 +1170,55 @@ function resolveSkeletonEvent() {
           </button>
         </div>
       </template>
+
+      <!-- 各周回の準備フェーズ (プロローグ読了・アイテム配布) -->
+      <template v-else-if="activeScenario?.id === 'pyramid_of_chronodemon' && (character as any).pyramidPrepRun !== pyramidRunCount">
+        <div class="adventure-text" style="margin-bottom: 15px;">
+          <h3 style="font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0 0 10px 0;">🧭 冒険のはじまり ({{ pyramidRunCount }}回目 / 3)</h3>
+          <p>ピラミッドへ入る前に、現在の状況を確認し、支給品を受け取りましょう。</p>
+        </div>
+        
+        <button @click="startPyramidPrep" class="btn-ink btn-large btn-explore" style="justify-content: center; width: 100%;">
+          📜 状況を確認して支給品を受け取る
+        </button>
+      </template>
+
+      <!-- 3周目のスライダー商会 (準備フェーズ中かつ未完了の場合) -->
+      <template v-else-if="activeScenario?.id === 'pyramid_of_chronodemon' && pyramidRunCount === 3 && !(character as any).pyramidSliderShopDone">
+        <div class="slider-shop-panel" style="width: 100%; border: 2px solid var(--ink-dark); padding: 20px; border-radius: 6px; background: #fbf8f3; text-align: left;">
+          <h3 style="font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0 0 10px 0; text-align: center;">🔨 スライダー商会</h3>
+          <p style="font-size: 0.95rem; line-height: 1.6; color: var(--ink-light); margin-bottom: 15px;">
+            ビウレスの一流鍛冶屋スライダー親方に金貨を支払い、所持している貴重な素材を強力な武具へ加工してもらうことができます。(3周目の探索開始前のみ利用可能)
+          </p>
+
+          <!-- レシピ一覧 -->
+          <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+            <div v-for="recipe in sliderRecipes" :key="recipe.id" class="recipe-card" style="border: 1px dashed rgba(92, 75, 61, 0.4); padding: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; background: white;">
+              <div>
+                <span style="font-weight: bold; font-size: 0.95rem; color: var(--ink-dark);">🛠️ {{ recipe.name }}</span><br/>
+                <small style="color: var(--ink-light);">
+                  必要: {{ recipe.requiredItem }} ({{ hasMaterial(recipe.requiredItem) ? '所持' : '未所持' }}) & 金貨 {{ recipe.goldCost }} 枚
+                </small>
+              </div>
+              <button 
+                @click="forgeItem(recipe)" 
+                class="btn-ink btn-mini" 
+                :disabled="!canForge(recipe)"
+              >
+                加工する
+              </button>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button @click="finishSliderShop" class="btn-ink btn-large btn-primary-ink" style="flex: 1; justify-content: center;">
+              🚪 取引を終えて探索を開始する
+            </button>
+          </div>
+        </div>
+      </template>
+
+      <!-- 通常の探索開始ダイスボタン -->
       <template v-else>
         <div class="adventure-text">
           <p>d66ダイスを振ってその「できごと」を確認してください。</p>
