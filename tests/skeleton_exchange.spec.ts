@@ -39,8 +39,15 @@ test.describe('砂掃きの骸骨 (Sand Cleaning Skeleton) 取引＆アドバイ
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // 起源の選択（アルマシウダ帝国を選択して開始。ブローチを持たないので察知判定が発生せず、オリジナルテストと同様の挙動になる）
+    // まず背景説明を確認するボタンをクリックする
+    const introBtn = page.locator('button:has-text("背景を確認し、自分の所属（出自）の選択へ進む")');
+    if (await introBtn.isVisible({ timeout: 1500 })) {
+      await introBtn.click({ force: true });
+      await page.waitForTimeout(500);
+    }
+
     const customChoiceBtn = page.locator('.custom-choices-panel button.btn-ink:not([disabled])');
-    if (await customChoiceBtn.nth(1).isVisible({ timeout: 1000 })) {
+    if (await customChoiceBtn.nth(1).isVisible({ timeout: 1500 })) {
       await customChoiceBtn.nth(1).click({ force: true });
       await page.waitForTimeout(500);
     }
