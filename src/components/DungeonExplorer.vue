@@ -503,6 +503,7 @@ async function resolveJillMega(help: boolean) {
 
 // Alan Event 25 Option
 async function rollAlanReaction() {
+  if (!activeEvent.value) return;
   clearDiceTray();
   addLog('🎲 アランの反応チェックを行います...', 'info');
   const roll = await rollD6(true);
@@ -520,7 +521,7 @@ async function rollAlanReaction() {
     activeEvent.value.resolutionText = 'アランと友好的に交渉し、無事にアダマンタイトを譲り受けました。';
   } else if (roll <= 4) { // Neutral
     addLog(`🎲 反応チェック: ${roll} 【中立】 - アラン「これは私が持ち帰った方が有効に使える。あきらめろ」`, 'error');
-    (activeEvent.value as any).alanChoiceState = 'neutral';
+    alanChoiceState.value = 'neutral';
   } else { // Hostile
     addLog(`🎲 反応チェック: ${roll} 【敵対的】 - アランは武器を構え、襲いかかってきました！`, 'error');
     startAlanFight(false);
@@ -568,7 +569,7 @@ async function rollPaintingLuck() {
   if (total >= 4) {
     addLog(`🎲 幸運ロール成功: ${roll} + 修正 = ${total} (目標値: 4)`, 'success');
     addLog('✨ 僧侶の召喚の儀式にいち早く気づきました！ 奇襲の遠距離攻撃を行えます！', 'success');
-    (activeEvent.value as any).paintingState = 'ranged_chance';
+    paintingState.value = 'ranged_chance';
   } else {
     addLog(`🎲 幸運ロール失敗: ${roll} + 修正 = ${total} (目標値: 4)`, 'error');
     addLog('👿 企みに気づくのが遅れ、絵から下級悪魔が出現しました！', 'error');
@@ -610,8 +611,7 @@ function startPaintingFight() {
       lifeCurrent: 2,
       attackCount: 1,
       tags: ["demon", "weak"],
-      count: 1,
-      weaponAttribute: "fire"
+      count: 1
     });
   }
   activeEvent.value.type = 'encounter';
@@ -626,7 +626,7 @@ async function rollRightArmReaction() {
   const roll = await rollD6(true);
   if (roll <= 3) {
     addLog(`🎲 反応判定: ${roll} 【無視】 - 右腕はあなたに気づいていません。無視して立ち去ることができます。`, 'success');
-    (activeEvent.value as any).rightArmState = 'ignore_choice';
+    rightArmState.value = 'ignore_choice';
   } else {
     addLog(`🎲 反応判定: ${roll} 【死ぬまで戦う】 - 右腕が動き出し襲いかかってきました！`, 'error');
     startRightArmFight();
@@ -683,7 +683,7 @@ async function rollLeftArmReaction() {
   const roll = await rollD6(true);
   if (roll <= 3) {
     addLog(`🎲 反応判定: ${roll} 【無視】 - 左腕はあなたに気づいていません。無視して立ち去ることができます。`, 'success');
-    (activeEvent.value as any).leftArmState = 'ignore_choice';
+    leftArmState.value = 'ignore_choice';
   } else {
     addLog(`🎲 反応判定: ${roll} 【死ぬまで戦う】 - 左腕が動き出し襲いかかってきました！`, 'error');
     startLeftArmFight();
@@ -936,6 +936,11 @@ function startGoblinFight() {
 }
 
 // --- Custom Skeleton Encounter (33) Logic ---
+const alanChoiceState = ref<'neutral' | null>(null);
+const paintingState = ref<'ranged_chance' | null>(null);
+const rightArmState = ref<'ignore_choice' | null>(null);
+const leftArmState = ref<'ignore_choice' | null>(null);
+
 const skeletonReaction = ref<number | null>(null);
 const isSkeletonTraded = ref<boolean>(false);
 const hasChosenTensDigit = ref<boolean>(false);
@@ -945,6 +950,12 @@ watch(activeEvent, (newEvent) => {
     skeletonReaction.value = null;
     isSkeletonTraded.value = false;
     hasChosenTensDigit.value = false;
+  }
+  if (!newEvent) {
+    alanChoiceState.value = null;
+    paintingState.value = null;
+    rightArmState.value = null;
+    leftArmState.value = null;
   }
 });
 
@@ -1386,10 +1397,10 @@ function resolveSkeletonEvent() {
 
         <!-- Alan NPC (Event 25) -->
         <div v-else-if="activeEvent.npcType === 'alan'" class="button-group" style="flex-direction: column; gap: 10px;">
-          <div v-if="!activeEvent.alanChoiceState" style="width: 100%;">
+          <div v-if="!alanChoiceState" style="width: 100%;">
             <button @click="rollAlanReaction" class="btn-ink btn-large" style="width: 100%;">🎲 アランの反応チェックを行う</button>
           </div>
-          <div v-else-if="activeEvent.alanChoiceState === 'neutral'" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+          <div v-else-if="alanChoiceState === 'neutral'" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
             <p style="font-size: 0.9rem; color: #8c1c1c; font-weight: bold; margin: 0 0 5px 0; text-align: center;">アラン「あきらめろ。これは私が持ち帰る」</p>
             <button @click="resolveAlanNeutral('leave')" class="btn-ink btn-secondary" style="width: 100%;">🚪 アダマンタイトを諦めて立ち去る</button>
             <button @click="resolveAlanNeutral('fight')" class="btn-ink btn-red" style="width: 100%;">⚔️ 諦めずに戦い奪い取る (全体戦闘)</button>
@@ -1399,10 +1410,10 @@ function resolveSkeletonEvent() {
 
         <!-- Painting NPC (Event 53) -->
         <div v-else-if="activeEvent.npcType === 'dread_painting'" class="button-group" style="flex-direction: column; gap: 10px;">
-          <div v-if="!activeEvent.paintingState" style="width: 100%;">
+          <div v-if="!paintingState" style="width: 100%;">
             <button @click="rollPaintingLuck" class="btn-ink btn-large" style="width: 100%;">✨ 幸運判定ロールを行う (判定値: 4)</button>
           </div>
-          <div v-else-if="activeEvent.paintingState === 'ranged_chance'" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+          <div v-else-if="paintingState === 'ranged_chance'" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
             <p style="font-size: 0.9rem; color: #1e5a38; font-weight: bold; margin: 0 0 5px 0; text-align: center;">僧侶の企みに気づいた！ 召喚前に狙撃できます！</p>
             <button @click="rollPaintingRanged" class="btn-ink btn-large" style="width: 100%;">🏹 遠距離攻撃を行う (目標値: 3)</button>
           </div>
@@ -1410,7 +1421,7 @@ function resolveSkeletonEvent() {
 
         <!-- Right Arm NPC (Event 61) -->
         <div v-else-if="activeEvent.npcType === 'heracles_right'" class="button-group" style="flex-direction: column; gap: 10px;">
-          <div v-if="!activeEvent.rightArmState" style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
+          <div v-if="!rightArmState" style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
             <button 
               v-if="character.items.some(i => i.name === '青の聖石')" 
               @click="useRightArmStone" 
@@ -1421,7 +1432,7 @@ function resolveSkeletonEvent() {
             </button>
             <button @click="rollRightArmReaction" class="btn-ink btn-large" style="width: 100%;">🎲 反応チェックを行う</button>
           </div>
-          <div v-else-if="activeEvent.rightArmState === 'ignore_choice'" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+          <div v-else-if="rightArmState === 'ignore_choice'" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
             <p style="font-size: 0.9rem; color: #1e5a38; font-weight: bold; margin: 0 0 5px 0; text-align: center;">右腕はあなたに気づいていません。</p>
             <button @click="resolveRightArmIgnore(true)" class="btn-ink btn-secondary" style="width: 100%;">🚪 無視して先に進む</button>
             <button @click="resolveRightArmIgnore(false)" class="btn-ink btn-red" style="width: 100%;">⚔️ あえて戦闘を仕掛ける</button>
@@ -1430,7 +1441,7 @@ function resolveSkeletonEvent() {
 
         <!-- Left Arm NPC (Event 62) -->
         <div v-else-if="activeEvent.npcType === 'heracles_left'" class="button-group" style="flex-direction: column; gap: 10px;">
-          <div v-if="!activeEvent.leftArmState" style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
+          <div v-if="!leftArmState" style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
             <button 
               v-if="character.items.some(i => i.name === '赤の聖石')" 
               @click="useLeftArmStone" 
@@ -1441,7 +1452,7 @@ function resolveSkeletonEvent() {
             </button>
             <button @click="rollLeftArmReaction" class="btn-ink btn-large" style="width: 100%;">🎲 反応チェックを行う</button>
           </div>
-          <div v-else-if="activeEvent.leftArmState === 'ignore_choice'" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+          <div v-else-if="leftArmState === 'ignore_choice'" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
             <p style="font-size: 0.9rem; color: #1e5a38; font-weight: bold; margin: 0 0 5px 0; text-align: center;">左腕はあなたに気づいていません。</p>
             <button @click="resolveLeftArmIgnore(true)" class="btn-ink btn-secondary" style="width: 100%;">🚪 無視して先に進む</button>
             <button @click="resolveLeftArmIgnore(false)" class="btn-ink btn-red" style="width: 100%;">⚔️ あえて戦闘を仕掛ける</button>

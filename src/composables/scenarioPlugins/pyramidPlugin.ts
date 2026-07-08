@@ -96,22 +96,10 @@ export const pyramidPlugin = {
       setupWanderingMerchantChoices(event, character, followers);
     }
 
-    // Room 23: Jill-Mega
-    if (d66 === '23' && !(event as any).choicesInitialized) {
-      (event as any).choicesInitialized = true;
-      setupJillMegaChoices(event, character, followers);
-    }
-
     // Room 24: Repairing Ant Folk
     if (d66 === '24' && !(event as any).choicesInitialized) {
       (event as any).choicesInitialized = true;
       setupAntFolkChoices(event, character);
-    }
-
-    // Room 25: Captain Alan
-    if (d66 === '25' && !(event as any).choicesInitialized) {
-      (event as any).choicesInitialized = true;
-      setupAlanChoices(event, character);
     }
 
     // Room 26: Chatty Sphinx
@@ -720,88 +708,9 @@ function setupWanderingMerchantShopChoices(event: DungeonEvent, character: Ref<C
 // -------------------------------------------------------------
 // Room 23: Jill-Mega Choice Builder
 // -------------------------------------------------------------
-function setupJillMegaChoices(event: DungeonEvent, character: Ref<Character>, followers: Ref<Follower[]>) {
-  const numGolems = Math.floor(Math.random() * 6) + 3; // 1d6 + 2
-  event.description = `顔に三本傷のある女コビットのジル＝メガが、大理石で出来た猫型のゴーレムの群れ（${numGolems}体）と激しく戦闘中です！狭い場所に加え、敵の数も多く苦戦しているように見えます。`;
-
-  const customChoices = [
-    {
-      id: 'jill_help',
-      label: `⚔️ ジル＝メガを手助けする (半数のゴーレム ${Math.ceil(numGolems / 2)}体を引き受けて戦う)`,
-      onSelect: () => {
-        const fightCount = Math.ceil(numGolems / 2);
-        addLogFn(`⚔️ ジル＝メガに加勢し、${fightCount}体のキャットゴーレムを引き受けました！`, 'combat');
-        
-        event.type = 'encounter';
-        event.enemies = [];
-        for (let i = 0; i < fightCount; i++) {
-          event.enemies.push({
-            name: `キャットゴーレム ${String.fromCharCode(65 + i)}`,
-            level: 4,
-            lifeMax: 2,
-            lifeCurrent: 2,
-            attackCount: 1,
-            tags: ['golem'],
-            count: 1,
-            weaponAttribute: 'slash'
-          } as any);
-        }
-        (event as any).customChoices = null;
-        startEncounterFn();
-      }
-    },
-    {
-      id: 'jill_leave',
-      label: '🏃 ジル＝メガを置いて先に進む',
-      onSelect: () => {
-        addLogFn('🏃 ジル＝メガなら大丈夫と判断し、加勢せず先に進みました。', 'info');
-        event.isResolved = true;
-        event.resolutionText = 'ジル＝メガを信じて加勢せず、そのまま部屋を立ち去りました。';
-        (event as any).customChoices = null;
-      }
-    }
-  ];
-
-  (event as any).customChoices = customChoices;
-}
-
-// -------------------------------------------------------------
-// Room 25: Captain Alan Choice Builder
-// -------------------------------------------------------------
-function setupAlanChoices(event: DungeonEvent, character: Ref<Character>) {
-  const customChoices = [
-    {
-      id: 'alan_yield',
-      label: '🏃 アダマンタイトを譲って部屋を立ち去る',
-      onSelect: () => {
-        addLogFn('🏃 隊長アランにアダマンタイトを譲り、穏便に部屋を立ち去りました。', 'info');
-        event.isResolved = true;
-        event.resolutionText = 'アランにアダマンタイトを譲り、戦闘を回避して部屋を立ち去りました。';
-        (event as any).customChoices = null;
-      }
-    },
-    {
-      id: 'alan_fight',
-      label: '⚔️ 力ずくで奪う (戦う)',
-      onSelect: () => {
-        addLogFn('⚔️ アダマンタイトを奪い取るため、隊長アランと剣を交えます！', 'combat');
-        event.type = 'encounter';
-        event.enemies = [
-          { name: 'アラン', level: 5, lifeMax: 5, lifeCurrent: 5, attackCount: 1, tags: ['strong', 'human'], count: 1 }
-        ];
-        (event as any).customChoices = null;
-        startEncounterFn();
-      }
-    }
-  ];
-
-  (event as any).customChoices = customChoices;
-}
-
-// -------------------------------------------------------------
 // Room 26: Chatty Sphinx Choice Builder
 // -------------------------------------------------------------
-function setupChattySphinxChoices(event: DungeonEvent, character: Ref<Character>, followers: Ref<Follower[]>) {
+function setupChattySphinxChoices(event: DungeonEvent, character: Ref<Character>, _followers: Ref<Follower[]>) {
   const customChoices = [
     {
       id: 'sphinx_listen',
@@ -847,7 +756,7 @@ function setupChattySphinxChoices(event: DungeonEvent, character: Ref<Character>
       id: 'sphinx_fight',
       label: '⚔️ スフィンクスを力ずくで排除する (戦う)',
       onSelect: () => {
-        addLogFn('⚔️ おしゃべりスフィンクスと戦闘に入ります！', 'combat');
+        addLogFn('⚔️ おしゃべりスフィンクスと戦闘に入ります！', 'info');
         event.type = 'encounter';
         event.enemies = [
           {

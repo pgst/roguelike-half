@@ -968,7 +968,7 @@ export function useCombat() {
                                  enemy.name.includes('ヘラクレオス') ||
                                  enemy.name.includes('スフィンクス') ||
                                  enemy.name.includes('骸骨');
-          if (amulet && isStrikeAttack) {
+          if (amulet && isStrikeAttack && amulet.charges !== undefined) {
             amulet.charges--;
             addLog(`🛡️ 『身代わりのアミュレット』が身代わりになり、打撃ダメージを無効化しました！ (残り使用可能回数: ${amulet.charges}回)`, 'success');
             if (amulet.charges <= 0) {
