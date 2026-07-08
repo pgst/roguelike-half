@@ -27,21 +27,31 @@ test('Black Serpent scenario full play-through verification', async ({ page }) =
   while (actionCount < maxActions && loopCount < maxLoops) {
     loopCount++;
     
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(50);
 
-    if (await page.locator('.victory-card').isVisible({ timeout: 0 })) {
+    const screen = await page.evaluate(() => {
+      if (document.querySelector('.victory-card')) return 'victory';
+      if (document.querySelector('.gameover-card')) return 'gameover';
+      if (document.querySelector('.scenario-selector')) return 'selector';
+      if (document.querySelector('.creator-card')) return 'creator';
+      if (document.querySelector('.levelup-card')) return 'levelup';
+      if (document.querySelector('.explorer-card')) return 'explorer';
+      if (document.querySelector('.combat-card')) return 'combat';
+      return 'unknown';
+    });
+
+    if (screen === 'victory') {
       console.log(`🎉 Reached Victory (Success) Screen after ${actionCount} actions (loops: ${loopCount})!`);
       reachedEnd = true;
       break;
     }
-    if (await page.locator('.gameover-card').isVisible({ timeout: 0 })) {
+    if (screen === 'gameover') {
       console.log(`💀 Reached Game Over Screen after ${actionCount} actions (loops: ${loopCount})!`);
       reachedEnd = true;
       break;
     }
 
-    // 1. Scenario selection - Target "黒蛇の洞窟"
-    if (await page.locator('.scenario-selector').isVisible({ timeout: 0 })) {
+    if (screen === 'selector') {
       const scenarioCard = page.locator('.scenario-card').filter({ hasText: '黒蛇の洞窟' }).first();
       if (await safeClick(scenarioCard, 'Selecting Black Serpent scenario card', 500)) {
         actionCount++;
@@ -49,8 +59,7 @@ test('Black Serpent scenario full play-through verification', async ({ page }) =
       continue;
     }
 
-    // 2. Character creation
-    if (await page.locator('.creator-card').isVisible({ timeout: 0 })) {
+    if (screen === 'creator') {
       console.log(`[Action ${actionCount}] Filling character details...`);
       await page.fill('#char-name', 'Black Serpent Hero');
       
@@ -64,8 +73,7 @@ test('Black Serpent scenario full play-through verification', async ({ page }) =
       continue;
     }
 
-    // 3. Level-up / Town Market
-    if (await page.locator('.levelup-card').isVisible({ timeout: 0 })) {
+    if (screen === 'levelup') {
       const spellBtn = page.locator('.spell-learning-section button.btn-mini:not([disabled])');
       let learnedSpell = false;
       
@@ -104,8 +112,18 @@ test('Black Serpent scenario full play-through verification', async ({ page }) =
       continue;
     }
 
-    // 4. Dungeon Exploration
-    if (await page.locator('.explorer-card').isVisible({ timeout: 0 })) {
+    if (screen === 'explorer') {
+      const overlimitBanner = page.locator('.overlimit-warning-banner');
+      if (await overlimitBanner.isVisible({ timeout: 0 })) {
+        const discardBtn = page.locator('.adventure-sheet button:has-text("捨てる")');
+        if (await discardBtn.first().isVisible({ timeout: 0 })) {
+          if (await safeClick(discardBtn.first(), 'Discarding item to resolve inventory overlimit')) {
+            actionCount++;
+            continue;
+          }
+        }
+      }
+
       const proceedBtn = page.locator('button:has-text("次の小部屋へ進む")');
       const trapBtn = page.locator('button:has-text("判定ロールに挑戦する"), button:has-text("で挑戦")');
       const treasureBtn = page.locator('button:has-text("宝物を入手する")');
@@ -141,8 +159,7 @@ test('Black Serpent scenario full play-through verification', async ({ page }) =
       continue;
     }
 
-    // 5. Combat
-    if (await page.locator('.combat-card').isVisible({ timeout: 0 })) {
+    if (screen === 'combat') {
       const coverBtn = page.locator('button:has-text("を基準にしてかばう")');
       const cancelCoverBtn = page.locator('button:has-text("かばうのを見送る")');
       const defendBtn = page.locator('button:has-text("主人公が防御する")');

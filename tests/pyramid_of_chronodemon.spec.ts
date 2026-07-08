@@ -27,21 +27,32 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
   while (actionCount < maxActions && loopCount < maxLoops) {
     loopCount++;
     
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(50);
 
-    if (await page.locator('.victory-card').isVisible({ timeout: 0 })) {
+    const screen = await page.evaluate(() => {
+      if (document.querySelector('.victory-card')) return 'victory';
+      if (document.querySelector('.gameover-card')) return 'gameover';
+      if (document.querySelector('.scenario-selector')) return 'selector';
+      if (document.querySelector('.creator-card')) return 'creator';
+      if (document.querySelector('.levelup-card')) return 'levelup';
+      if (document.querySelector('.explorer-card')) return 'explorer';
+      if (document.querySelector('.combat-card')) return 'combat';
+      return 'unknown';
+    });
+
+    if (screen === 'victory') {
       console.log(`🎉 Reached Victory (Success) Screen after ${actionCount} actions (loops: ${loopCount})!`);
       reachedEnd = true;
       break;
     }
-    if (await page.locator('.gameover-card').isVisible({ timeout: 0 })) {
+    if (screen === 'gameover') {
       console.log(`💀 Reached Game Over Screen after ${actionCount} actions (loops: ${loopCount})!`);
       reachedEnd = true;
       break;
     }
 
     // 1. Scenario selection - Target "刻の悪魔のピラミッド"
-    if (await page.locator('.scenario-selector').isVisible({ timeout: 0 })) {
+    if (screen === 'selector') {
       const scenarioCard = page.locator('.scenario-card').filter({ hasText: '刻の悪魔のピラミッド' }).first();
       if (await safeClick(scenarioCard, 'Selecting Pyramid of Chronodemon scenario card', 500)) {
         actionCount++;
@@ -50,7 +61,7 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
     }
 
     // 2. Character creation
-    if (await page.locator('.creator-card').isVisible({ timeout: 0 })) {
+    if (screen === 'creator') {
       console.log(`[Action ${actionCount}] Filling character details...`);
       await page.fill('#char-name', 'Chronodemon Hero');
       
@@ -65,7 +76,7 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
     }
 
     // 3. Level-up / Town Market
-    if (await page.locator('.levelup-card').isVisible({ timeout: 0 })) {
+    if (screen === 'levelup') {
       const spellBtn = page.locator('.spell-learning-section button.btn-mini:not([disabled])');
       let learnedSpell = false;
       
@@ -89,7 +100,7 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
       }
 
       if (!clickedLife && !learnedSpell) {
-        const startBtn = page.locator('button:has-text("冒険を開始する")');
+        const startBtn = page.locator('button:has-text("冒煙を開始する"), button:has-text("冒険を開始する")');
         const selectScenarioBtn = page.locator('button:has-text("次のシナリオを選択する")');
         if (await startBtn.isVisible({ timeout: 0 })) {
           if (await safeClick(startBtn, 'Start adventure button', 500)) {
@@ -105,7 +116,18 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
     }
 
     // 4. Dungeon Exploration
-    if (await page.locator('.explorer-card').isVisible({ timeout: 0 })) {
+    if (screen === 'explorer') {
+      const overlimitBanner = page.locator('.overlimit-warning-banner');
+      if (await overlimitBanner.isVisible({ timeout: 0 })) {
+        const discardBtn = page.locator('.adventure-sheet button:has-text("捨てる")');
+        if (await discardBtn.first().isVisible({ timeout: 0 })) {
+          if (await safeClick(discardBtn.first(), 'Discarding item to resolve inventory overlimit')) {
+            actionCount++;
+            continue;
+          }
+        }
+      }
+
       const proceedBtn = page.locator('button:has-text("次の小部屋へ進む")');
       const trapBtn = page.locator('button:has-text("判定ロールに挑戦する"), button:has-text("で挑戦"), button:has-text("器用判定ロールを行う")');
       const treasureBtn = page.locator('button:has-text("宝物を入手する")');
@@ -130,6 +152,16 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
       const choiceGolemBtn = page.locator('button:has-text("至高のヘラクレオスと戦う")');
       const choiceShireenBtn = page.locator('button:has-text("異端者シーリーンと戦う")');
       const crocodileBribeFood = page.locator('button:has-text("食料 2 個を差し出して")');
+      const jillMegaBtn = page.locator('button:has-text("ジル＝メガを手助けする")');
+
+      // New NPC choice buttons
+      const rollAlanReactionBtn = page.locator('button:has-text("アランの反応チェックを行う")');
+      const alanNeutralDuelBtn = page.locator('button:has-text("1対1の決闘を受ける")');
+      const rollPaintingLuckBtn = page.locator('button:has-text("幸運判定ロールを行う")');
+      const rollPaintingRangedBtn = page.locator('button:has-text("遠距離攻撃を行う")');
+      const useSacredStoneBtn = page.locator('button:has-text("聖石を使用して")');
+      const rollArmReactionBtn = page.locator('button:has-text("反応チェックを行う"):not(:has-text("アラン"))');
+      const ignoreArmBtn = page.locator('button:has-text("無視して先に進む")');
 
       // Skeleton Event buttons
       const contactBtn = page.locator('button:has-text("接触を試みる")');
@@ -140,6 +172,22 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
 
       if (await proceedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(proceedBtn)) {
         if (await safeClick(proceedBtn, 'Proceed to next room')) actionCount++;
+      } else if (await jillMegaBtn.isVisible({ timeout: 0 }) && await isElementEnabled(jillMegaBtn)) {
+        if (await safeClick(jillMegaBtn, 'Help Jill-Mega')) actionCount++;
+      } else if (await rollAlanReactionBtn.isVisible({ timeout: 0 }) && await isElementEnabled(rollAlanReactionBtn)) {
+        if (await safeClick(rollAlanReactionBtn, 'Roll Alan reaction check')) actionCount++;
+      } else if (await alanNeutralDuelBtn.isVisible({ timeout: 0 }) && await isElementEnabled(alanNeutralDuelBtn)) {
+        if (await safeClick(alanNeutralDuelBtn, 'Accept 1-on-1 duel from Alan')) actionCount++;
+      } else if (await rollPaintingLuckBtn.isVisible({ timeout: 0 }) && await isElementEnabled(rollPaintingLuckBtn)) {
+        if (await safeClick(rollPaintingLuckBtn, 'Roll Painting luck check')) actionCount++;
+      } else if (await rollPaintingRangedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(rollPaintingRangedBtn)) {
+        if (await safeClick(rollPaintingRangedBtn, 'Attempt ranged attack on painting priest')) actionCount++;
+      } else if (await useSacredStoneBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(useSacredStoneBtn.first())) {
+        if (await safeClick(useSacredStoneBtn.first(), 'Use Sacred Stone to save Heracles soul')) actionCount++;
+      } else if (await rollArmReactionBtn.isVisible({ timeout: 0 }) && await isElementEnabled(rollArmReactionBtn)) {
+        if (await safeClick(rollArmReactionBtn, 'Roll Heracles arm reaction check')) actionCount++;
+      } else if (await ignoreArmBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(ignoreArmBtn.first())) {
+        if (await safeClick(ignoreArmBtn.first(), 'Ignore Heracles arm')) actionCount++;
       } else if (await viewOriginChoicesBtn.isVisible({ timeout: 0 }) && await isElementEnabled(viewOriginChoicesBtn)) {
         if (await safeClick(viewOriginChoicesBtn, 'View origin choices after introduction')) actionCount++;
       } else if (await prepBtn.isVisible({ timeout: 0 }) && await isElementEnabled(prepBtn)) {
@@ -189,7 +237,7 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
     }
 
     // 5. Combat
-    if (await page.locator('.combat-card').isVisible({ timeout: 0 })) {
+    if (screen === 'combat') {
       const roarBtn = page.locator('button:has-text("抵抗判定を行う")');
       const clueBtn = page.locator('button:has-text("手がかりを消費")');
 

@@ -41,6 +41,24 @@ export function useCombat() {
         addLog(`🤖 至高のヘラクレオスに対する ${follower.name} の【打撃】ボーナス +1！`, 'success');
       }
     }
+
+    // Cat Golem modifier for followers
+    if (target.name.includes('キャットゴーレム')) {
+      if (follower.weaponAttribute === 'slash') {
+        modifier -= 1;
+        addLog(`🤖 キャットゴーレムに対する ${follower.name} の【斬撃】ペナルティ -1！`, 'error');
+      }
+      if (follower.weaponAttribute === 'strike') {
+        modifier += 1;
+        addLog(`🤖 キャットゴーレムに対する ${follower.name} の【打撃】ボーナス +1！`, 'success');
+      }
+    }
+
+    // Wood Golem modifier for archer followers (ranged attack)
+    if (target.name.includes('木ゴーレム') && follower.type === 'archer') {
+      modifier -= 1;
+      addLog(`🌲 木ゴーレムに対する ${follower.name} の【射撃】ペナルティ -1！`, 'error');
+    }
     
     // Ant-man acid spit penalty for followers
     if ((combatState as any).followerAccuracyModifiers && (combatState as any).followerAccuracyModifiers[follower.name]) {
@@ -322,7 +340,17 @@ export function useCombat() {
         isPrevented = true;
       }
     });
-    if (isPrevented) return;
+    if (isPrevented) {
+      // Trigger follower attacks and enemy turn to advance the round
+      await executeFollowerAttacks();
+      checkEnemyRetreat();
+      if (combatState.enemies.length === 0) {
+        endCombat(true);
+        return;
+      }
+      await executeEnemyAttacks();
+      return;
+    }
 
     addLog(`⚔️ ${enemy.name} への攻撃ロール！`, 'combat');
     
@@ -349,6 +377,12 @@ export function useCombat() {
     const roll = await rollD6(true);
     let modifier = 0;
 
+    // Alan Duel Bonus in round 1
+    if (combatState.round === 1 && (combatState as any).alanDuel) {
+      modifier += 1;
+      addLog('⚔️ 決闘エールによる攻撃ロール +1 ボーナス！', 'success');
+    }
+
     // Chronovals wind attack penalty modifier
     if ((combatState as any).chronovalsWindPenalty) {
       modifier -= 1;
@@ -365,6 +399,27 @@ export function useCombat() {
       if (enemy.name === '至高のヘラクレオス' && character.value.equippedWeapon?.attribute === 'strike') {
         modifier += 1;
         addLog('🤖 至高のヘラクレオスに対する【打撃】武器ボーナス +1！', 'success');
+      }
+    }
+
+    // Cat Golem modifiers
+    if (enemy.name.includes('キャットゴーレム')) {
+      if (character.value.equippedWeapon?.attribute === 'slash') {
+        modifier -= 1;
+        addLog('🤖 キャットゴーレムに対する【斬撃】武器ペナルティ -1！', 'error');
+      }
+      if (character.value.equippedWeapon?.attribute === 'strike') {
+        modifier += 1;
+        addLog('🤖 キャットゴーレムに対する【打撃】武器ボーナス +1！', 'success');
+      }
+    }
+
+    // Wood Golem modifier for projectile weapons
+    if (enemy.name.includes('木ゴーレム') && character.value.equippedWeapon?.type === 'ranged') {
+      const isMagic = character.value.equippedWeapon.isMagic;
+      if (!isMagic) {
+        modifier -= 1;
+        addLog('🌲 木ゴーレムに対する【射撃】武器ペナルティ -1！', 'error');
       }
     }
 
@@ -477,6 +532,10 @@ export function useCombat() {
       if (character.value.equippedWeapon?.name === 'シルバーダガー' && (enemy.tags.includes('demon') || enemy.tags.includes('undead'))) {
         damage += 1;
         addLog('⚔️ シルバーダガーの特効ボーナス：ダメージ +1！', 'success');
+      }
+      if ((character.value as any).heraclesRightBuff && enemy.tags.includes('demon')) {
+        damage += 1;
+        addLog('✊ 怪力王の右腕の魂：悪魔へのダメージ +1！', 'success');
       }
 
       // Ranged combat special arrows damage bonus and consumption
@@ -824,6 +883,10 @@ export function useCombat() {
       if (isHero) {
         if (character.value.equippedArmor) modifier += character.value.equippedArmor.modDef;
         if (character.value.equippedShield) modifier += 1; // shield armor block
+        if ((character.value as any).heraclesLeftBuff && enemy.tags.includes('demon')) {
+          modifier += 1;
+          addLog('✊ 怪力王の左腕の魂：悪魔への防御ロール +1！', 'success');
+        }
         // Protection Miracle buff
         modifier += combatState.buffs.defenseBonus;
 
@@ -899,11 +962,26 @@ export function useCombat() {
         addLog('✨ ウォー・ドールの身代わり魔術により、生命力へのダメージを無視しました！', 'success');
       } else {
         if (isHero) {
-          character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
-          addLog(`主人公の生命力残り: ${character.value.lifeCurrent}`, 'damage');
-          if (character.value.lifeCurrent <= 0) {
-            handleDeath();
-            return;
+          const amulet = character.value.items.find(i => i.id === 'substitute_amulet' && i.charges !== undefined && i.charges > 0);
+          const isStrikeAttack = enemy.weaponAttribute === 'strike' ||
+                                 enemy.name.includes('ゴーレム') ||
+                                 enemy.name.includes('ヘラクレオス') ||
+                                 enemy.name.includes('スフィンクス') ||
+                                 enemy.name.includes('骸骨');
+          if (amulet && isStrikeAttack) {
+            amulet.charges--;
+            addLog(`🛡️ 『身代わりのアミュレット』が身代わりになり、打撃ダメージを無効化しました！ (残り使用可能回数: ${amulet.charges}回)`, 'success');
+            if (amulet.charges <= 0) {
+              character.value.items = character.value.items.filter(i => i !== amulet);
+              addLog('💥 『身代わりのアミュレット』は使い果たされて崩れ落ちました。', 'error');
+            }
+          } else {
+            character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
+            addLog(`主人公の生命力残り: ${character.value.lifeCurrent}`, 'damage');
+            if (character.value.lifeCurrent <= 0) {
+              handleDeath();
+              return;
+            }
           }
         } else {
           // Check if Strength cover skill can be triggered (Rule 22)
@@ -938,6 +1016,16 @@ export function useCombat() {
     (combatState as any).activeAttacks = queue;
 
     if (!defSuccess) {
+      if (isHero && enemy.name.includes('シルバー・ゴーレム')) {
+        (combatState as any).silverGolemHitsCount = ((combatState as any).silverGolemHitsCount || 0) + 1;
+        addLog(`🤖 シルバー・ゴーレムの攻撃が主人公に命中！ (通算 ${(combatState as any).silverGolemHitsCount} 回目/3回中)`, 'error');
+        if ((combatState as any).silverGolemHitsCount === 3) {
+          addLog('🤖 シルバー・ゴーレムは床を踏み抜いてしまい、遥か下の階に落下しました！戦闘を終了します。', 'success');
+          endCombat(true, false);
+          return;
+        }
+      }
+
       // 1. Crocodile Clamp Check
       if (roll === 1 && enemy.name === '砂漠ワニ') {
         (combatState as any).isCrocodileClamped = true;
@@ -1156,12 +1244,16 @@ export function useCombat() {
       const spellHit = spellRoll === 6 || (spellRoll !== 1 && spellTotal >= target.level);
 
       if (spellHit) {
-        target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
-        addLog(`❄️ 直撃！ ${target.name} に極大の2点ダメージ！`, 'success');
-        if (target.lifeCurrent <= 0) {
-          addLog(`💀 ${target.name} は砕け散った！`, 'success');
-          const idx = enemies.findIndex(e => e.id === target.id);
-          enemies.splice(idx, 1);
+        if (target.name.includes('キャットゴーレム')) {
+          addLog(`❄️ ${target.name}は大理石の身体のため、氷のダメージを無効化した！`, 'error');
+        } else {
+          target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
+          addLog(`❄️ 直撃！ ${target.name} に極大の2点ダメージ！`, 'success');
+          if (target.lifeCurrent <= 0) {
+            addLog(`💀 ${target.name} は砕け散った！`, 'success');
+            const idx = enemies.findIndex(e => e.id === target.id);
+            enemies.splice(idx, 1);
+          }
         }
       } else {
         addLog(`💨 氷槍は回避された。`, 'error');
@@ -1176,9 +1268,13 @@ export function useCombat() {
       // Check narrow space
       let isNarrow = false;
       const spaceRoll = await rollD6();
-      if (spaceRoll <= 3) {
+      if (spaceRoll <= 3 || enemies.some(e => e.name.includes('木ゴーレム'))) {
         isNarrow = true;
-        addLog('廊下のような【狭い場所】のため、炎球の威力が高まります！', 'success');
+        if (enemies.some(e => e.name.includes('木ゴーレム'))) {
+          addLog('🔥 部屋の中に【木ゴーレム】がいるため、炎に弱い木ゴーレムに炎球の効果が高まります！', 'success');
+        } else {
+          addLog('廊下のような【狭い場所】のため、炎球の威力が高まります！', 'success');
+        }
       } else {
         addLog('ホールのような【広い場所】のため、炎球の威力が拡散します。', 'info');
       }
@@ -1211,8 +1307,12 @@ export function useCombat() {
           for (let i = 0; i < enemies.length; i++) {
             if (hitCount >= hits) break;
             const e = enemies[i];
-            e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
-            addLog(`🔥 ${e.name} に炎球が炸裂！ 1点ダメージを与えた！`, 'success');
+            if (e.name.includes('キャットゴーレム')) {
+              addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
+            } else {
+              e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
+              addLog(`🔥 ${e.name} に炎球が炸裂！ 1点ダメージを与えた！`, 'success');
+            }
             hitCount++;
           }
         } else {
@@ -1233,8 +1333,12 @@ export function useCombat() {
             for (let i = 0; i < enemies.length; i++) {
               if (hitCount >= totalHits) break;
               const e = enemies[i];
-              e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
-              addLog(`🔥 ${e.name} に炎球が直撃！ 1点ダメージ！`, 'success');
+              if (e.name.includes('キャットゴーレム')) {
+                addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
+              } else {
+                e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
+                addLog(`🔥 ${e.name} に炎球が直撃！ 1点ダメージ！`, 'success');
+              }
               hitCount++;
             }
           } else {
@@ -1336,9 +1440,13 @@ export function useCombat() {
       // Check narrow space
       let isNarrow = false;
       const spaceRoll = await rollD6();
-      if (spaceRoll <= 3) {
+      if (spaceRoll <= 3 || enemies.some(e => e.name.includes('木ゴーレム'))) {
         isNarrow = true;
-        addLog('廊下のような【狭い場所】のため、炎球の威力が高まります！', 'success');
+        if (enemies.some(e => e.name.includes('木ゴーレム'))) {
+          addLog('🔥 部屋の中に【木ゴーレム】がいるため、炎に弱い木ゴーレムに炎球の効果が高まります！', 'success');
+        } else {
+          addLog('廊下のような【狭い場所】のため、炎球の威力が高まります！', 'success');
+        }
       } else {
         addLog('ホールのような【広い場所】のため、炎球の威力が拡散します。', 'info');
       }
@@ -1358,8 +1466,12 @@ export function useCombat() {
         let hits = 1;
         enemies.forEach(e => {
           if (hits > 0 && total >= e.level) {
-            e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
-            addLog(`🔥 ${e.name} に炎球が炸裂！ 1点ダメージを与えた！`, 'success');
+            if (e.name.includes('キャットゴーレム')) {
+              addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
+            } else {
+              e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
+              addLog(`🔥 ${e.name} に炎球が炸裂！ 1点ダメージを与えた！`, 'success');
+            }
             hits--;
           }
         });
@@ -1367,8 +1479,12 @@ export function useCombat() {
         // Deals 1 damage on level multiples
         enemies.forEach(e => {
           if (total >= e.level) {
-            e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
-            addLog(`🔥 ${e.name} に炎球が直撃！ 1点ダメージ！`, 'success');
+            if (e.name.includes('キャットゴーレム')) {
+              addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
+            } else {
+              e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
+              addLog(`🔥 ${e.name} に炎球が直撃！ 1点ダメージ！`, 'success');
+            }
           }
         });
       }
@@ -1398,12 +1514,16 @@ export function useCombat() {
       const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
 
       if (roll === 6 || (roll !== 1 && total >= target.level)) {
-        target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
-        addLog(`❄️ 直撃！ ${target.name} に極大の2点ダメージ！`, 'success');
-        if (target.lifeCurrent <= 0) {
-          addLog(`💀 ${target.name} は氷結して砕け散った！`, 'success');
-          const idx = enemies.findIndex(e => e.id === targetEnemyId);
-          enemies.splice(idx, 1);
+        if (target.name.includes('キャットゴーレム')) {
+          addLog(`❄️ ${target.name}は大理石の身体のため、氷のダメージを無効化した！`, 'error');
+        } else {
+          target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
+          addLog(`❄️ 直撃！ ${target.name} に極大の2点ダメージ！`, 'success');
+          if (target.lifeCurrent <= 0) {
+            addLog(`💀 ${target.name} は氷結して砕け散った！`, 'success');
+            const idx = enemies.findIndex(e => e.id === targetEnemyId);
+            enemies.splice(idx, 1);
+          }
         }
       } else {
         addLog('💨 氷槍は回避された。', 'error');
@@ -2078,6 +2198,46 @@ export function useCombat() {
 
   // Confirm combat and move back or forward in the dungeon
   function confirmCombatResult() {
+    if (activeEvent.value?.d66Code === '23' && combatState.resultType === 'victory') {
+      const run = pyramidRunCount.value;
+      if (run === 1) {
+        character.value.items.push({
+          id: 'strong_pill',
+          name: '剛力丸',
+          type: 'accessory',
+          goldCost: 15,
+          value: 15,
+          description: '【シナリオ限定】強壮剤。【筋力ロール】時に服用すると、＋1のボーナスが受けられる。１回分（使い捨て）。'
+        } as any);
+        addLog('🎁 ジル＝メガから手助けの礼として『剛力丸』を受け取りました！', 'success');
+      } else if (run === 2) {
+        character.value.items.push({
+          id: 'substitute_amulet',
+          name: '身代わりのアミュレット',
+          type: 'accessory',
+          goldCost: 30,
+          value: 30,
+          description: '【打撃】により生命点１点を失う際、身代わりになって生命力の減少を無効化する。残り3回分。',
+          charges: 3
+        } as any);
+        addLog('🎁 ジル＝メガから手助けの礼として『身代わりのアミュレット』を受け取りました！', 'success');
+      } else {
+        addLog('🎁 ジル＝メガは自分に託された使命として『封印の壺』を君に託しました！', 'success');
+      }
+    }
+
+    if (activeEvent.value?.d66Code === '25' && combatState.resultType === 'victory') {
+      character.value.items.push({
+        id: 'adamantite',
+        name: 'アダマンタイト',
+        type: 'quest',
+        goldCost: 20,
+        value: 20,
+        description: '頑強な地下鉱物の原石。武具の素材として使われる。原石のまま投擲武器としても使用できるが、大きく重いため【判定ロール】に−２の修正が入る。代わりに命中すればダメージに＋１される。１回の戦闘で１度しか使用できない。逃走した場合は失われる。'
+      } as any);
+      addLog('🎁 アランに勝利し、見事に『アダマンタイト』を獲得しました！', 'success');
+    }
+
     if (activeEvent.value?.d66Code === 'Final2' && combatState.resultType === 'victory') {
       const scenarioData = activeScenario.value;
       const origin = (character.value as any).pyramidOrigin || 'polomeia';

@@ -81,13 +81,43 @@ export const pyramidPlugin = {
     }
   },
 
-  async onExploreRoom(event: DungeonEvent, character: Ref<Character>) {
+  async onExploreRoom(event: DungeonEvent, character: Ref<Character>, followers: Ref<Follower[]>) {
     const d66 = event.d66Code;
+
+    // Room 21: Boro
+    if (d66 === '21' && !(event as any).choicesInitialized) {
+      (event as any).choicesInitialized = true;
+      setupBoroChoices(event, character);
+    }
+
+    // Room 22: Wandering Merchant
+    if (d66 === '22' && !(event as any).choicesInitialized) {
+      (event as any).choicesInitialized = true;
+      setupWanderingMerchantChoices(event, character, followers);
+    }
+
+    // Room 23: Jill-Mega
+    if (d66 === '23' && !(event as any).choicesInitialized) {
+      (event as any).choicesInitialized = true;
+      setupJillMegaChoices(event, character, followers);
+    }
 
     // Room 24: Repairing Ant Folk
     if (d66 === '24' && !(event as any).choicesInitialized) {
       (event as any).choicesInitialized = true;
       setupAntFolkChoices(event, character);
+    }
+
+    // Room 25: Captain Alan
+    if (d66 === '25' && !(event as any).choicesInitialized) {
+      (event as any).choicesInitialized = true;
+      setupAlanChoices(event, character);
+    }
+
+    // Room 26: Chatty Sphinx
+    if (d66 === '26' && !(event as any).choicesInitialized) {
+      (event as any).choicesInitialized = true;
+      setupChattySphinxChoices(event, character, followers);
     }
 
     // Room 12: Giant Spider Web
@@ -101,26 +131,31 @@ export const pyramidPlugin = {
       (event as any).choicesInitialized = true;
       setupSphinxRiddleChoices(event, character);
     }
-
-    // Room 26: Chatty Sphinx (headache damage unless player has cactus earrings)
-    if (d66 === '26' && !event.isResolved) {
-      const hasEarrings = character.value.items.some(i => i.id === 'cactus_earrings');
-      if (hasEarrings) {
-        addLogFn('🌵 『サボテンの耳飾り』を装着しているため、スフィンクスの退屈な長話による頭痛の災難を回避しました！', 'success');
-      } else {
-        addLogFn('🤯 スフィンクスの支離滅裂な長話により、激しい頭痛に襲われました！', 'error');
-        // Simple D6 roll for headache
-        addLogFn('生命ロール（目標値: 8 / 技量点判定）を開始します...', 'info');
-      }
-    }
   },
 
-  onAdventureEnd(character: Ref<Character>) {
+  onAdventureEnd(character: Ref<Character>, followers: Ref<Follower[]>) {
     // Return Golden Brooch to king
     const beforeLen = character.value.items.length;
     character.value.items = character.value.items.filter(i => i.id !== 'golden_brooch');
     if (character.value.items.length < beforeLen) {
       addLogFn('👑 冒険が無事終了したため、『黄金虫のブローチ』を王へ返却しました。', 'info');
+    }
+
+    // Wandering Merchant farewell
+    if (followers && followers.value) {
+      const idx = followers.value.findIndex(f => f.id === 'wandering_merchant_wandaros');
+      if (idx !== -1) {
+        followers.value.splice(idx, 1);
+        character.value.items.push({
+          id: 'holywater',
+          name: '聖水',
+          type: 'holywater',
+          goldCost: 10,
+          value: 0,
+          description: 'アンデッドや強い敵に2ダメージ、弱い敵なら2体を一撃で倒す消耗品。'
+        } as any);
+        addLogFn('👥 彷徨える商人ワンダロスが無事にピラミッドから生還し、感謝のしるしに『聖水』を受け取って別れました。', 'success');
+      }
     }
   }
 };
@@ -465,6 +500,426 @@ function startAntCombat(event: DungeonEvent, numAnts: number) {
   }
   (event as any).customChoices = null;
   startEncounterFn();
+}
+
+// -------------------------------------------------------------
+// Room 21: Boro Choice Builder
+// -------------------------------------------------------------
+function setupBoroChoices(event: DungeonEvent, character: Ref<Character>) {
+  const customChoices: any[] = [];
+
+  const hasPotion = character.value.items.some(i => i.id === 'potion');
+  customChoices.push({
+    id: 'boro_potion',
+    label: hasPotion ? '💖 『治療のポーション』を1個使用して彼を治療する' : '💖 『治療のポーション』を使用する (不所持)',
+    disabled: !hasPotion,
+    onSelect: () => {
+      const idx = character.value.items.findIndex(i => i.id === 'potion');
+      if (idx !== -1) {
+        character.value.items.splice(idx, 1);
+      }
+      giveBoroClue(event, character, 'ポロメイアの若きボロに治療のポーションを与え、治療しました！');
+    }
+  });
+
+  customChoices.push({
+    id: 'boro_food',
+    label: `🍞 『食料』を1食分分け与えて彼を介抱する (所持食料: ${character.value.food}食)`,
+    disabled: character.value.food < 1,
+    onSelect: () => {
+      character.value.food = Math.max(0, character.value.food - 1);
+      giveBoroClue(event, character, 'ポロメイアの若きボロに食料を分け与え、体力を回復させました！');
+    }
+  });
+
+  customChoices.push({
+    id: 'boro_leave',
+    label: '🏃 何もしないで立ち去る',
+    onSelect: () => {
+      addLogFn('🏃 ボロをそのままにして部屋を立ち去りました。', 'info');
+      event.isResolved = true;
+      event.resolutionText = '彼をそのままにして部屋を立ち去りました。';
+      (event as any).customChoices = null;
+    }
+  });
+
+  (event as any).customChoices = customChoices;
+}
+
+function giveBoroClue(event: DungeonEvent, character: Ref<Character>, actionLog: string) {
+  addLogFn(actionLog, 'success');
+  
+  // Add clue item
+  character.value.items.push({
+    id: 'shireen_clue',
+    name: 'シーリーンの手がかり',
+    type: 'clue',
+    goldCost: 0,
+    value: 0,
+    description: '異端者シーリーンの行動パターンに関する重要な手がかり。戦闘中に消費することで、彼女の未来予知を無効化できる。'
+  } as any);
+  addLogFn('🎁 シーリーンの未来予知に関する『手がかり』を獲得しました！ (背負い袋に追加)', 'success');
+
+  // Log story
+  addLogFn('ボロ:「自分は非力で、臆病でした。王女の身を救うため、クロノシア教徒に挑みましたが、まったく役に立ちませんでした。彼らを率いるシーリーンは、すでに悪魔に魂を捧げています。その恐ろしい双眸から、死の視線が放たれます。決して直視しないことです」', 'info');
+  addLogFn('ボロ:「彼女は少し先の未来を見るため、まともに攻撃が当たらないのです。私は勝てる気はしない。もしあなたがその状況に陥ったら、なるべく相手の目を見ず戦うのです」', 'info');
+
+  event.isResolved = true;
+  event.resolutionText = 'ボロを治療し、シーリーンの未来予知に関する『手がかり』を獲得しました。\n\n【ボロの話した情報】\n・シーリーンは少し先の未来を見るため、まともに攻撃が当たらない。\n・戦う際は彼女の目を直視せず（手がかりアイテムを消費して）戦うとよい。';
+  (event as any).customChoices = null;
+}
+
+// -------------------------------------------------------------
+// Room 22: Wandering Merchant Choice Builder
+// -------------------------------------------------------------
+function setupWanderingMerchantChoices(event: DungeonEvent, character: Ref<Character>, followers: Ref<Follower[]>) {
+  const customChoices: any[] = [];
+
+  const canHire = followers.value.length < character.value.followerCurrent;
+  customChoices.push({
+    id: 'wanderer_hire',
+    label: canHire ? '👥 従者として同行させる (ランタン・治療のポーション獲得)' : '👥 従者として同行させる (従者枠満杯のため選択不可)',
+    disabled: !canHire,
+    onSelect: () => {
+      followers.value.push({
+        id: 'wandering_merchant_wandaros',
+        name: '彷徨える商人ワンダロス',
+        type: 'wandering_merchant',
+        isCombatant: false,
+        skill: 0,
+        lifeMax: 1,
+        lifeCurrent: 1,
+        goldCost: 0,
+        desc: '【シナリオ限定】戦わない従者。持っているランタンと治療のポーションを1個ずつ提供。冒険終了時に別れ、聖水をくれる。'
+      } as any);
+
+      character.value.items.push({
+        id: 'lantern',
+        name: 'ランタン',
+        type: 'lantern',
+        goldCost: 2,
+        value: 0,
+        description: '暗闇を照らす。手元に明かりがないと全判定に-2の修正を受ける。使用する場合は片手が塞がる。'
+      } as any);
+
+      character.value.items.push({
+        id: 'potion',
+        name: '治療のポーション',
+        type: 'healingpotion',
+        goldCost: 50,
+        value: 0,
+        description: '生命力を最大値まで回復する。1回の冒険で1個のみ使用可能。'
+      } as any);
+
+      addLogFn('👥 商人ワンダロスが従者として同行します！『ランタン』1個と『治療のポーション』1個を受け取りました。(背負い袋に追加)', 'success');
+      addLogFn('ワンダロス:「ああ、やっと人と出会えた。私はワンダロス、旅する商人だ。本当に、私は昔から方向音痴なんだ。とても自分一人じゃ、ここから出られそうにない。どうか私も一緒に連れてってくれないか？なんならこのランタンと治療のポーションを使ってくれていいから」', 'info');
+
+      event.isResolved = true;
+      event.resolutionText = '商人ワンダロスを従者として同行させました。お礼に彼の『ランタン』と『治療のポーション』を獲得しました。（冒険終了時まで同行し、生還すれば『聖水』をくれます）';
+      (event as any).customChoices = null;
+    }
+  });
+
+  customChoices.push({
+    id: 'wanderer_trade',
+    label: '🪙 物資を購入する',
+    onSelect: () => {
+      addLogFn('ワンダロス:「同行しない場合でも、金貨を払ってくれるなら物資を売るよ。こんな状況でも商人根性は捨ててないからね！」', 'info');
+      setupWanderingMerchantShopChoices(event, character, followers);
+    }
+  });
+
+  customChoices.push({
+    id: 'wanderer_leave',
+    label: '🏃 取引せず立ち去る',
+    onSelect: () => {
+      addLogFn('🏃 ワンダロスと別れ、部屋を立ち去りました。', 'info');
+      event.isResolved = true;
+      event.resolutionText = 'ワンダロスの誘いを断り、そのまま部屋を立ち去りました。';
+      (event as any).customChoices = null;
+    }
+  });
+
+  (event as any).customChoices = customChoices;
+}
+
+function setupWanderingMerchantShopChoices(event: DungeonEvent, character: Ref<Character>, followers: Ref<Follower[]>) {
+  const shopChoices: any[] = [];
+
+  shopChoices.push({
+    id: 'wanderer_buy_lantern',
+    label: `🏮 『ランタン』を購入する (金貨 5 枚 / 所持: ${character.value.gold}枚)`,
+    disabled: character.value.gold < 5,
+    onSelect: () => {
+      character.value.gold = Math.max(0, character.value.gold - 5);
+      character.value.items.push({
+        id: 'lantern',
+        name: 'ランタン',
+        type: 'lantern',
+        goldCost: 2,
+        value: 0,
+        description: '暗闇を照らす。手元に明かりがないと全判定に-2の修正を受ける。使用する場合は片手が塞がる。'
+      } as any);
+      addLogFn('🏮 ワンダロスから『ランタン』を金貨5枚で購入しました。', 'success');
+      setupWanderingMerchantShopChoices(event, character, followers);
+    }
+  });
+
+  shopChoices.push({
+    id: 'wanderer_buy_potion',
+    label: `🧪 『治療のポーション』を購入する (金貨 70 枚 / 所持: ${character.value.gold}枚)`,
+    disabled: character.value.gold < 70,
+    onSelect: () => {
+      character.value.gold = Math.max(0, character.value.gold - 70);
+      character.value.items.push({
+        id: 'potion',
+        name: '治療のポーション',
+        type: 'healingpotion',
+        goldCost: 50,
+        value: 0,
+        description: '生命力を最大値まで回復する。1回の冒険で1個のみ使用可能。'
+      } as any);
+      addLogFn('🧪 ワンダロスから『治療のポーション』を金貨70枚で購入しました。', 'success');
+      setupWanderingMerchantShopChoices(event, character, followers);
+    }
+  });
+
+  shopChoices.push({
+    id: 'wanderer_buy_holywater',
+    label: `💧 『聖水』を購入する (金貨 15 枚 / 所持: ${character.value.gold}枚)`,
+    disabled: character.value.gold < 15,
+    onSelect: () => {
+      character.value.gold = Math.max(0, character.value.gold - 15);
+      character.value.items.push({
+        id: 'holywater',
+        name: '聖水',
+        type: 'holywater',
+        goldCost: 10,
+        value: 0,
+        description: 'アンデッドや強い敵に2ダメージ、弱い敵なら2体を一撃で倒す消耗品。'
+      } as any);
+      addLogFn('💧 ワンダロスから『聖水』を金貨15枚で購入しました。', 'success');
+      setupWanderingMerchantShopChoices(event, character, followers);
+    }
+  });
+
+  shopChoices.push({
+    id: 'wanderer_shop_leave',
+    label: '🚪 取引を終えて部屋を進む',
+    onSelect: () => {
+      addLogFn('🚪 ワンダロスとの取引を終えて部屋を進みます。', 'info');
+      event.isResolved = true;
+      event.resolutionText = 'ワンダロスとの取引を終え、先に進みました。';
+      (event as any).customChoices = null;
+    }
+  });
+
+  (event as any).customChoices = shopChoices;
+}
+
+// -------------------------------------------------------------
+// Room 23: Jill-Mega Choice Builder
+// -------------------------------------------------------------
+function setupJillMegaChoices(event: DungeonEvent, character: Ref<Character>, followers: Ref<Follower[]>) {
+  const numGolems = Math.floor(Math.random() * 6) + 3; // 1d6 + 2
+  event.description = `顔に三本傷のある女コビットのジル＝メガが、大理石で出来た猫型のゴーレムの群れ（${numGolems}体）と激しく戦闘中です！狭い場所に加え、敵の数も多く苦戦しているように見えます。`;
+
+  const customChoices = [
+    {
+      id: 'jill_help',
+      label: `⚔️ ジル＝メガを手助けする (半数のゴーレム ${Math.ceil(numGolems / 2)}体を引き受けて戦う)`,
+      onSelect: () => {
+        const fightCount = Math.ceil(numGolems / 2);
+        addLogFn(`⚔️ ジル＝メガに加勢し、${fightCount}体のキャットゴーレムを引き受けました！`, 'combat');
+        
+        event.type = 'encounter';
+        event.enemies = [];
+        for (let i = 0; i < fightCount; i++) {
+          event.enemies.push({
+            name: `キャットゴーレム ${String.fromCharCode(65 + i)}`,
+            level: 4,
+            lifeMax: 2,
+            lifeCurrent: 2,
+            attackCount: 1,
+            tags: ['golem'],
+            count: 1,
+            weaponAttribute: 'slash'
+          } as any);
+        }
+        (event as any).customChoices = null;
+        startEncounterFn();
+      }
+    },
+    {
+      id: 'jill_leave',
+      label: '🏃 ジル＝メガを置いて先に進む',
+      onSelect: () => {
+        addLogFn('🏃 ジル＝メガなら大丈夫と判断し、加勢せず先に進みました。', 'info');
+        event.isResolved = true;
+        event.resolutionText = 'ジル＝メガを信じて加勢せず、そのまま部屋を立ち去りました。';
+        (event as any).customChoices = null;
+      }
+    }
+  ];
+
+  (event as any).customChoices = customChoices;
+}
+
+// -------------------------------------------------------------
+// Room 25: Captain Alan Choice Builder
+// -------------------------------------------------------------
+function setupAlanChoices(event: DungeonEvent, character: Ref<Character>) {
+  const customChoices = [
+    {
+      id: 'alan_yield',
+      label: '🏃 アダマンタイトを譲って部屋を立ち去る',
+      onSelect: () => {
+        addLogFn('🏃 隊長アランにアダマンタイトを譲り、穏便に部屋を立ち去りました。', 'info');
+        event.isResolved = true;
+        event.resolutionText = 'アランにアダマンタイトを譲り、戦闘を回避して部屋を立ち去りました。';
+        (event as any).customChoices = null;
+      }
+    },
+    {
+      id: 'alan_fight',
+      label: '⚔️ 力ずくで奪う (戦う)',
+      onSelect: () => {
+        addLogFn('⚔️ アダマンタイトを奪い取るため、隊長アランと剣を交えます！', 'combat');
+        event.type = 'encounter';
+        event.enemies = [
+          { name: 'アラン', level: 5, lifeMax: 5, lifeCurrent: 5, attackCount: 1, tags: ['strong', 'human'], count: 1 }
+        ];
+        (event as any).customChoices = null;
+        startEncounterFn();
+      }
+    }
+  ];
+
+  (event as any).customChoices = customChoices;
+}
+
+// -------------------------------------------------------------
+// Room 26: Chatty Sphinx Choice Builder
+// -------------------------------------------------------------
+function setupChattySphinxChoices(event: DungeonEvent, character: Ref<Character>, followers: Ref<Follower[]>) {
+  const customChoices = [
+    {
+      id: 'sphinx_listen',
+      label: '💬 スフィンクスの話を聞く (反応表判定)',
+      onSelect: async () => {
+        const reactRoll = Math.floor(Math.random() * 6) + 1;
+        addLogFn(`🦁 スフィンクスの反応チェック (1d6ロール: ${reactRoll})`, 'roll');
+        
+        if (reactRoll === 6) {
+          addLogFn('🦁 反応: 【敵対的】 (出目: 6) - スフィンクスは話をする様子がなく、襲いかかってきました！', 'error');
+          event.type = 'encounter';
+          event.enemies = [
+            {
+              name: 'おしゃべりスフィンクス',
+              level: 3,
+              lifeMax: 5,
+              lifeCurrent: 5,
+              attackCount: 2,
+              tags: ['monster'],
+              count: 1,
+              weaponAttribute: 'strike'
+            } as any
+          ];
+          (event as any).customChoices = null;
+          startEncounterFn();
+        } else if (reactRoll <= 2) {
+          addLogFn(`🦁 反応: 【友好的】 (出目: ${reactRoll}) - 話が丁寧で聞き取りやすく、頭痛もありませんでした！`, 'success');
+          giveSphinxClue(event, character);
+        } else {
+          addLogFn(`🦁 反応: 【中立】 (出目: ${reactRoll}) - 言葉遣いが荒く、理解が極めて難解な長話をされました。`, 'info');
+          const hasEarrings = character.value.items.some(i => i.id === 'cactus_earrings');
+          if (hasEarrings) {
+            addLogFn('🌵 『サボテンの耳飾り』を装着しているため、退屈な長話による頭痛の災難を完全に回避しました！', 'success');
+            giveSphinxClue(event, character);
+          } else {
+            addLogFn('🤯 難解な長話により激しい頭痛に襲われました！判定が必要です。', 'error');
+            setupSphinxHeadacheChoice(event, character);
+          }
+        }
+      }
+    },
+    {
+      id: 'sphinx_fight',
+      label: '⚔️ スフィンクスを力ずくで排除する (戦う)',
+      onSelect: () => {
+        addLogFn('⚔️ おしゃべりスフィンクスと戦闘に入ります！', 'combat');
+        event.type = 'encounter';
+        event.enemies = [
+          {
+            name: 'おしゃべりスフィンクス',
+            level: 3,
+            lifeMax: 5,
+            lifeCurrent: 5,
+            attackCount: 2,
+            tags: ['monster'],
+            count: 1,
+            weaponAttribute: 'strike'
+          } as any
+        ];
+        (event as any).customChoices = null;
+        startEncounterFn();
+      }
+    },
+    {
+      id: 'sphinx_leave',
+      label: '🏃 相手にせず立ち去る',
+      onSelect: () => {
+        addLogFn('🏃 スフィンクスを無視して部屋を立ち去りました。', 'info');
+        event.isResolved = true;
+        event.resolutionText = 'スフィンクスには構わず、部屋を立ち去りました。';
+        (event as any).customChoices = null;
+      }
+    }
+  ];
+
+  (event as any).customChoices = customChoices;
+}
+
+function giveSphinxClue(event: DungeonEvent, character: Ref<Character>) {
+  character.value.items.push({
+    id: 'sphinx_clue',
+    name: 'スフィンクスの手がかり',
+    type: 'clue',
+    goldCost: 0,
+    value: 0,
+    description: 'おしゃべりスフィンクスから聞いた、兄（謎かけスフィンクス）の好きななぞなぞや弱点に関する手がかり。'
+  } as any);
+  addLogFn('🎁 なぞなぞに関する『手がかり』を獲得しました！ (背負い袋に追加)', 'success');
+  addLogFn('スフィンクス:「おお、久しぶりの客人だ。兄弟といっても性格はそれぞれだ。私は温厚だが、兄たちは意地悪だからな。なぞなぞの答え？そうだ、答えは【足跡】だ。覚えておけ」', 'info');
+
+  event.isResolved = true;
+  event.resolutionText = 'スフィンクスの長話に耐え、兄（謎かけスフィンクス）のなぞなぞに関する『手がかり』を獲得しました。\n\n【スフィンクスの話した情報】\n・兄が出すなぞなぞの答えは「足跡」である。';
+  (event as any).customChoices = null;
+}
+
+function setupSphinxHeadacheChoice(event: DungeonEvent, character: Ref<Character>) {
+  (event as any).customChoices = [
+    {
+      id: 'sphinx_headache_roll',
+      label: '🤯 頭痛に耐えるため生命判定を行う 【目標値: 8 / 技量点判定】',
+      checkStat: 'skill',
+      checkTarget: 8,
+      onSelect: (res: { success: boolean; roll: number }) => {
+        if (res.roll === 1) {
+          character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
+          character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
+          addLogFn('💀 ファンブル！激しい頭痛により生命力を1点失い、さらに幸運点を1点失いました！', 'error');
+        } else if (res.success) {
+          addLogFn('🛡️ 判定成功！頭痛を気合いで耐え抜きました。', 'success');
+        } else {
+          character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
+          addLogFn('💥 判定失敗！頭痛により生命力を1点失いました。', 'error');
+        }
+        
+        giveSphinxClue(event, character);
+      }
+    }
+  ];
 }
 
 

@@ -73,7 +73,7 @@ function choosePyramidOrigin(origin: 'polomeia' | 'almaciuda') {
       name: '黄金虫のブローチ',
       type: 'accessory',
       goldCost: 0,
-      description: '【シナリオ限定】器用点以外でも察知を行える（器用点なら察知+1修正）。2回使用で破損。冒険終了時に要返却。',
+      description: 'これを身につけていると、副能力値が【器用点】でなくても『察知』を行うことができる。副能力値が【器用点】の場合は、判定ロールに＋１の修正を加えることができる。２回の使用で、ブローチにはヒビが入り効果を失う。また冒険が終わったとき残っていたら、王に返却すること。',
       value: 0,
       charges: 2
     } as any);
@@ -96,7 +96,9 @@ function startPyramidPrep() {
   } else if (run === 2) {
     storyText = (scenarioData as any).prologues["2"]?.[origin]?.text || '';
   } else if (run === 3) {
-    storyText = (scenarioData as any).prologues["3"]?.common?.text || '';
+    const commonText = (scenarioData as any).prologues["3"]?.common?.text || '';
+    const uniqueText = (scenarioData as any).prologues["3"]?.[origin]?.text || '';
+    storyText = commonText + '\n\n' + uniqueText;
   }
 
   if (storyText) {
@@ -464,6 +466,272 @@ function resolvePriest(choice: 'heal' | 'holywater') {
   (activeEvent.value as any).resolutionText = text;
 }
 
+// Jill-Mega Event 23 Option
+async function resolveJillMega(help: boolean) {
+  if (!activeEvent.value) return;
+  if (help) {
+    clearDiceTray();
+    addLog('🎲 キャットゴーレムの出現数を決定するために1d6を振ります...', 'info');
+    const d6 = await rollD6(true);
+    const count = Math.ceil((d6 + 2) / 2);
+    addLog(`🎲 ダイスロール: ${d6} (出現数: ${d6}+2 = ${d6+2}体)`, 'info');
+    addLog(`⚔️ 手助けのために、その半数（端数切り上げ）のキャットゴーレム ${count} 体と戦闘を行います！`, 'success');
+    
+    // Generate enemies list dynamically
+    activeEvent.value.enemies = [];
+    for (let i = 0; i < count; i++) {
+      activeEvent.value.enemies.push({
+        name: count === 1 ? 'キャットゴーレム' : `キャットゴーレム ${String.fromCharCode(65 + i)}`,
+        level: 4,
+        lifeMax: 2,
+        lifeCurrent: 2,
+        attackCount: 1,
+        tags: ["weak", "golem"],
+        count: 1
+      });
+    }
+    
+    activeEvent.value.type = 'encounter';
+    startEncounter();
+  } else {
+    const text = '🐱 ジル＝メガをその場に残し、関わらないように部屋を立ち去りました。';
+    activeEvent.value.isResolved = true;
+    activeEvent.value.resolutionText = text;
+    addLog(text, 'info');
+  }
+}
+
+// Alan Event 25 Option
+async function rollAlanReaction() {
+  clearDiceTray();
+  addLog('🎲 アランの反応チェックを行います...', 'info');
+  const roll = await rollD6(true);
+  if (roll <= 2) { // Friendly
+    addLog(`🎲 反応チェック: ${roll} 【友好的】 - アランはアダマンタイトを譲ってくれました！`, 'success');
+    character.value.items.push({
+      id: Math.random().toString(36).substring(2, 9),
+      name: 'アダマンタイト',
+      type: 'quest',
+      goldCost: 20,
+      value: 20,
+      description: '頑強な地下鉱物の原石。武具 of 素材として使われる。原石のまま投擲武器としても使用できるが、大きく重いため【判定ロール】に−２の修正が入る。代わりに命中すればダメージに＋１される。１回の戦闘で１度しか使用できない。逃走した場合は失われる。'
+    } as any);
+    activeEvent.value.isResolved = true;
+    activeEvent.value.resolutionText = 'アランと友好的に交渉し、無事にアダマンタイトを譲り受けました。';
+  } else if (roll <= 4) { // Neutral
+    addLog(`🎲 反応チェック: ${roll} 【中立】 - アラン「これは私が持ち帰った方が有効に使える。あきらめろ」`, 'error');
+    (activeEvent.value as any).alanChoiceState = 'neutral';
+  } else { // Hostile
+    addLog(`🎲 反応チェック: ${roll} 【敵対的】 - アランは武器を構え、襲いかかってきました！`, 'error');
+    startAlanFight(false);
+  }
+}
+
+function resolveAlanNeutral(choice: 'leave' | 'fight' | 'duel') {
+  if (!activeEvent.value) return;
+  if (choice === 'leave') {
+    let text = 'アランとの争いを避けるため、アダマンタイトを諦めて立ち去りました。';
+    if ((character.value as any).pyramidOrigin === 'almaciuda') {
+      character.value.food = (character.value.food || 0) + 1;
+      text += ' アランは「代わりにこれを持っていけ」と食料を1回分くれました。';
+    }
+    activeEvent.value.isResolved = true;
+    activeEvent.value.resolutionText = text;
+    addLog(text, 'info');
+  } else if (choice === 'fight') {
+    startAlanFight(false);
+  } else if (choice === 'duel') {
+    startAlanFight(true);
+  }
+}
+
+function startAlanFight(isDuel: boolean) {
+  if (!activeEvent.value) return;
+  activeEvent.value.enemies = [
+    { name: "黒蜘蛛隊隊長アラン", level: 5, lifeMax: 5, lifeCurrent: 5, attackCount: 1, tags: ["strong"], count: 1, weaponAttribute: "strike" }
+  ];
+  if (isDuel) {
+    addLog('⚔️ 1対1の決闘を受け入れました！ 第1ラウンドの攻撃ロールに+1修正を得ます。', 'success');
+    (combatState as any).alanDuel = true;
+  }
+  activeEvent.value.type = 'encounter';
+  startEncounter();
+}
+
+// Painting Event 53 Option
+async function rollPaintingLuck() {
+  if (!activeEvent.value) return;
+  clearDiceTray();
+  addLog('🎲 僧侶の企みに気づけるか、幸運ロール（目標値: 4）を行います...', 'info');
+  const roll = await rollD6(true);
+  const total = roll + (character.value.subStatType === 'luck' ? character.value.subStatCurrent : 0);
+  if (total >= 4) {
+    addLog(`🎲 幸運ロール成功: ${roll} + 修正 = ${total} (目標値: 4)`, 'success');
+    addLog('✨ 僧侶の召喚の儀式にいち早く気づきました！ 奇襲の遠距離攻撃を行えます！', 'success');
+    (activeEvent.value as any).paintingState = 'ranged_chance';
+  } else {
+    addLog(`🎲 幸運ロール失敗: ${roll} + 修正 = ${total} (目標値: 4)`, 'error');
+    addLog('👿 企みに気づくのが遅れ、絵から下級悪魔が出現しました！', 'error');
+    startPaintingFight();
+  }
+}
+
+async function rollPaintingRanged() {
+  if (!activeEvent.value) return;
+  clearDiceTray();
+  addLog('🏹 遠距離攻撃（目標値: 3）を行います...', 'info');
+  const roll = await rollD6(true);
+  const modifier = character.value.subStatType === 'dexterity' ? character.value.subStatCurrent : character.value.skillCurrent;
+  const finalVal = roll + modifier;
+  if (finalVal >= 3) {
+    addLog(`🎲 射撃成功: ${roll} + 修正 = ${finalVal} (目標値: 3)`, 'success');
+    const text = '🏹 見事に射撃が命中し、僧侶は絶命しました！ 悪魔の召喚は未然に防がれました。';
+    activeEvent.value.isResolved = true;
+    activeEvent.value.resolutionText = text;
+    addLog(text, 'success');
+  } else {
+    addLog(`🎲 射撃失敗: ${roll} + 修正 = ${finalVal} (目標値: 3)`, 'error');
+    addLog('👿 矢は外れた！ 儀式が完了し、絵から下級悪魔が出現しました！', 'error');
+    startPaintingFight();
+  }
+}
+
+function startPaintingFight() {
+  if (!activeEvent.value) return;
+  clearDiceTray();
+  const d6 = Math.floor(Math.random() * 6) + 1;
+  addLog(`🎲 出現数ダイスロール: ${d6} (出現数: ${d6}体)`, 'info');
+  activeEvent.value.enemies = [];
+  for (let i = 0; i < d6; i++) {
+    activeEvent.value.enemies.push({
+      name: d6 === 1 ? '下級悪魔' : `下級悪魔 ${String.fromCharCode(65 + i)}`,
+      level: 4,
+      lifeMax: 2,
+      lifeCurrent: 2,
+      attackCount: 1,
+      tags: ["demon", "weak"],
+      count: 1,
+      weaponAttribute: "fire"
+    });
+  }
+  activeEvent.value.type = 'encounter';
+  startEncounter();
+}
+
+// Right Arm Event 61 Option
+async function rollRightArmReaction() {
+  if (!activeEvent.value) return;
+  clearDiceTray();
+  addLog('🎲 ヘラクレオスの右腕の反応判定を行います...', 'info');
+  const roll = await rollD6(true);
+  if (roll <= 3) {
+    addLog(`🎲 反応判定: ${roll} 【無視】 - 右腕はあなたに気づいていません。無視して立ち去ることができます。`, 'success');
+    (activeEvent.value as any).rightArmState = 'ignore_choice';
+  } else {
+    addLog(`🎲 反応判定: ${roll} 【死ぬまで戦う】 - 右腕が動き出し襲いかかってきました！`, 'error');
+    startRightArmFight();
+  }
+}
+
+function resolveRightArmIgnore(ignore: boolean) {
+  if (!activeEvent.value) return;
+  if (ignore) {
+    let text = '無視して立ち去りました。';
+    const hasStone = character.value.items.some(i => i.name === '青の聖石');
+    if (!hasStone) {
+      if (!character.value.statusEffects) character.value.statusEffects = [];
+      if (!character.value.statusEffects.includes('呪い')) {
+        character.value.statusEffects.push('呪い');
+      }
+      text += ' ⚠️ 青の聖石を持たずに立ち去ったため、右腕の絶望による【呪い】（防御判定-1）を受けました。';
+      addLog('⚠️ ヘラクレオスの右腕の絶望により【呪い】状態になりました。', 'error');
+    }
+    activeEvent.value.isResolved = true;
+    activeEvent.value.resolutionText = text;
+  } else {
+    startRightArmFight();
+  }
+}
+
+function useRightArmStone() {
+  if (!activeEvent.value) return;
+  const stoneIdx = character.value.items.findIndex(i => i.name === '青の聖石');
+  if (stoneIdx !== -1) {
+    character.value.items.splice(stoneIdx, 1);
+    (character.value as any).heraclesRightBuff = true;
+    addLog('💎 青の聖石を消費して、怪力王ヘラクレオスの右腕の魂を救いました！ 悪魔への追加ダメージ+1を得ます。', 'success');
+    const text = '青の聖石を使用してヘラクレオスの右腕を救済しました。怪力王の魂が宿り、悪魔への追加ダメージ+1を得ました。';
+    activeEvent.value.isResolved = true;
+    activeEvent.value.resolutionText = text;
+  }
+}
+
+function startRightArmFight() {
+  if (!activeEvent.value) return;
+  activeEvent.value.enemies = [
+    { name: "ヘラクレオスの右腕", level: 5, lifeMax: 7, lifeCurrent: 7, attackCount: 2, tags: ["strong", "golem"], count: 1, weaponAttribute: "strike" }
+  ];
+  activeEvent.value.type = 'encounter';
+  startEncounter();
+}
+
+// Left Arm Event 62 Option
+async function rollLeftArmReaction() {
+  if (!activeEvent.value) return;
+  clearDiceTray();
+  addLog('🎲 ヘラクレオスの左腕の反応判定を行います...', 'info');
+  const roll = await rollD6(true);
+  if (roll <= 3) {
+    addLog(`🎲 反応判定: ${roll} 【無視】 - 左腕はあなたに気づいていません。無視して立ち去ることができます。`, 'success');
+    (activeEvent.value as any).leftArmState = 'ignore_choice';
+  } else {
+    addLog(`🎲 反応判定: ${roll} 【死ぬまで戦う】 - 左腕が動き出し襲いかかってきました！`, 'error');
+    startLeftArmFight();
+  }
+}
+
+function resolveLeftArmIgnore(ignore: boolean) {
+  if (!activeEvent.value) return;
+  if (ignore) {
+    let text = '無視して立ち去りました。';
+    const hasStone = character.value.items.some(i => i.name === '赤の聖石');
+    if (!hasStone) {
+      if (!character.value.statusEffects) character.value.statusEffects = [];
+      if (!character.value.statusEffects.includes('呪い')) {
+        character.value.statusEffects.push('呪い');
+      }
+      text += ' ⚠️ 赤の聖石を持たずに立ち去ったため、左腕の悔恨による【呪い】（防御判定-1）を受けました。';
+      addLog('⚠️ ヘラクレオスの左腕の悔恨により【呪い】状態になりました。', 'error');
+    }
+    activeEvent.value.isResolved = true;
+    activeEvent.value.resolutionText = text;
+  } else {
+    startLeftArmFight();
+  }
+}
+
+function useLeftArmStone() {
+  if (!activeEvent.value) return;
+  const stoneIdx = character.value.items.findIndex(i => i.name === '赤の聖石');
+  if (stoneIdx !== -1) {
+    character.value.items.splice(stoneIdx, 1);
+    (character.value as any).heraclesLeftBuff = true;
+    addLog('💎 赤の聖石を消費して、怪力王ヘラクレオスの左腕の魂を救いました！ 悪魔への防御+1を得ます。', 'success');
+    const text = '赤の聖石を使用してヘラクレオスの左腕を救済しました。怪力王の魂が宿り、悪魔への防御ロール+1を得ました。';
+    activeEvent.value.isResolved = true;
+    activeEvent.value.resolutionText = text;
+  }
+}
+
+function startLeftArmFight() {
+  if (!activeEvent.value) return;
+  activeEvent.value.enemies = [
+    { name: "ヘラクレオスの左腕", level: 4, lifeMax: 7, lifeCurrent: 7, attackCount: 1, tags: ["strong", "golem"], count: 1, weaponAttribute: "strike" }
+  ];
+  activeEvent.value.type = 'encounter';
+  startEncounter();
+}
+
 // Wounded mercenary option
 function resolveMercenary(save: boolean) {
   if (!activeEvent.value) return;
@@ -555,6 +823,15 @@ async function handleCustomChoiceClick(choice: any) {
     addLog(`🧭 独自判定開始: 【${choice.checkStat.toUpperCase()}】判定ロール (目標値: ${choice.checkTarget || 3})`, 'info');
     const roll = await rollD6(true);
     let modifier = 0;
+
+    // Apply 剛力丸 (strong_pill) bonus
+    const pillIdx = character.value.items.findIndex(i => i.id === 'strong_pill');
+    if (choice.checkStat === 'strength' && pillIdx !== -1) {
+      modifier += 1;
+      character.value.items.splice(pillIdx, 1);
+      addLog('💊 『剛力丸』を服用し、筋力判定に +1 ボーナスを得ました！(アイテムを消費)', 'success');
+    }
+
     if (!carriesLantern.value) {
       modifier -= 2;
       addLog('暗闇のため判定に -2 のペナルティ！', 'error');
@@ -1107,6 +1384,76 @@ function resolveSkeletonEvent() {
           <button @click="resolveCaptive(false)" class="btn-ink btn-secondary">無視して進む</button>
         </div>
 
+        <!-- Alan NPC (Event 25) -->
+        <div v-else-if="activeEvent.npcType === 'alan'" class="button-group" style="flex-direction: column; gap: 10px;">
+          <div v-if="!activeEvent.alanChoiceState" style="width: 100%;">
+            <button @click="rollAlanReaction" class="btn-ink btn-large" style="width: 100%;">🎲 アランの反応チェックを行う</button>
+          </div>
+          <div v-else-if="activeEvent.alanChoiceState === 'neutral'" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            <p style="font-size: 0.9rem; color: #8c1c1c; font-weight: bold; margin: 0 0 5px 0; text-align: center;">アラン「あきらめろ。これは私が持ち帰る」</p>
+            <button @click="resolveAlanNeutral('leave')" class="btn-ink btn-secondary" style="width: 100%;">🚪 アダマンタイトを諦めて立ち去る</button>
+            <button @click="resolveAlanNeutral('fight')" class="btn-ink btn-red" style="width: 100%;">⚔️ 諦めずに戦い奪い取る (全体戦闘)</button>
+            <button @click="resolveAlanNeutral('duel')" class="btn-ink btn-red" style="width: 100%;">⚔️ 1対1の決闘を受ける (ボーナスあり)</button>
+          </div>
+        </div>
+
+        <!-- Painting NPC (Event 53) -->
+        <div v-else-if="activeEvent.npcType === 'dread_painting'" class="button-group" style="flex-direction: column; gap: 10px;">
+          <div v-if="!activeEvent.paintingState" style="width: 100%;">
+            <button @click="rollPaintingLuck" class="btn-ink btn-large" style="width: 100%;">✨ 幸運判定ロールを行う (判定値: 4)</button>
+          </div>
+          <div v-else-if="activeEvent.paintingState === 'ranged_chance'" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            <p style="font-size: 0.9rem; color: #1e5a38; font-weight: bold; margin: 0 0 5px 0; text-align: center;">僧侶の企みに気づいた！ 召喚前に狙撃できます！</p>
+            <button @click="rollPaintingRanged" class="btn-ink btn-large" style="width: 100%;">🏹 遠距離攻撃を行う (目標値: 3)</button>
+          </div>
+        </div>
+
+        <!-- Right Arm NPC (Event 61) -->
+        <div v-else-if="activeEvent.npcType === 'heracles_right'" class="button-group" style="flex-direction: column; gap: 10px;">
+          <div v-if="!activeEvent.rightArmState" style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
+            <button 
+              v-if="character.items.some(i => i.name === '青の聖石')" 
+              @click="useRightArmStone" 
+              class="btn-ink btn-large" 
+              style="width: 100%; font-weight: bold; background: #e0f2f1; border-color: #4db6ac; color: #00796b;"
+            >
+              💎 青の聖石を使用して、怪力王の魂を救う
+            </button>
+            <button @click="rollRightArmReaction" class="btn-ink btn-large" style="width: 100%;">🎲 反応チェックを行う</button>
+          </div>
+          <div v-else-if="activeEvent.rightArmState === 'ignore_choice'" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            <p style="font-size: 0.9rem; color: #1e5a38; font-weight: bold; margin: 0 0 5px 0; text-align: center;">右腕はあなたに気づいていません。</p>
+            <button @click="resolveRightArmIgnore(true)" class="btn-ink btn-secondary" style="width: 100%;">🚪 無視して先に進む</button>
+            <button @click="resolveRightArmIgnore(false)" class="btn-ink btn-red" style="width: 100%;">⚔️ あえて戦闘を仕掛ける</button>
+          </div>
+        </div>
+
+        <!-- Left Arm NPC (Event 62) -->
+        <div v-else-if="activeEvent.npcType === 'heracles_left'" class="button-group" style="flex-direction: column; gap: 10px;">
+          <div v-if="!activeEvent.leftArmState" style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
+            <button 
+              v-if="character.items.some(i => i.name === '赤の聖石')" 
+              @click="useLeftArmStone" 
+              class="btn-ink btn-large" 
+              style="width: 100%; font-weight: bold; background: #ffebee; border-color: #ef5350; color: #c62828;"
+            >
+              💎 赤の聖石を使用して、怪力王の魂を救う
+            </button>
+            <button @click="rollLeftArmReaction" class="btn-ink btn-large" style="width: 100%;">🎲 反応チェックを行う</button>
+          </div>
+          <div v-else-if="activeEvent.leftArmState === 'ignore_choice'" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            <p style="font-size: 0.9rem; color: #1e5a38; font-weight: bold; margin: 0 0 5px 0; text-align: center;">左腕はあなたに気づいていません。</p>
+            <button @click="resolveLeftArmIgnore(true)" class="btn-ink btn-secondary" style="width: 100%;">🚪 無視して先に進む</button>
+            <button @click="resolveLeftArmIgnore(false)" class="btn-ink btn-red" style="width: 100%;">⚔️ あえて戦闘を仕掛ける</button>
+          </div>
+        </div>
+
+        <!-- Jill-Mega NPC -->
+        <div v-else-if="activeEvent.npcType === 'jill_mega'" class="button-group">
+          <button @click="resolveJillMega(true)" class="btn-ink">⚔️ ジル＝メガを手助けする</button>
+          <button @click="resolveJillMega(false)" class="btn-ink btn-secondary">🚪 放っておいて先に進む</button>
+        </div>
+
         <!-- Fallback explore room clear -->
         <div v-else>
           <div v-if="isBackpackOverLimit" class="overlimit-warning-banner" style="background: rgba(140, 28, 28, 0.1); border: 1px solid #8c1c1c; padding: 12px; border-radius: 4px; color: #8c1c1c; font-size: 0.9rem; margin-bottom: 10px; text-align: left;">
@@ -1314,10 +1661,12 @@ function resolveSkeletonEvent() {
 }
 
 .event-description {
-  font-size: 1rem;
-  line-height: 1.5;
+  font-size: 1.05rem;
+  line-height: 1.6;
   color: #4a3c31;
   margin-bottom: 25px;
+  white-space: pre-wrap;
+  text-align: left;
 }
 
 .event-actions {

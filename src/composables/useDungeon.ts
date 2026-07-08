@@ -394,6 +394,14 @@ export function useDungeon() {
     const roll = await rollD6(true);
     let modifier = 0;
 
+    // Apply 剛力丸 (strong_pill) bonus
+    const pillIdx = character.value.items.findIndex(i => i.id === 'strong_pill');
+    if (stat === 'strength' && pillIdx !== -1) {
+      modifier += 1;
+      character.value.items.splice(pillIdx, 1);
+      addLog('💊 『剛力丸』を服用し、筋力判定に +1 ボーナスを得ました！(アイテムを消費)', 'success');
+    }
+
     // Lantern penalty
     if (!carriesLantern.value) {
       modifier -= 2;
