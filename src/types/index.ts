@@ -123,7 +123,7 @@ export interface DungeonEvent {
   trapTarget?: number;
   trapDamage?: number;
   lootModifier?: number;
-  npcType?: 'merchant' | 'bribe' | 'priest' | 'mercenary' | 'captive' | 'final2_choice' | 'desert_crocodile';
+  npcType?: 'merchant' | 'bribe' | 'priest' | 'mercenary' | 'captive' | 'final2_choice' | 'desert_crocodile' | 'alan' | 'dread_painting' | 'heracles_right' | 'heracles_left' | 'jill_mega';
   isResolved?: boolean;
   resolutionText?: string;
   statusEffect?: string; // 【追加】 罠によって受ける状態異常（例: '呪い', '石化', '麻痺'）

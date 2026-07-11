@@ -31,6 +31,7 @@ async function handleFinal1Jump(context: ScenarioPluginContext) {
     const nextStep = step + 1;
     (character.value as any).pyramidFinal1Step = nextStep;
     const nextTarget = nextStep === 3 ? 4 : 3;
+    if (!activeEvent.value) return;
     activeEvent.value.description = `ドワーフの魔道士ミロスの過去の幻影に出会いました。話している最中、足元の床が崩落を始めます！\n崩れ去る床を跳び越えるため、3回の【器用度判定】を行ってください。\n\n🏃 床の崩落を跳び越える (器用判定 ${nextStep}回目 / 3回中)\n${nextStep}回目目標値: ${nextTarget} (失敗時: 生命力 -1)`;
   } else {
     const scenarioData = activeScenario.value;
@@ -69,6 +70,7 @@ async function handleFinal1Jump(context: ScenarioPluginContext) {
     }
 
     const rText = `🎉 無事に崩落する床を渡りきりました！\n金貨 ${goldReward} 枚、1 Exp、そしてプラチナコインを獲得し、次の冒険の準備へ向かいます。`;
+    if (!activeEvent.value) return;
     activeEvent.value.isResolved = true;
     activeEvent.value.resolutionText = rText;
     activeEvent.value.customChoices = undefined;
@@ -94,6 +96,7 @@ async function handleCrocodileBribe(context: ScenarioPluginContext, type: 'food'
   const roll = await rollD6!(true);
   if (roll <= 3) {
     addLogFn(`🤝 成功！ ワニは満腹になり、静かに水底へ去っていきました。 (出目: ${roll})`, 'success');
+    if (!activeEvent.value) return;
     activeEvent.value.isResolved = true;
     activeEvent.value.resolutionText = '🐊 ワニは満腹になり、水底へ去っていきました。無事にホークを救出し、彼が同行します。';
     activeEvent.value.customChoices = undefined;
