@@ -79,7 +79,17 @@
           "tags": [
             "golem"
           ],
-          "count": 1
+          "count": 1,
+          "resistances": [
+            {
+              "attribute": "slash",
+              "modifier": -1
+            },
+            {
+              "attribute": "strike",
+              "modifier": 1
+            }
+          ]
         },
         {
           "name": "キャットゴーレム B",
@@ -90,7 +100,17 @@
           "tags": [
             "golem"
           ],
-          "count": 1
+          "count": 1,
+          "resistances": [
+            {
+              "attribute": "slash",
+              "modifier": -1
+            },
+            {
+              "attribute": "strike",
+              "modifier": 1
+            }
+          ]
         }
       ]
     },
@@ -422,7 +442,14 @@
           "tags": [
             "golem"
           ],
-          "count": 1
+          "count": 1,
+          "resistances": [
+            {
+              "attribute": "ranged",
+              "modifier": -1,
+              "ignoreIfMagic": true
+            }
+          ]
         },
         {
           "name": "木ゴーレム B",
@@ -433,7 +460,14 @@
           "tags": [
             "golem"
           ],
-          "count": 1
+          "count": 1,
+          "resistances": [
+            {
+              "attribute": "ranged",
+              "modifier": -1,
+              "ignoreIfMagic": true
+            }
+          ]
         },
         {
           "name": "木ゴーレム C",
@@ -444,7 +478,14 @@
           "tags": [
             "golem"
           ],
-          "count": 1
+          "count": 1,
+          "resistances": [
+            {
+              "attribute": "ranged",
+              "modifier": -1,
+              "ignoreIfMagic": true
+            }
+          ]
         }
       ]
     },
@@ -533,7 +574,17 @@
             "strong",
             "golem"
           ],
-          "count": 1
+          "count": 1,
+          "resistances": [
+            {
+              "attribute": "slash",
+              "modifier": -1
+            },
+            {
+              "attribute": "strike",
+              "modifier": 1
+            }
+          ]
         }
       ]
     },
@@ -554,7 +605,17 @@
             "strong",
             "golem"
           ],
-          "count": 1
+          "count": 1,
+          "resistances": [
+            {
+              "attribute": "ranged",
+              "modifier": -1
+            },
+            {
+              "attribute": "strike",
+              "modifier": 1
+            }
+          ]
         }
       ]
     },
@@ -756,7 +817,13 @@
             "value": 100,
             "description": "【シナリオ限定】この剣は【斬撃】の特徴を持ち、【悪魔】の属するクリーチャーに対して【攻撃ロール】＋１、【ダメージ】に＋１のボーナスが入る。金貨100枚の価値がある。",
             "modAttack": 0,
-            "attribute": "slash"
+            "attribute": "slash",
+            "tagModifiers": {
+              "demon": 1
+            },
+            "tagDamageModifiers": {
+              "demon": 1
+            }
           },
           {
             "id": "angels_amulet",
@@ -867,6 +934,14 @@
           "value": 50,
           "isMagic": true,
           "description": "【シナリオ限定】軽い武器（斬撃）。アンデッド・悪魔に対して攻撃ロール+1、ダメージ+1。"
+        },
+        "tagModifiers": {
+          "demon": 1,
+          "undead": 1
+        },
+        "tagDamageModifiers": {
+          "demon": 1,
+          "undead": 1
         }
       },
       {

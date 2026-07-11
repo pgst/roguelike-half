@@ -33,7 +33,14 @@ const {
   clearLogs,
   forgetSpell,
   activeScenario,
-  isBackpackFull
+  isBackpackFull,
+  combatState,
+  activeEvent,
+  pyramidRunCount,
+  triggerLevelUp,
+  transitionToSuccess,
+  transitionToExplore,
+  triggerGameOver
 } = useGameState();
 
 const ALL_SPELLS = [
@@ -206,7 +213,22 @@ function buyChurchBlessing() {
 
 // Resolve dungeon victory, move to next adventure level-up
 function proceedToNextAdventure() {
-  runScenarioHook(activeScenario.value?.id, 'onAdventureEnd', character, followers);
+  const context = {
+    character,
+    followers,
+    combatState,
+    currentScreen,
+    dungeonDepth,
+    activeEvent,
+    activeScenario,
+    addLog,
+    pyramidRunCount,
+    triggerLevelUp,
+    transitionToSuccess,
+    transitionToExplore,
+    triggerGameOver
+  };
+  runScenarioHook(activeScenario.value?.id, 'onAdventureEnd', context);
   restoreStatsAfterAdventure();
   // Clear depth
   dungeonDepth.value = 0;
@@ -215,7 +237,7 @@ function proceedToNextAdventure() {
   character.value.level += 1;
   addLog(`🎉 ダンジョンクリア報酬！ 経験値 +1。新しいレベルは ${character.value.level} です。`, 'success');
   activeScenario.value = null; // シナリオの選択状態をクリア
-  currentScreen.value = 'levelup'; // 直接レベルアップ/街の市場画面へ遷移
+  triggerLevelUp(); // 直接レベルアップ/街の市場画面へ遷移
 }
 
 // Re-try after death (Rule 41)
@@ -306,7 +328,7 @@ function handleRetry() {
 
   clearLogs();
   addLog(`💀 再挑戦！ レベル ${prevLevel} の強さを受け継ぎ、新しい体で復活しました。経験点 ${carryExp} 点を配分して金貨 ${bonusGold} 枚でリスタートします。`, 'success');
-  currentScreen.value = 'levelup';
+  triggerLevelUp();
 }
 
 function startAdventure() {
@@ -320,9 +342,24 @@ function startAdventure() {
       return;
     }
   }
-  currentScreen.value = 'explore';
+  transitionToExplore();
   addLog('🧭 さあ、暗い地下迷宮へと歩みを進めましょう！ 生きて宝を持ち帰るために。', 'success');
-  runScenarioHook(activeScenario.value?.id, 'onAdventureStart', character, followers);
+  const context = {
+    character,
+    followers,
+    combatState,
+    currentScreen,
+    dungeonDepth,
+    activeEvent,
+    activeScenario,
+    addLog,
+    pyramidRunCount,
+    triggerLevelUp,
+    transitionToSuccess,
+    transitionToExplore,
+    triggerGameOver
+  };
+  runScenarioHook(activeScenario.value?.id, 'onAdventureStart', context);
 }
 
 const logbookRef = ref<HTMLElement | null>(null);

@@ -261,11 +261,32 @@ function startFinal2Fight(choice: 'golem' | 'shireen') {
   if (!activeEvent.value) return;
   if (choice === 'golem') {
     activeEvent.value.enemies = [
-      { name: "至高のヘラクレオス", level: 5, lifeMax: 12, lifeCurrent: 12, attackCount: 1, tags: ["golem", "strong"], count: 1 }
+      {
+        name: "至高のヘラクレオス",
+        level: 5,
+        lifeMax: 12,
+        lifeCurrent: 12,
+        attackCount: 1,
+        tags: ["golem", "strong"],
+        count: 1,
+        resistances: [
+          { attribute: "slash", modifier: -2 },
+          { attribute: "strike", modifier: 1 }
+        ]
+      }
     ];
   } else {
     activeEvent.value.enemies = [
-      { name: "異端者シーリーン", level: 5, lifeMax: 5, lifeCurrent: 5, attackCount: 3, tags: ["strong"], count: 1 }
+      {
+        name: "異端者シーリーン",
+        level: 5,
+        lifeMax: 5,
+        lifeCurrent: 5,
+        attackCount: 3,
+        tags: ["strong"],
+        count: 1,
+        evasionRule: "shireen_future_sight"
+      }
     ];
   }
   startEncounter();

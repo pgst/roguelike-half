@@ -119,7 +119,7 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
     if (screen === 'explorer') {
       const overlimitBanner = page.locator('.overlimit-warning-banner');
       if (await overlimitBanner.isVisible({ timeout: 0 })) {
-        const discardBtn = page.locator('.adventure-sheet button:has-text("捨てる")');
+        const discardBtn = page.locator('.adventure-sheet button:has-text("捨てる")').filter({ visible: true });
         if (await discardBtn.first().isVisible({ timeout: 0 })) {
           if (await safeClick(discardBtn.first(), 'Discarding item to resolve inventory overlimit')) {
             actionCount++;

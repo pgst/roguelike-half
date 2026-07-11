@@ -9,6 +9,8 @@ export interface Weapon {
   magicChargesMax?: number;
   description: string;
   fumblesCount?: number;
+  tagModifiers?: Record<string, number>; // 【追加】 特定のエネミータグ（例: 'demon', 'undead'）に対する攻撃修正
+  tagDamageModifiers?: Record<string, number>; // 【追加】 特定のエネミータグ（例: 'demon', 'undead'）に対するダメージ修正
 }
 
 export interface Armor {
@@ -89,6 +91,12 @@ export interface Follower {
   statusEffects?: string[]; // 【追加】 呪い、石化、麻痺などの状態異常を保持
 }
 
+export interface EnemyResistance {
+  attribute: 'strike' | 'slash' | 'ranged' | 'magic';
+  modifier: number;
+  ignoreIfMagic?: boolean;
+}
+
 export interface Enemy {
   id: string;
   name: string;
@@ -101,6 +109,8 @@ export interface Enemy {
   count: number; // for groups of weak enemies
   isRanged?: boolean; // 【追加】 飛び道具（遠距離攻撃）を行うクリーチャーかの判定フラグ
   weaponAttribute?: 'strike' | 'slash';
+  resistances?: EnemyResistance[]; // 【追加】 特定の攻撃属性（strike, slash, ranged, magic）に対する修正
+  evasionRule?: string; // 【追加】 特殊回避ルール（例: 'shireen_future_sight'）
 }
 
 export interface DungeonEvent {

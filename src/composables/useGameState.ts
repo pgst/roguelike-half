@@ -1,5 +1,6 @@
 import { ref, reactive, computed, watch } from 'vue';
 import type { Character, Follower, Enemy, Weapon, Armor, Shield, GeneralItem, DungeonEvent, Scenario, StatusEffectRule } from '../types';
+import { GameSession, PlayerCharacter } from '../domain';
 
 // Load Scenarios
 const scenarioModules = import.meta.glob<{ default: any }>('../data/scenarios/*.json', { eager: true });
@@ -30,26 +31,188 @@ const availableScenarios = computed<Scenario[]>(() => {
   return list.map(item => item.scenario);
 });
 
-const activeScenario = ref<Scenario | null>(null);
+// Factories for state initialization
+function createDefaultCharacter(name = '無名の冒険者', subStat: Character['subStatType'] = 'magic'): Character {
+  return {
+    name: name || '無名の冒険者',
+    level: 10,
+    exp: 10,
+    gold: 10,
+    food: 2,
+    skillMax: 0,
+    skillCurrent: 0,
+    lifeMax: 4,
+    lifeCurrent: 4,
+    subStatType: subStat,
+    subStatMax: 2,
+    subStatCurrent: 2,
+    followerMax: 7,
+    followerCurrent: 7,
+    spells: [],
+    miracles: [],
+    weapons: [],
+    armors: [],
+    shields: [],
+    items: [],
+    equippedWeapon: null,
+    equippedArmor: null,
+    equippedShield: null,
+    hasActiveLantern: true,
+    statusEffects: [],
+  };
+}
+
+function createDefaultDiceTray() {
+  return {
+    isRolling: false,
+    d1: 0,
+    d2: 0,
+    sides: 6,
+    resultText: '',
+    isCritical: false,
+    isFumble: false,
+  };
+}
+
+function createDefaultCombatState() {
+  return {
+    active: false,
+    enemies: [] as Enemy[],
+    round: 0,
+    pendingRoarCheck: null as 'start' | 'death' | null,
+    roarCheckedThisCombat: false,
+    shireenClueSpent: false,
+    chronovalsWindPenalty: false,
+    isCharmed: false,
+    isStunned: false,
+    isClinging: false,
+    isBerserk: false,
+    isAnotherEnding: false,
+    activeAttacks: [] as any[],
+    log: [] as string[],
+    hasQuickStrikeActive: false,
+    hasWeaponCreatedThisRound: false,
+    hasCoveredInRound: false,
+    pendingCover: null as {
+      attackId: string;
+      followerId: string;
+      followerName: string;
+      enemyName: string;
+      enemyLevel: number;
+    } | null,
+    pendingPerception: null as {
+      rollValue: number;
+      event: any;
+      hasScout: boolean;
+      hasHero: boolean;
+    } | null,
+    pendingHolyArrow: 0,
+    pendingDeflect: null as { attackId: string; defenderId: string; enemy: any } | null,
+    hasRangedFired: false,
+    playerHasFiredRanged: false,
+    archerHasFiredRanged: false,
+    buffs: {
+      defenseBonus: 0,
+      damageIgnoreCount: 0,
+    },
+    isEscaping: false,
+    combatType: 'melee' as 'melee' | 'ranged_only',
+    isOver: false,
+    resultType: null as 'victory' | 'escaped' | 'peaceful' | null,
+    lootText: null as string | null,
+    lootRolled: false,
+    getLootAfterVictory: true,
+    hasReactionChecked: false,
+    isBribeAllowed: false,
+    reactionResult: null as {
+      roll: number;
+      text: string;
+      actionType: 'hostile' | 'bribe' | 'flee' | 'neutral' | 'hospitable' | 'outnumbered_flee' | 'outnumbered_hostile';
+    } | null,
+    peacefulText: null as string | null,
+    pendingTrapDamage: null as {
+      damage: number;
+      statusEffect?: string;
+      stat: string;
+      target: number;
+      roll: number;
+      total: number;
+      chooseCount?: number;
+      chosenIds?: string[];
+    } | null,
+  };
+}
+
+function createDefaultFollowers(): Follower[] {
+  return [];
+}
+
+function createDefaultDungeonDepth(): number {
+  return 0;
+}
+
+function createDefaultPyramidRunCount(): number {
+  return 1;
+}
+
+function createDefaultPyramidBossSnapshot(): any {
+  return null;
+}
+
+function createDefaultNextRoomTensDigitOverride(): number | null {
+  return null;
+}
+
+function createDefaultActiveEvent(): DungeonEvent | null {
+  return null;
+}
+
+function createDefaultLogs(): { id: string; text: string; type: 'info' | 'roll' | 'combat' | 'error' | 'success' | 'damage' }[] {
+  return [];
+}
+
+const activeSession = ref<GameSession>(new GameSession());
+
+// Bridge reactive properties
+const activeScenario = computed<Scenario | null>({
+  get: () => activeSession.value.activeScenario,
+  set: (val) => { activeSession.value.activeScenario = val; }
+});
 
 // Central State
-const currentScreen = ref<'scenario_select' | 'creator' | 'explore' | 'combat' | 'levelup' | 'gameover' | 'success'>('scenario_select');
-const isCharacterCreated = ref<boolean>(false);
-const nextRoomTensDigitOverride = ref<number | null>(null);
-const dungeonDepth = ref<number>(0);
+const currentScreen = computed<'scenario_select' | 'creator' | 'explore' | 'combat' | 'levelup' | 'gameover' | 'success'>({
+  get: () => activeSession.value.currentScreen,
+  set: (val) => { activeSession.value.currentScreen = val; }
+});
+const isCharacterCreated = computed<boolean>({
+  get: () => activeSession.value.isCharacterCreated,
+  set: (val) => { activeSession.value.isCharacterCreated = val; }
+});
+const nextRoomTensDigitOverride = computed<number | null>({
+  get: () => activeSession.value.nextRoomTensDigitOverride,
+  set: (val) => { activeSession.value.nextRoomTensDigitOverride = val; }
+});
+const dungeonDepth = computed<number>({
+  get: () => activeSession.value.dungeonDepth,
+  set: (val) => { activeSession.value.dungeonDepth = val; }
+});
 const totalRoomsToClear = computed(() => activeScenario.value ? activeScenario.value.totalRoomsToClear : 8);
-const logs = ref<{ id: string; text: string; type: 'info' | 'roll' | 'combat' | 'error' | 'success' | 'damage' }[]>([]);
+const logs = computed<{ id: string; text: string; type: 'info' | 'roll' | 'combat' | 'error' | 'success' | 'damage' }[]>({
+  get: () => activeSession.value.logs,
+  set: (val) => { activeSession.value.logs = val; }
+});
 
 // Dice Tray State for animation
-const diceTray = reactive({
-  isRolling: false,
-  d1: 0,
-  d2: 0,
-  sides: 6,
-  resultText: '',
-  isCritical: false,
-  isFumble: false,
+const diceTray = new Proxy({} as any, {
+  get(target, prop) {
+    return activeSession.value.diceTray[prop as keyof typeof activeSession.value.diceTray];
+  },
+  set(target, prop, value) {
+    (activeSession.value.diceTray as any)[prop] = value;
+    return true;
+  }
 });
+
 
 // Initial Weapons and Items
 export const DEFAULT_WEAPONS = {
@@ -80,36 +243,21 @@ export const DEFAULT_ITEMS = {
 };
 
 // Initial empty Character
-const character = ref<Character>({
-  name: '無名の冒険者',
-  level: 10,
-  exp: 10,
-  gold: 10,
-  food: 2,
-  skillMax: 0,
-  skillCurrent: 0,
-  lifeMax: 4,
-  lifeCurrent: 4,
-  subStatType: 'magic',
-  subStatMax: 2,
-  subStatCurrent: 2,
-  followerMax: 7,
-  followerCurrent: 7,
-  spells: [],
-  miracles: [],
-  weapons: [],
-  armors: [],
-  shields: [],
-  items: [],
-  equippedWeapon: null,
-  equippedArmor: null,
-  equippedShield: null,
-  hasActiveLantern: true,
-  statusEffects: [],
+const character = computed<PlayerCharacter>({
+  get: () => activeSession.value.character,
+  set: (val) => {
+    activeSession.value.character = val instanceof PlayerCharacter ? val : new PlayerCharacter(val);
+  }
 });
 
-const followers = ref<Follower[]>([]);
-const activeEvent = ref<DungeonEvent | null>(null);
+const followers = computed<Follower[]>({
+  get: () => activeSession.value.followers,
+  set: (val) => { activeSession.value.followers = val; }
+});
+const activeEvent = computed<DungeonEvent | null>({
+  get: () => activeSession.value.activeEvent,
+  set: (val) => { activeSession.value.activeEvent = val; }
+});
 
 // Level-up stats checkpoints (to support refund/undo of allocation before finalization)
 const checkpointSkillMax = ref(0);
@@ -133,76 +281,58 @@ watch(currentScreen, (newScreen) => {
 });
 
 // Combat state
-const combatState = reactive({
-  active: false,
-  enemies: [] as Enemy[],
-  round: 0,
-  pendingRoarCheck: null as 'start' | 'death' | null,
-  roarCheckedThisCombat: false,
-  shireenClueSpent: false,
-  chronovalsWindPenalty: false,
-  isCharmed: false,
-  isStunned: false,
-  isClinging: false,
-  isBerserk: false,
-  isAnotherEnding: false,
-  activeAttacks: [] as any[],
-  log: [] as string[],
-  hasQuickStrikeActive: false,
-  hasWeaponCreatedThisRound: false,
-  hasCoveredInRound: false,
-  pendingCover: null as {
-    attackId: string;
-    followerId: string;
-    followerName: string;
-    enemyName: string;
-    enemyLevel: number;
-  } | null,
-  pendingPerception: null as {
-    rollValue: number;
-    event: any;
-    hasScout: boolean;
-    hasHero: boolean;
-  } | null,
-  pendingHolyArrow: 0, // 招天の光の矢の残り発射回数
-  pendingDeflect: null as { attackId: string; defenderId: string; enemy: any } | null, // そらしの割り込み待機状態
-  hasRangedFired: false,
-  playerHasFiredRanged: false,
-  archerHasFiredRanged: false,
-  buffs: {
-    defenseBonus: 0, // from Protection miracle
-    damageIgnoreCount: 0, // War Doll trait
+const combatState = new Proxy({} as any, {
+  get(target, prop) {
+    return activeSession.value.combatState[prop as keyof typeof activeSession.value.combatState];
   },
-  isEscaping: false,
-  combatType: 'melee' as 'melee' | 'ranged_only',
-  isOver: false,
-  resultType: null as 'victory' | 'escaped' | 'peaceful' | null,
-  lootText: null as string | null,
-  lootRolled: false,
-  getLootAfterVictory: true,
-  hasReactionChecked: false,
-  isBribeAllowed: false,
-  reactionResult: null as {
-    roll: number;
-    text: string;
-    actionType: 'hostile' | 'bribe' | 'flee' | 'neutral' | 'hospitable' | 'outnumbered_flee' | 'outnumbered_hostile';
-  } | null,
-  peacefulText: null as string | null,
-  pendingTrapDamage: null as {
-    damage: number;
-    statusEffect?: string;
-    stat: string;
-    target: number;
-    roll: number;
-    total: number;
-    chooseCount?: number;
-    chosenIds?: string[];
-  } | null,
+  set(target, prop, value) {
+    (activeSession.value.combatState as any)[prop] = value;
+    return true;
+  }
 });
 
 // Chronodemon Scenario State
-const pyramidRunCount = ref<number>(1);
-const pyramidBossSnapshot = ref<any>(null);
+const pyramidRunCount = computed<number>({
+  get: () => activeSession.value.pyramidRunCount,
+  set: (val) => { activeSession.value.pyramidRunCount = val; }
+});
+const pyramidBossSnapshot = computed<any>({
+  get: () => activeSession.value.pyramidBossSnapshot,
+  set: (val) => { activeSession.value.pyramidBossSnapshot = val; }
+});
+
+// Session Management & Autosave logic
+function saveSession() {
+  if (isCharacterCreated.value && currentScreen.value !== 'scenario_select') {
+    activeSession.value.saveToLocalStorage();
+  }
+}
+
+function loadSession(): boolean {
+  const saved = GameSession.loadFromLocalStorage();
+  if (saved) {
+    activeSession.value = saved;
+    return true;
+  }
+  return false;
+}
+
+function clearSavedSession() {
+  GameSession.clearLocalStorage();
+}
+
+function hasSavedSession(): boolean {
+  return localStorage.getItem('roguelike_half_saved_session') !== null;
+}
+
+// Watch screen, depth, events, and combat state to trigger autosave or clear saved session
+watch([currentScreen, dungeonDepth, activeEvent, () => combatState.active], () => {
+  if (currentScreen.value === 'gameover' || currentScreen.value === 'success') {
+    clearSavedSession();
+  } else {
+    saveSession();
+  }
+});
 
 function savePyramidBossSnapshot() {
   pyramidBossSnapshot.value = {
@@ -219,7 +349,7 @@ function restorePyramidBossSnapshot(rewindAmount: number) {
   followers.value = JSON.parse(JSON.stringify(pyramidBossSnapshot.value.followers));
   dungeonDepth.value = Math.max(0, pyramidBossSnapshot.value.dungeonDepth - rewindAmount);
   activeEvent.value = null;
-  currentScreen.value = 'explore';
+  transitionToExplore();
   combatState.active = false;
   combatState.isOver = false;
   combatState.enemies = [];
@@ -237,7 +367,7 @@ function addLog(text: string, type: 'info' | 'roll' | 'combat' | 'error' | 'succ
 }
 
 function clearLogs() {
-  logs.value = [];
+  logs.value = createDefaultLogs();
 }
 
 // 1d6 Rolling with visual delays
@@ -1052,40 +1182,24 @@ function refundExpForStat(stat: 'skill' | 'life' | 'sub' | 'follower'): boolean 
 }
 
 // Game lifecycle
+function resetCombatState() {
+  Object.assign(combatState, createDefaultCombatState());
+}
+
 function initNewCharacter(name: string, subStat: Character['subStatType']) {
   isCharacterCreated.value = true;
-  character.value = {
-    name: name || '無名の冒険者',
-    level: 10,
-    exp: 10, // Starting Exp
-    gold: 10,
-    food: 2,
-    skillMax: 0,
-    skillCurrent: 0,
-    lifeMax: 4,
-    lifeCurrent: 4,
-    subStatType: subStat,
-    subStatMax: 2,
-    subStatCurrent: 2,
-    followerMax: 7,
-    followerCurrent: 7,
-    spells: [],
-    miracles: [],
-    weapons: [],
-    armors: [],
-    shields: [],
-    items: [],
-    equippedWeapon: null,
-    equippedArmor: null,
-    equippedShield: null,
-    hasActiveLantern: true,
-    statusEffects: [],
-  };
+  character.value = createDefaultCharacter(name, subStat);
 
-  followers.value = [];
-  dungeonDepth.value = 0;
-  pyramidRunCount.value = 1;
-  pyramidBossSnapshot.value = null;
+  followers.value = createDefaultFollowers();
+  dungeonDepth.value = createDefaultDungeonDepth();
+  pyramidRunCount.value = createDefaultPyramidRunCount();
+  pyramidBossSnapshot.value = createDefaultPyramidBossSnapshot();
+  nextRoomTensDigitOverride.value = createDefaultNextRoomTensDigitOverride();
+  activeEvent.value = createDefaultActiveEvent();
+
+  // centralized reset
+  resetCombatState();
+  Object.assign(diceTray, createDefaultDiceTray());
   clearLogs();
   
   // Set default initial equipment based on sub-stat
@@ -1132,12 +1246,36 @@ function initNewCharacter(name: string, subStat: Character['subStatType']) {
   character.value.lifeCurrent = character.value.lifeMax;
 
   addLog(`キャラクター「${character.value.name}」を作成しました！ 初期経験点10点を割り振ってください。`, 'success');
-  currentScreen.value = 'levelup';
+  triggerLevelUp();
+}
+
+function transitionTo(screen: 'scenario_select' | 'creator' | 'explore' | 'combat' | 'levelup' | 'gameover' | 'success') {
+  currentScreen.value = screen;
+}
+
+function triggerGameOver() {
+  transitionTo('gameover');
+}
+
+function triggerLevelUp() {
+  transitionTo('levelup');
+}
+
+function transitionToExplore() {
+  transitionTo('explore');
+}
+
+function transitionToCombat() {
+  transitionTo('combat');
+}
+
+function transitionToSuccess() {
+  transitionTo('success');
 }
 
 function handleDeath() {
   addLog('💀 主人公の生命点が0になりました。ゲームオーバーです...', 'error');
-  currentScreen.value = 'gameover';
+  triggerGameOver();
 }
 
 function forgetSpell(name: string) {
@@ -1168,12 +1306,7 @@ function forgetSpell(name: string) {
 }
 
 function clearDiceTray() {
-  diceTray.d1 = 0;
-  diceTray.d2 = 0;
-  diceTray.isRolling = false;
-  diceTray.resultText = '';
-  diceTray.isCritical = false;
-  diceTray.isFumble = false;
+  Object.assign(diceTray, createDefaultDiceTray());
 }
 
 export function useGameState() {
@@ -1243,15 +1376,29 @@ export function useGameState() {
 
     // Lifecycle
     initNewCharacter,
+    resetCombatState,
     handleDeath,
     clearDiceTray,
     forgetSpell,
     castCreateWeaponSpell,
+    transitionTo,
+    triggerGameOver,
+    triggerLevelUp,
+    transitionToExplore,
+    transitionToCombat,
+    transitionToSuccess,
 
     // Chronodemon Scenario Exports
     pyramidRunCount,
     pyramidBossSnapshot,
     savePyramidBossSnapshot,
     restorePyramidBossSnapshot,
+
+    // Session Operations
+    activeSession,
+    saveSession,
+    loadSession,
+    clearSavedSession,
+    hasSavedSession,
   };
 }

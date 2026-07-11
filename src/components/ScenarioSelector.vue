@@ -1,8 +1,36 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import { useGameState } from '../composables/useGameState';
 import type { Scenario } from '../types';
 
-const { availableScenarios, activeScenario, currentScreen, isCharacterCreated } = useGameState();
+const { availableScenarios, activeScenario, currentScreen, isCharacterCreated, hasSavedSession, loadSession } = useGameState();
+
+const hasSaved = ref(false);
+const savedScenarioTitle = ref('');
+const savedDepth = ref(1);
+
+onMounted(() => {
+  hasSaved.value = hasSavedSession();
+  if (hasSaved.value) {
+    try {
+      const jsonStr = localStorage.getItem('roguelike_half_saved_session');
+      if (jsonStr) {
+        const data = JSON.parse(jsonStr);
+        savedScenarioTitle.value = data.activeScenario?.title || '不明なシナリオ';
+        savedDepth.value = data.dungeonDepth || 1;
+      }
+    } catch (e) {
+      console.error('Failed to parse saved session metadata:', e);
+    }
+  }
+});
+
+function resumeAdventure() {
+  const success = loadSession();
+  if (success) {
+    // Session is loaded, Vue reactivity takes care of updating screen and states
+  }
+}
 
 function selectScenario(scenario: Scenario) {
   activeScenario.value = scenario;
@@ -23,6 +51,17 @@ function selectScenario(scenario: Scenario) {
     <p class="subtitle">- 冒険の舞台を選択せよ -</p>
     
     <div class="divider"></div>
+
+    <!-- Resume Saved Adventure Banner -->
+    <div v-if="hasSaved" class="saved-session-banner">
+      <div class="banner-content">
+        <h3>🧭 進行中の冒険データがあります</h3>
+        <p>
+          シナリオ: <b>{{ savedScenarioTitle }}</b> (探索状況: 第 {{ savedDepth }} 部屋)
+        </p>
+      </div>
+      <button @click="resumeAdventure" class="btn-ink btn-resume">進行中の冒険を再開する</button>
+    </div>
     
     <div class="scenarios-grid">
       <div 
@@ -53,6 +92,47 @@ function selectScenario(scenario: Scenario) {
   margin: 0 auto;
   padding: 40px;
   border-radius: 8px;
+}
+
+.saved-session-banner {
+  background: #fdf5e6;
+  border: 2px solid var(--ink-dark);
+  padding: 20px;
+  border-radius: 6px;
+  margin-bottom: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  box-shadow: var(--card-shadow);
+}
+
+.banner-content h3 {
+  margin: 0 0 5px 0;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 1.15rem;
+  color: #8c1c1c;
+}
+
+.banner-content p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink-light);
+}
+
+.btn-resume {
+  background-color: var(--ink-dark);
+  color: white;
+  border-color: var(--ink-dark);
+  padding: 10px 20px;
+  font-size: 1.0rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-resume:hover {
+  background-color: #5c4b3d;
+  color: white;
 }
 
 .game-title {
