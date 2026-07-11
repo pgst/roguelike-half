@@ -303,8 +303,10 @@ const pyramidBossSnapshot = computed<any>({
 
 // Session Management & Autosave logic
 function saveSession() {
-  if (isCharacterCreated.value && currentScreen.value !== 'scenario_select') {
+  if (isCharacterCreated.value && currentScreen.value !== 'scenario_select' && activeScenario.value !== null) {
     activeSession.value.saveToLocalStorage();
+  } else {
+    clearSavedSession();
   }
 }
 
@@ -322,7 +324,16 @@ function clearSavedSession() {
 }
 
 function hasSavedSession(): boolean {
-  return localStorage.getItem('roguelike_half_saved_session') !== null;
+  try {
+    const jsonStr = localStorage.getItem('roguelike_half_saved_session');
+    if (jsonStr) {
+      const data = JSON.parse(jsonStr);
+      return !!data.isCharacterCreated && data.activeScenario !== null && data.activeScenario !== undefined;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  return false;
 }
 
 // Watch screen, depth, events, and combat state to trigger autosave or clear saved session
