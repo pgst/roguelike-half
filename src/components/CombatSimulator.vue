@@ -18,6 +18,13 @@ const showSummonSelector = ref(false);
 
 const isBossRoom = computed(() => dungeonDepth.value >= totalRoomsToClear.value);
 
+const showShireenClueAction = computed(() => {
+  const hasShireen = combatState.enemies.some((e: any) => e.name === '異端者シーリーン');
+  const clueSpent = (combatState as any).shireenClueSpent;
+  const hasClue = character.value.items.some((i: any) => i.type === 'clue');
+  return hasShireen && !clueSpent && hasClue;
+});
+
 const {
   rollReactionCheck,
   payBribe,
@@ -426,7 +433,7 @@ function closeRangedRound() {
     <!-- Normal Actions Panel (Only visible when no pending enemy attacks and combat is not over) -->
     <div v-else class="actions-panel">
       <!-- Shireen Clue spend action -->
-      <div v-if="combatState.enemies.some(e => e.name === '異端者シーリーン') && !(combatState as any).shireenClueSpent && character.items.some(i => i.type === 'clue')" style="margin-bottom: 15px; padding: 10px; background: #f0f7f4; border: 1px solid #c2e0d1; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;">
+      <div v-if="showShireenClueAction" style="margin-bottom: 15px; padding: 10px; background: #f0f7f4; border: 1px solid #c2e0d1; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;">
         <span style="font-size: 0.85rem; color: #1e5a38; line-height: 1.4;">🔍 シーリーンは未来を予知してすべての通常攻撃を回避します。「手がかり」を1個消費して彼女の未来視を見破り、通常武器でも攻撃を命中させられるようにしますか？</span>
         <button @click="spendShireenClue" class="btn-ink btn-mini" style="background: #e1f5fe; border-color: #29b6f6; color: #0288d1; font-weight: bold; flex-shrink: 0; padding: 5px 10px;">
           🔍 手がかりを消費

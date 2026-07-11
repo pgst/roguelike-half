@@ -1,5 +1,5 @@
 import type { Ref } from 'vue';
-import type { Character, Follower, DungeonEvent, Scenario } from '../../types';
+import type { Character, Follower, DungeonEvent, Scenario, Enemy } from '../../types';
 import { pyramidPlugin } from './pyramidPlugin';
 
 export interface CustomChoice {

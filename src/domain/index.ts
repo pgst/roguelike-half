@@ -150,7 +150,7 @@ export class PlayerCharacter implements Character {
       this.equippedWeapon = null;
       return;
     }
-    if (weapon.hands === 2) {
+    if (weapon.type === 'two-handed') {
       this.equippedShield = null;
     }
     this.equippedWeapon = weapon;
@@ -174,7 +174,7 @@ export class PlayerCharacter implements Character {
       this.equippedShield = null;
       return;
     }
-    if (this.equippedWeapon && this.equippedWeapon.hands === 2) {
+    if (this.equippedWeapon && this.equippedWeapon.type === 'two-handed') {
       this.equippedWeapon = null;
     }
     this.equippedShield = shield;

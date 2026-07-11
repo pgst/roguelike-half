@@ -1669,8 +1669,6 @@ export function useCombat() {
   async function rollSpellResistance(target = 5) {
     const isMagic = character.value.subStatType === 'magic';
     const subStatVal = isMagic ? character.value.subStatCurrent : 0;
-    const hasRose = character.value.items.some(i => i.name === '水晶の薔薇');
-    const hasHelmet = character.value.equippedArmor?.name === '天使のヘルメット';
     
     const pluginBonus = runScenarioHook(activeScenario.value?.id, 'onGetSpellResistanceBonus', context, target);
     let bonus = pluginBonus !== undefined ? pluginBonus : 0;

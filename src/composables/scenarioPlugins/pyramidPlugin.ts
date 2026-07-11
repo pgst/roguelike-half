@@ -95,14 +95,12 @@ export const pyramidPlugin = {
       character,
       followers,
       combatState,
-      currentScreen,
       dungeonDepth,
       activeEvent,
       activeScenario,
       addLog,
       pyramidRunCount,
       savePyramidBossSnapshot,
-      rollD6,
       rollD66,
       activateRoomEvent,
       startEncounter
@@ -334,7 +332,7 @@ export const pyramidPlugin = {
     attack: any,
     defSuccess: boolean,
     roll: number,
-    total: number,
+    _total: number,
     isHero: boolean,
     defenderId: string
   ) {
@@ -474,7 +472,7 @@ export const pyramidPlugin = {
     }
   },
 
-  onGetSpellResistanceBonus(context: ScenarioPluginContext, target: number) {
+  onGetSpellResistanceBonus(context: ScenarioPluginContext, _target: number) {
     const { activeEvent, character } = context;
     if (activeEvent.value?.d66Code === 'Final3') {
       const hasRose = character.value.items.some(i => i.name === '水晶の薔薇');
@@ -487,7 +485,7 @@ export const pyramidPlugin = {
     return 0;
   },
 
-  onBeforeCombatEnd(context: ScenarioPluginContext, isVictory: boolean, getLoot: boolean) {
+  onBeforeCombatEnd(context: ScenarioPluginContext, isVictory: boolean, _getLoot: boolean) {
     const { activeEvent, combatState, addLog } = context;
     if (isVictory && activeEvent.value?.d66Code === 'Final3' && !combatState.roarCheckedThisCombat) {
       combatState.pendingRoarCheck = 'death';

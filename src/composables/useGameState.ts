@@ -1,4 +1,4 @@
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { Character, Follower, Enemy, Weapon, Armor, Shield, GeneralItem, DungeonEvent, Scenario, StatusEffectRule } from '../types';
 import { GameSession, PlayerCharacter } from '../domain';
 
@@ -203,11 +203,11 @@ const logs = computed<{ id: string; text: string; type: 'info' | 'roll' | 'comba
 });
 
 // Dice Tray State for animation
-const diceTray = new Proxy({} as any, {
-  get(target, prop) {
+const diceTray = new Proxy({} as ReturnType<typeof createDefaultDiceTray>, {
+  get(_target, prop) {
     return activeSession.value.diceTray[prop as keyof typeof activeSession.value.diceTray];
   },
-  set(target, prop, value) {
+  set(_target, prop, value) {
     (activeSession.value.diceTray as any)[prop] = value;
     return true;
   }
@@ -243,7 +243,7 @@ export const DEFAULT_ITEMS = {
 };
 
 // Initial empty Character
-const character = computed<PlayerCharacter>({
+const character = computed<Character>({
   get: () => activeSession.value.character,
   set: (val) => {
     activeSession.value.character = val instanceof PlayerCharacter ? val : new PlayerCharacter(val);
@@ -281,11 +281,11 @@ watch(currentScreen, (newScreen) => {
 });
 
 // Combat state
-const combatState = new Proxy({} as any, {
-  get(target, prop) {
+const combatState = new Proxy({} as ReturnType<typeof createDefaultCombatState>, {
+  get(_target, prop) {
     return activeSession.value.combatState[prop as keyof typeof activeSession.value.combatState];
   },
-  set(target, prop, value) {
+  set(_target, prop, value) {
     (activeSession.value.combatState as any)[prop] = value;
     return true;
   }
