@@ -5,6 +5,7 @@ import { useDungeon } from '../composables/useDungeon';
 import { useCombat } from '../composables/useCombat';
 import { DEFAULT_ITEMS, DEFAULT_WEAPONS, DEFAULT_SHIELDS, DEFAULT_ARMORS } from '../composables/useGameState';
 import type { Weapon, Armor, Shield, GeneralItem } from '../types';
+import { runScenarioHook, type ScenarioPluginContext } from '../composables/scenarioPlugins';
 
 const {
   character,
@@ -27,7 +28,13 @@ const {
   playerActiveStatusEffectRules,
   isBackpackFull,
   isBackpackOverLimit,
-  equipArmor
+  equipArmor,
+  triggerLevelUp,
+  transitionToSuccess,
+  transitionToExplore,
+  triggerGameOver,
+  savePyramidBossSnapshot,
+  restorePyramidBossSnapshot
 } = useGameState();
 
 const { 
@@ -41,105 +48,40 @@ const {
 } = useDungeon();
 const { resolveLoot } = useCombat();
 
+const context: ScenarioPluginContext = {
+  character,
+  followers,
+  combatState,
+  currentScreen,
+  dungeonDepth,
+  activeEvent,
+  activeScenario,
+  addLog,
+  pyramidRunCount,
+  triggerLevelUp,
+  transitionToSuccess,
+  transitionToExplore,
+  triggerGameOver,
+  savePyramidBossSnapshot,
+  restorePyramidBossSnapshot,
+  startEncounter,
+  handleDeath
+};
+
 const showMerchant = ref(false);
 
-// Pyramid of Chronodemon Scenario Custom State & Logic
-const final1Step = ref<number>(1);
-
-function addStoryLogs(text: string) {
-  const paragraphs = text.split('\n');
-  paragraphs.forEach(p => {
-    if (p.trim()) {
-      addLog(p.trim(), 'info');
-    }
-  });
+// Generic Custom Setup & Prep Triggers
+function selectCustomSetup(choiceId: string) {
+  (character.value as any).customSetupChosen = true;
+  runScenarioHook(activeScenario.value?.id, 'onCustomSetupSelect', context, choiceId);
 }
 
-function choosePyramidOrigin(origin: 'polomeia' | 'almaciuda') {
-  (character.value as any).pyramidOriginChosen = true;
-  (character.value as any).pyramidOrigin = origin;
-
-  const scenarioData = activeScenario.value;
-  if (scenarioData && (scenarioData as any).prologues) {
-    const prologue = (scenarioData as any).prologues["1"]?.[origin];
-    if (prologue) {
-      addStoryLogs(prologue.text);
-    }
-  }
-
-  if (origin === 'polomeia') {
-    character.value.items.push({
-      id: 'golden_brooch',
-      name: '黄金虫のブローチ',
-      type: 'accessory',
-      goldCost: 0,
-      description: 'これを身につけていると、副能力値が【器用点】でなくても『察知』を行うことができる。副能力値が【器用点】の場合は、判定ロールに＋１の修正を加えることができる。２回の使用で、ブローチにはヒビが入り効果を失う。また冒険が終わったとき残っていたら、王に返却すること。',
-      value: 0,
-      charges: 2
-    } as any);
-  }
-
-  // Mark run 1 prep completed
-  (character.value as any).pyramidPrepRun = 1;
-  (character.value as any).pyramidSliderShopDone = true;
-}
-
-function startPyramidPrep() {
-  const run = pyramidRunCount.value;
-  const origin = (character.value as any).pyramidOrigin || 'polomeia';
-  const scenarioData = activeScenario.value;
-  if (!scenarioData || !(scenarioData as any).prologues) return;
-
-  let storyText = '';
-  if (run === 1) {
-    storyText = (scenarioData as any).prologues["1"]?.[origin]?.text || '';
-  } else if (run === 2) {
-    storyText = (scenarioData as any).prologues["2"]?.[origin]?.text || '';
-  } else if (run === 3) {
-    const commonText = (scenarioData as any).prologues["3"]?.common?.text || '';
-    const uniqueText = (scenarioData as any).prologues["3"]?.[origin]?.text || '';
-    storyText = commonText + '\n\n' + uniqueText;
-  }
-
-  if (storyText) {
-    addStoryLogs(storyText);
-  }
-
-  // Items distribution for Run 3
-  if (run === 3) {
-    const rewardKey = origin === 'polomeia' ? 'rewardItemsPolomeia' : 'rewardItemsAlmaciuda';
-    const rewards = (scenarioData as any).prologues["3"]?.common?.[rewardKey];
-    if (rewards) {
-      rewards.forEach((r: any) => {
-        if (r.type === 'one-handed') {
-          if (!character.value.weapons.some(w => w.name === r.name)) {
-            character.value.weapons.push({ ...r });
-            addLog(`⚔️ 支給品 『${r.name}』 を受け取りました！`, 'success');
-          }
-        } else {
-          if (!character.value.items.some(i => i.id === r.id)) {
-            character.value.items.push({ ...r });
-            addLog(`🎒 支給品 『${r.name}』 を受け取りました！`, 'success');
-          }
-        }
-      });
-    }
-  }
-
-  (character.value as any).pyramidPrepRun = run;
-
-  if (run === 3) {
-    (character.value as any).pyramidSliderShopDone = false;
-  } else {
-    (character.value as any).pyramidSliderShopDone = true;
-  }
+function startScenarioPrep() {
+  runScenarioHook(activeScenario.value?.id, 'onPrepPhaseStart', context);
 }
 
 const sliderRecipes = computed(() => {
-  if (activeScenario.value?.id === 'pyramid_of_chronodemon') {
-    return (activeScenario.value as any).sliderShop?.recipes || [];
-  }
-  return [];
+  return activeScenario.value?.sliderShop?.recipes || [];
 });
 
 function hasMaterial(itemName: string): boolean {
@@ -178,154 +120,10 @@ function forgeItem(recipe: any) {
 }
 
 function finishSliderShop() {
-  (character.value as any).pyramidSliderShopDone = true;
-  addLog('🚪 スライダー商会での準備を終え、ピラミッドの探索を開始します！', 'success');
-}
-
-function completePyramidRun() {
-  if (activeEvent.value?.d66Code === 'Final1') {
-    pyramidRunCount.value = 2;
-  } else if (activeEvent.value?.d66Code === 'Final2') {
-    pyramidRunCount.value = 3;
-  }
-  
-  dungeonDepth.value = 0;
-  activeEvent.value = null;
-  currentScreen.value = 'levelup';
-  addLog(`🧭 冒険を終え、無事に砂漠の迷宮から帰還しました！ (次の周回: ${pyramidRunCount.value}回目 / 3)`, 'success');
-}
-
-async function rollFinal1Trap() {
-  if (!activeEvent.value) return;
-  const step = final1Step.value;
-  const target = step === 3 ? 4 : 3;
-  
-  addLog(`🏃 崩落する床の器用判定ロール (目標値: ${target}, 現在回数: ${step}/3)`, 'info');
-  const roll = await rollD6(true);
-  const total = roll + character.value.skillCurrent;
-  
-  const success = roll === 6 || (roll !== 1 && total >= target);
-  
-  if (success) {
-    addLog(`✨ ${step}回目の跳躍成功！ (ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${target})`, 'success');
-  } else {
-    character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
-    addLog(`😢 ${step}回目の跳躍失敗... 足元の床が崩れ落ち、生命力に1点のダメージ！ (生命力残り: ${character.value.lifeCurrent})`, 'error');
-    if (character.value.lifeCurrent <= 0) {
-      handleDeath();
-      return;
-    }
-  }
-  
-  if (step < 3) {
-    final1Step.value++;
-  } else {
-    const scenarioData = activeScenario.value;
-    const origin = (character.value as any).pyramidOrigin || 'polomeia';
-    const epilogue = (scenarioData as any)?.epilogues?.["1"]?.[origin];
-
-    let goldReward = 20;
-    if (epilogue && epilogue.goldBase && epilogue.goldDiceCount) {
-      goldReward = epilogue.goldBase;
-      const rolls = [];
-      for (let i = 0; i < epilogue.goldDiceCount; i++) {
-        const d = Math.floor(Math.random() * 6) + 1;
-        rolls.push(d);
-        goldReward += d;
-      }
-      addLog(`🎲 金貨ロール (3d6: ${rolls.join('+')})`, 'roll');
-    }
-
-    character.value.gold += goldReward;
-    character.value.exp += epilogue?.exp || 1;
-    character.value.items.push({
-      name: 'プラチナコイン',
-      type: 'gem_large',
-      goldCost: 0,
-      description: '異端者シーリーンや悪魔と取引するためのプラチナの硬貨。価値はないが極めて貴重。',
-      value: 0
-    } as any);
-
-    if (epilogue) {
-      addStoryLogs(epilogue.text);
-    }
-
-    const rText = `🎉 無事に崩落する床を渡りきりました！\n金貨 ${goldReward} 枚、1 Exp、そしてプラチナコインを獲得し、次の冒険の準備へ向かいます。`;
-    (activeEvent.value as any).isResolved = true;
-    (activeEvent.value as any).resolutionText = rText;
-    addLog(rText, 'success');
-  }
-}
-
-function startFinal2Fight(choice: 'golem' | 'shireen') {
-  if (!activeEvent.value) return;
-  if (choice === 'golem') {
-    activeEvent.value.enemies = [
-      {
-        name: "至高のヘラクレオス",
-        level: 5,
-        lifeMax: 12,
-        lifeCurrent: 12,
-        attackCount: 1,
-        tags: ["golem", "strong"],
-        count: 1,
-        resistances: [
-          { attribute: "slash", modifier: -2 },
-          { attribute: "strike", modifier: 1 }
-        ]
-      }
-    ];
-  } else {
-    activeEvent.value.enemies = [
-      {
-        name: "異端者シーリーン",
-        level: 5,
-        lifeMax: 5,
-        lifeCurrent: 5,
-        attackCount: 3,
-        tags: ["strong"],
-        count: 1,
-        evasionRule: "shireen_future_sight"
-      }
-    ];
-  }
-  startEncounter();
-}
-
-async function bribeCrocodile(type: 'food' | 'follower') {
-  if (!activeEvent.value) return;
-  if (type === 'food') {
-    character.value.food = Math.max(0, character.value.food - 2);
-    addLog('💸 食料2食分をワイロとして投げ与えました。', 'info');
-  } else {
-    const fIdx = followers.value.findIndex(f => f.goldCost <= 10);
-    if (fIdx !== -1) {
-      const lostFollower = followers.value[fIdx];
-      followers.value.splice(fIdx, 1);
-      addLog(`💸 従者 ${lostFollower.name} をおとりとして砂漠ワニに差し出しました。`, 'info');
-    }
-  }
-  
-  addLog('🐊 砂漠ワニの反応判定ロール (1d6を振り、1-3で成功/戦闘回避、4-6で失敗/戦闘突入)', 'info');
-  const roll = await rollD6(true);
-  if (roll <= 3) {
-    const rText = `🐊 砂漠ワニは差し出されたエサに夢中になっています！ その隙に安全に脇を通り抜けました。`;
-    (activeEvent.value as any).isResolved = true;
-    (activeEvent.value as any).resolutionText = rText;
-    addLog(rText, 'success');
-  } else {
-    addLog('🐊 ロール失敗！ 砂漠ワニはエサだけでは満足せず、こちらに襲いかかってきました！', 'error');
-    startCrocodileFight();
-  }
-}
-
-function startCrocodileFight() {
-  if (!activeEvent.value) return;
-  activeEvent.value.enemies = [
-    { name: "砂漠ワニ", level: 4, lifeMax: 9, lifeCurrent: 9, attackCount: 1, tags: ["weak"], count: 1, weaponAttribute: "slash" }
-  ];
-  activeEvent.value.type = 'encounter';
-  startEncounter();
+  (character.value as any).sliderShopDone = true;
+  const shopName = activeScenario.value?.sliderShop?.title || '加工ショップ';
+  addLog(`🚪 ${shopName}での準備を終え、探索を開始します！`, 'success');
+  runScenarioHook(activeScenario.value?.id, 'onSliderShopFinish', context);
 }
 
 function payBribeLocal() {
@@ -915,10 +713,8 @@ function confirmEventResolution() {
     addLog('🎒 背負い袋が容量制限を超過しています！ 不要なアイテムを捨てるか、装備を変更して整理してください。', 'error');
     return;
   }
-  if (activeEvent.value?.d66Code === 'Final1' || activeEvent.value?.d66Code === 'Final2') {
-    completePyramidRun();
-    return;
-  }
+  const handled = runScenarioHook(activeScenario.value?.id, 'onResolveEventOverride', context);
+  if (handled) return;
   activeEvent.value = null;
   dungeonDepth.value++;
 }
@@ -1051,8 +847,8 @@ function resolveSkeletonEvent() {
     <div class="explorer-header">
       <h2>🏰 ダンジョン探索</h2>
       <div style="display: flex; gap: 8px; align-items: center;">
-        <div v-if="activeScenario?.id === 'pyramid_of_chronodemon'" class="badge-depth" style="background: #e1f5fe; border-color: #29b6f6; color: #0288d1; font-weight: bold;">
-          現在の周回数: {{ pyramidRunCount }}回目 / 3回中
+        <div v-if="activeScenario?.runCountMax" class="badge-depth" style="background: #e1f5fe; border-color: #29b6f6; color: #0288d1; font-weight: bold;">
+          現在の周回数: {{ pyramidRunCount }}回目 / {{ activeScenario.runCountMax }}回中
         </div>
         <div class="badge-depth">{{ depthText }}</div>
       </div>
@@ -1178,7 +974,7 @@ function resolveSkeletonEvent() {
         </div>
 
         <!-- Custom Skeleton Event (33) -->
-        <div v-else-if="activeEvent.d66Code === '33' && activeScenario?.id === 'pyramid_of_chronodemon'" class="skeleton-event-panel" style="width: 100%;">
+        <div v-else-if="activeEvent.d66Code === '33' && activeScenario?.hasSkeletonEvent" class="skeleton-event-panel" style="width: 100%;">
           <div v-if="skeletonReaction === null">
             <p style="margin-bottom: 20px; font-style: italic;">
               箒を持った骸骨がピラミッドの床を静かに掃除しています。彼に接触しますか？それとも立ち去りますか？
@@ -1264,60 +1060,7 @@ function resolveSkeletonEvent() {
           </div>
         </div>
 
-        <!-- Merchant NPC Interaction -->
-        <div v-else-if="activeEvent.d66Code === 'Final1'" style="width: 100%;">
-          <div v-if="!activeEvent.isResolved">
-            <p style="font-weight: bold; font-size: 1.1rem; color: #8c1c1c; margin-bottom: 10px;">
-              🏃 床の崩落を跳び越える (器用判定 {{ final1Step }}回目 / 3回中)
-            </p>
-            <p style="margin-bottom: 20px; font-size: 0.95rem; color: var(--ink-light); line-height: 1.6;">
-              崩れ落ちる床を飛び越えなければなりません！<br/>
-              <span style="font-weight: bold; color: #8c1c1c;" v-if="final1Step === 1">1回目目標値: 3 (失敗時: 生命力 -1)</span>
-              <span style="font-weight: bold; color: #8c1c1c;" v-if="final1Step === 2">2回目目標値: 3 (失敗時: 生命力 -1)</span>
-              <span style="font-weight: bold; color: #8c1c1c;" v-if="final1Step === 3">3回目目標値: 4 (失敗時: 生命力 -1)</span>
-            </p>
-            <button @click="rollFinal1Trap" class="btn-ink btn-large btn-primary-ink" style="width: 100%; justify-content: center;" :disabled="diceTray.isRolling">
-              🎲 器用判定ロールを行う (能力値: {{ character.skillCurrent }})
-            </button>
-          </div>
-        </div>
 
-        <div v-else-if="activeEvent.npcType === 'final2_choice'" style="width: 100%;">
-          <div v-if="!activeEvent.isResolved">
-            <p style="margin-bottom: 20px; font-size: 0.95rem; color: var(--ink-light); line-height: 1.6;">
-              背後の巨像「至高のヘラクレオス」と「異端者シーリーン」のどちらと対峙しますか？<br/>
-              どちらか一方を選んで戦わなければなりません。
-            </p>
-            <div class="button-group" style="display: flex; gap: 15px; flex-wrap: wrap;">
-              <button @click="startFinal2Fight('golem')" class="btn-ink" style="flex: 1; min-width: 200px; justify-content: center; background: #efebe9; border-color: #5d4037; color: #5d4037; font-weight: bold;">
-                🤖 至高のヘラクレオスと戦う (Level 5 / Life 12)
-              </button>
-              <button @click="startFinal2Fight('shireen')" class="btn-ink" style="flex: 1; min-width: 200px; justify-content: center; background: #f3e5f5; border-color: #7b1fa2; color: #7b1fa2; font-weight: bold;">
-                🔮 異端者シーリーンと戦う (Level 5 / Life 5)
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div v-else-if="activeEvent.npcType === 'desert_crocodile'" style="width: 100%;">
-          <div v-if="!activeEvent.isResolved">
-            <p style="margin-bottom: 20px; font-size: 0.95rem; color: var(--ink-light); line-height: 1.6;">
-              巨大な砂漠ワニが獲物を求めて口を開けています！<br/>
-              食料2個、または弱い（雇用費が金貨10枚以下）従者1体を差し出すことで、友好関係を試すことができます (1d6を振り、1-3で成功/戦闘回避、4-6で戦闘突入)。
-            </p>
-            <div class="button-group" style="display: flex; gap: 10px; flex-direction: column;">
-              <button v-if="character.food >= 2" @click="bribeCrocodile('food')" class="btn-ink" style="width: 100%; justify-content: center; font-weight: bold;" :disabled="diceTray.isRolling">
-                💸 食料 2 個を差し出してワイロを試みる (現在の食料: {{ character.food }}個)
-              </button>
-              <button v-if="followers.some(f => f.goldCost <= 10)" @click="bribeCrocodile('follower')" class="btn-ink" style="width: 100%; justify-content: center; font-weight: bold;" :disabled="diceTray.isRolling">
-                💸 弱い従者 1 体を差し出してワイロを試みる
-              </button>
-              <button @click="startCrocodileFight" class="btn-ink btn-large btn-danger-ink" style="width: 100%; justify-content: center; font-weight: bold;" :disabled="diceTray.isRolling">
-                ⚔️ 交渉決裂！戦う！
-              </button>
-            </div>
-          </div>
-        </div>
 
         <div v-else-if="activeEvent.npcType === 'merchant' || activeEvent.title === '地下の行商人'">
           <button v-if="!showMerchant" @click="showMerchant = true" class="btn-ink">🪙 取引をする</button>
@@ -1535,56 +1278,53 @@ function resolveSkeletonEvent() {
 
     <!-- Normal exploration deck -->
     <div v-else class="exploration-deck">
-      <!-- 1周目の出自選択 -->
-      <template v-if="activeScenario?.id === 'pyramid_of_chronodemon' && pyramidRunCount === 1 && !(character as any).pyramidOriginChosen">
-        <!-- 共通プロローグをまず読ませる -->
-        <template v-if="!(character as any).pyramidIntroRead">
+      <!-- シナリオ固有の初期セットアップ（出自選択など） -->
+      <template v-if="activeScenario?.customSetup && !(character as any).customSetupChosen">
+        <!-- プロローグ共通背景をまず読ませる -->
+        <template v-if="activeScenario.prologues?.['1']?.common?.text && !(character as any).introRead">
           <div class="adventure-text" style="margin-bottom: 15px; font-size: 0.95rem; line-height: 1.6; max-height: 300px; overflow-y: auto; padding: 10px; border: 1px dashed var(--ink-dark); border-radius: 4px; background: #faf6f0; text-align: left;">
-            <p style="white-space: pre-wrap; font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0;">{{ (activeScenario as any).prologues?.["1"]?.common?.text }}</p>
+            <p style="white-space: pre-wrap; font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0;">{{ activeScenario.prologues['1'].common.text }}</p>
           </div>
-          <button @click="(character as any).pyramidIntroRead = true" class="btn-ink btn-large" style="justify-content: center; width: 100%;">
-            📜 背景を確認し、自分の所属（出自）の選択へ進む
+          <button @click="(character as any).introRead = true" class="btn-ink btn-large" style="justify-content: center; width: 100%;">
+            📜 背景を確認し、選択へ進む
           </button>
         </template>
-        <!-- その後、出自を選択させる -->
+        <!-- その後、選択肢を選択させる -->
         <template v-else>
           <div class="adventure-text" style="margin-bottom: 15px;">
-            <p>📜 君のキャラクターの資質（年齢や出自）に見合った〈冒険の始まり〉を選んでください。</p>
+            <p>{{ activeScenario.customSetup.description }}</p>
           </div>
           <div class="custom-choices-panel" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
-            <button @click="choosePyramidOrigin('polomeia')" class="btn-ink btn-large" style="justify-content: center;">
-              👑 ポロメイア王国の若者として開始 (ブローチ獲得)
-            </button>
-            <button @click="choosePyramidOrigin('almaciuda')" class="btn-ink btn-large" style="justify-content: center;">
-              🦂 アルマシウダ帝国の大人として開始
+            <button v-for="choice in activeScenario.customSetup.choices" :key="choice.id" @click="selectCustomSetup(choice.id)" class="btn-ink btn-large" style="justify-content: center;">
+              {{ choice.label }}
             </button>
           </div>
         </template>
       </template>
 
       <!-- 各周回の準備フェーズ (プロローグ読了・アイテム配布) -->
-      <template v-else-if="activeScenario?.id === 'pyramid_of_chronodemon' && (character as any).pyramidPrepRun !== pyramidRunCount">
+      <template v-else-if="activeScenario?.hasPrepPhase && (character as any).prepRunCompleted !== pyramidRunCount">
         <div class="adventure-text" style="margin-bottom: 15px;">
-          <h3 style="font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0 0 10px 0;">🧭 冒険のはじまり ({{ pyramidRunCount }}回目 / 3)</h3>
-          <p>ピラミッドへ入る前に、現在の状況を確認し、支給品を受け取りましょう。</p>
+          <h3 style="font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0 0 10px 0;">🧭 冒険のはじまり ({{ pyramidRunCount }}回目 / {{ activeScenario.runCountMax || 3 }})</h3>
+          <p>ダンジョンへ入る前に、現在の状況を確認し、支給品を受け取りましょう。</p>
         </div>
         
-        <button @click="startPyramidPrep" class="btn-ink btn-large btn-explore" style="justify-content: center; width: 100%;">
+        <button @click="startScenarioPrep" class="btn-ink btn-large btn-explore" style="justify-content: center; width: 100%;">
           📜 状況を確認して支給品を受け取る
         </button>
       </template>
 
-      <!-- 3周目のスライダー商会 (準備フェーズ中かつ未完了の場合) -->
-      <template v-else-if="activeScenario?.id === 'pyramid_of_chronodemon' && pyramidRunCount === 3 && !(character as any).pyramidSliderShopDone">
+      <!-- 加工ショップ (準備フェーズ中かつ未完了の場合) -->
+      <template v-else-if="activeScenario?.sliderShop && !(character as any).sliderShopDone">
         <div class="slider-shop-panel" style="width: 100%; border: 2px solid var(--ink-dark); padding: 20px; border-radius: 6px; background: #fbf8f3; text-align: left;">
-          <h3 style="font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0 0 10px 0; text-align: center;">🔨 スライダー商会</h3>
+          <h3 style="font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0 0 10px 0; text-align: center;">🔨 {{ activeScenario.sliderShop.title || '加工ショップ' }}</h3>
           <p style="font-size: 0.95rem; line-height: 1.6; color: var(--ink-light); margin-bottom: 15px;">
-            ビウレスの一流鍛冶屋スライダー親方に金貨を支払い、所持している貴重な素材を強力な武具へ加工してもらうことができます。(3周目の探索開始前のみ利用可能)
+            {{ activeScenario.sliderShop.description || '貴重な素材を強力な武具へ加工してもらうことができます。' }}
           </p>
 
           <!-- レシピ一覧 -->
           <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-            <div v-for="recipe in sliderRecipes" :key="recipe.id" class="recipe-card" style="border: 1px dashed rgba(92, 75, 61, 0.4); padding: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; background: white;">
+            <div v-for="recipe in sliderRecipes" :key="recipe.id" class="recipe-card" style="border: 1px dashed rgba(92, 75, 61, 0.4) ; padding: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; background: white;">
               <div>
                 <span style="font-weight: bold; font-size: 0.95rem; color: var(--ink-dark);">🛠️ {{ recipe.name }}</span><br/>
                 <small style="color: var(--ink-light);">

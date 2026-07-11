@@ -134,11 +134,14 @@ test('Ice Tower scenario full play-through verification', async ({ page }) => {
       const leaveMerchantBtn = page.locator('button:has-text("部屋を立ち去る"), button:has-text("取引を終えて部屋を進む")');
       const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
       const exploreBtn = page.locator('button:has-text("d66を振って次の部屋を探索する")');
+      const trapDamageHeroBtn = page.locator('button:has-text("主人公が受ける")');
 
       if (await proceedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(proceedBtn)) {
         if (await safeClick(proceedBtn, 'Proceed to next room')) actionCount++;
       } else if (await trapBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(trapBtn.first())) {
         if (await safeClick(trapBtn.first(), 'Attempt trap roll')) actionCount++;
+      } else if (await trapDamageHeroBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(trapDamageHeroBtn.first())) {
+        if (await safeClick(trapDamageHeroBtn.first(), 'Resolve trap damage on hero')) actionCount++;
       } else if (await treasureBtn.isVisible({ timeout: 0 }) && await isElementEnabled(treasureBtn)) {
         if (await safeClick(treasureBtn, 'Loot treasure chest')) actionCount++;
       } else if (await restHealBtn.isVisible({ timeout: 0 }) && await isElementEnabled(restHealBtn)) {
@@ -177,7 +180,7 @@ test('Ice Tower scenario full play-through verification', async ({ page }) => {
       const holyArrowBtn = page.locator('button:has-text("聖なる矢を放つ")');
 
       const sheetText = await page.locator('.adventure-sheet').textContent();
-      const cannotAttack = sheetText?.includes('麻痺') || sheetText?.includes('石化');
+      const cannotAttack = sheetText?.includes('麻痺') || sheetText?.includes('石化') || sheetText?.includes('気絶');
 
       if (await deflectBtn.isVisible({ timeout: 0 }) && await isElementEnabled(deflectBtn)) {
         if (await safeClick(deflectBtn, 'Use deflect miracle')) actionCount++;

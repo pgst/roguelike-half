@@ -150,5 +150,20 @@ export interface Scenario {
   d66EventTable: Record<string, DungeonEvent>;
   bossEvent: DungeonEvent;
   statusEffectRules?: Record<string, StatusEffectRule>; // 【追加】 シナリオ固有の状態異常ルール定義
+  runCountMax?: number;
+  customSetup?: {
+    title: string;
+    description: string;
+    choices: { id: string; label: string }[];
+  };
+  hasPrepPhase?: boolean;
+  hasSliderShop?: boolean;
+  sliderShop?: {
+    title?: string;
+    description?: string;
+    recipes: any[];
+  };
+  prologues?: any;
+  hasSkeletonEvent?: boolean;
 }
 

@@ -143,7 +143,7 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
       const prepBtn = page.locator('button:has-text("状況を確認して支給品を受け取る")');
       const finishSliderBtn = page.locator('button:has-text("取引を終えて探索を開始する")');
       const sliderForgeBtn = page.locator('.slider-shop-panel button:has-text("加工する")');
-      const viewOriginChoicesBtn = page.locator('button:has-text("背景を確認し、自分の所属（出自）の選択へ進む")');
+      const viewOriginChoicesBtn = page.locator('button:has-text("背景を確認し、選択へ進む")');
 
       // Custom Choices button
       const customChoiceBtn = page.locator('.custom-choices-panel button.btn-ink:not([disabled])');
@@ -169,6 +169,7 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
       const tradeBtn = page.locator('button:has-text("交換を申し出る")');
       const adviceBtn = page.locator('button:has-text("の部屋へ")');
       const skeletonConfirmBtn = page.locator('button:has-text("取引を終了して結果を確定する"), button:has-text("結果を確定する")');
+      const trapDamageHeroBtn = page.locator('button:has-text("主人公が受ける")');
 
       if (await proceedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(proceedBtn)) {
         if (await safeClick(proceedBtn, 'Proceed to next room')) actionCount++;
@@ -216,6 +217,8 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
         if (await safeClick(crocodileBribeFood, 'Bribe crocodile with food')) actionCount++;
       } else if (await trapBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(trapBtn.first())) {
         if (await safeClick(trapBtn.first(), 'Attempt trap roll')) actionCount++;
+      } else if (await trapDamageHeroBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(trapDamageHeroBtn.first())) {
+        if (await safeClick(trapDamageHeroBtn.first(), 'Resolve trap damage on hero')) actionCount++;
       } else if (await treasureBtn.isVisible({ timeout: 0 }) && await isElementEnabled(treasureBtn)) {
         if (await safeClick(treasureBtn, 'Loot treasure chest')) actionCount++;
       } else if (await restHealBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(restHealBtn.first())) {

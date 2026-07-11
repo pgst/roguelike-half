@@ -1,8 +1,6 @@
 import { useGameState } from './useGameState';
 import type { Enemy } from '../types';
 import { runScenarioHook } from './scenarioPlugins';
-import { setPyramidHelpers } from './scenarioPlugins/pyramidPlugin';
-
 export function useDungeon() {
   const { 
     character, 
@@ -29,8 +27,6 @@ export function useDungeon() {
     transitionToSuccess,
     transitionToExplore
   } = useGameState();
-
-  setPyramidHelpers(addLog, startEncounter);
 
   // Action: Explore next room
   async function exploreNextRoom() {

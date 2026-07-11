@@ -1963,46 +1963,6 @@ export function useCombat() {
 
   // Confirm combat and move back or forward in the dungeon
   async function confirmCombatResult() {
-    if (activeEvent.value?.d66Code === '23' && combatState.resultType === 'victory') {
-      const run = pyramidRunCount.value;
-      if (run === 1) {
-        character.value.items.push({
-          id: 'strong_pill',
-          name: '剛力丸',
-          type: 'accessory',
-          goldCost: 15,
-          value: 15,
-          description: '【シナリオ限定】強壮剤。【筋力ロール】時に服用すると、＋1のボーナスが受けられる。１回分（使い捨て）。'
-        } as any);
-        addLog('🎁 ジル＝メガから手助けの礼として『剛力丸』を受け取りました！', 'success');
-      } else if (run === 2) {
-        character.value.items.push({
-          id: 'substitute_amulet',
-          name: '身代わりのアミュレット',
-          type: 'accessory',
-          goldCost: 30,
-          value: 30,
-          description: '【打撃】により生命点１点を失う際、身代わりになって生命力の減少を無効化する。残り3回分。',
-          charges: 3
-        } as any);
-        addLog('🎁 ジル＝メガから手助けの礼として『身代わりのアミュレット』を受け取りました！', 'success');
-      } else {
-        addLog('🎁 ジル＝メガは自分に託された使命として『封印の壺』を君に託しました！', 'success');
-      }
-    }
-
-    if (activeEvent.value?.d66Code === '25' && combatState.resultType === 'victory') {
-      character.value.items.push({
-        id: 'adamantite',
-        name: 'アダマンタイト',
-        type: 'quest',
-        goldCost: 20,
-        value: 20,
-        description: '頑強な地下鉱物の原石。武具の素材として使われる。原石のまま投擲武器としても使用できるが、大きく重いため【判定ロール】に−２の修正が入る。代わりに命中すればダメージに＋１される。１回の戦闘で１度しか使用できない。逃走した場合は失われる。'
-      } as any);
-      addLog('🎁 アランに勝利し、見事に『アダマンタイト』を獲得しました！', 'success');
-    }
-
     // Run scenario plugin victory hook
     const hookResult = runScenarioHook(activeScenario.value?.id, 'onCombatVictory', context);
     if (hookResult instanceof Promise) {

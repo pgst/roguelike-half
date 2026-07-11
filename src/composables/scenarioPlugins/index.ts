@@ -63,6 +63,10 @@ export interface ScenarioPlugin {
   onCombatVictory?: (context: ScenarioPluginContext) => Promise<boolean | void> | boolean | void;
   onCombatDefeat?: (context: ScenarioPluginContext) => Promise<void> | void;
   onAdventureEnd?: (context: ScenarioPluginContext) => Promise<void> | void;
+  onCustomSetupSelect?: (context: ScenarioPluginContext, choiceId: string) => void;
+  onPrepPhaseStart?: (context: ScenarioPluginContext) => void;
+  onSliderShopFinish?: (context: ScenarioPluginContext) => void;
+  onResolveEventOverride?: (context: ScenarioPluginContext) => boolean | void;
 }
 
 const plugins: Record<string, ScenarioPlugin> = {
@@ -85,8 +89,13 @@ export function runScenarioHook<K extends keyof ScenarioPlugin>(
 ): any {
   if (!activeScenarioId) return;
   const plugin = getScenarioPlugin(activeScenarioId);
-  if (plugin && plugin[hook]) {
-    const fn = plugin[hook] as any;
-    return fn(context, ...extraArgs);
+  if (plugin) {
+    if ((plugin as any).updateHelpers) {
+      (plugin as any).updateHelpers(context);
+    }
+    if (plugin[hook]) {
+      const fn = plugin[hook] as any;
+      return fn(context, ...extraArgs);
+    }
   }
 }

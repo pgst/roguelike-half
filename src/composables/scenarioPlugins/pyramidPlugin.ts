@@ -6,16 +6,132 @@ import type { ScenarioPluginContext } from './index';
 let addLogFn: (msg: string, type: 'info' | 'success' | 'error' | 'damage' | 'roll') => void = () => {};
 let startEncounterFn: () => void = () => {};
 
-export function setPyramidHelpers(
-  log: typeof addLogFn,
-  startEnc: typeof startEncounterFn
-) {
-  addLogFn = log;
-  startEncounterFn = startEnc;
+async function handleFinal1Jump(context: ScenarioPluginContext) {
+  const { character, activeEvent, rollD6, handleDeath, activeScenario } = context;
+  const step = (character.value as any).pyramidFinal1Step || 1;
+  const target = step === 3 ? 4 : 3;
+
+  addLogFn(`🏃 崩落する床の器用判定ロール (目標値: ${target}, 現在回数: ${step}/3)`, 'info');
+  const roll = await rollD6!(true);
+  const total = roll + character.value.skillCurrent;
+  const success = roll === 6 || (roll !== 1 && total >= target);
+
+  if (success) {
+    addLogFn(`✨ ${step}回目の跳躍成功！ (ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${target})`, 'success');
+  } else {
+    character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
+    addLogFn(`😢 ${step}回目の跳躍失敗... 足元の床が崩れ落ち、生命力に1点のダメージ！ (生命力残り: ${character.value.lifeCurrent})`, 'error');
+    if (character.value.lifeCurrent <= 0) {
+      handleDeath!();
+      return;
+    }
+  }
+
+  if (step < 3) {
+    const nextStep = step + 1;
+    (character.value as any).pyramidFinal1Step = nextStep;
+    const nextTarget = nextStep === 3 ? 4 : 3;
+    activeEvent.value.description = `ドワーフの魔道士ミロスの過去の幻影に出会いました。話している最中、足元の床が崩落を始めます！\n崩れ去る床を跳び越えるため、3回の【器用度判定】を行ってください。\n\n🏃 床の崩落を跳び越える (器用判定 ${nextStep}回目 / 3回中)\n${nextStep}回目目標値: ${nextTarget} (失敗時: 生命力 -1)`;
+  } else {
+    const scenarioData = activeScenario.value;
+    const origin = (character.value as any).pyramidOrigin || 'polomeia';
+    const epilogue = (scenarioData as any)?.epilogues?.["1"]?.[origin];
+
+    let goldReward = 20;
+    if (epilogue && epilogue.goldBase && epilogue.goldDiceCount) {
+      goldReward = epilogue.goldBase;
+      const rolls = [];
+      for (let i = 0; i < epilogue.goldDiceCount; i++) {
+        const d = Math.floor(Math.random() * 6) + 1;
+        rolls.push(d);
+        goldReward += d;
+      }
+      addLogFn(`🎲 金貨ロール (3d6: ${rolls.join('+')})`, 'roll');
+    }
+
+    character.value.gold += goldReward;
+    character.value.exp += epilogue?.exp || 1;
+    character.value.items.push({
+      name: 'プラチナコイン',
+      type: 'gem_large',
+      goldCost: 0,
+      description: '異端者シーリーンや悪魔と取引するためのプラチナの硬貨。価値はないが極めて貴重。',
+      value: 0
+    } as any);
+
+    if (epilogue) {
+      const paragraphs = epilogue.text.split('\n');
+      paragraphs.forEach((p: string) => {
+        if (p.trim()) {
+          addLogFn(p.trim(), 'info');
+        }
+      });
+    }
+
+    const rText = `🎉 無事に崩落する床を渡りきりました！\n金貨 ${goldReward} 枚、1 Exp、そしてプラチナコインを獲得し、次の冒険の準備へ向かいます。`;
+    activeEvent.value.isResolved = true;
+    activeEvent.value.resolutionText = rText;
+    activeEvent.value.customChoices = undefined;
+    addLogFn(rText, 'success');
+  }
+}
+
+async function handleCrocodileBribe(context: ScenarioPluginContext, type: 'food' | 'follower') {
+  const { character, followers, rollD6, activeEvent } = context;
+  if (type === 'food') {
+    character.value.food = Math.max(0, character.value.food - 2);
+    addLogFn('💸 食料2食分をワイロとして投げ与えました。', 'info');
+  } else {
+    const idx = followers.value.findIndex((f: any) => f.goldCost <= 10);
+    if (idx !== -1) {
+      const name = followers.value[idx].name;
+      followers.value.splice(idx, 1);
+      addLogFn(`👥 雇い賃金貨10枚以下の弱い従者 [${name}] を生贄として差し出しました...`, 'error');
+    }
+  }
+
+  addLogFn('🐊 ワニの反応チェックロール開始 (1-3で友好回避)...', 'info');
+  const roll = await rollD6!(true);
+  if (roll <= 3) {
+    addLogFn(`🤝 成功！ ワニは満腹になり、静かに水底へ去っていきました。 (出目: ${roll})`, 'success');
+    activeEvent.value.isResolved = true;
+    activeEvent.value.resolutionText = '🐊 ワニは満腹になり、水底へ去っていきました。無事にホークを救出し、彼が同行します。';
+    activeEvent.value.customChoices = undefined;
+    
+    followers.value.push({
+      id: 'hawk',
+      name: 'ホーク (ハンター)',
+      type: 'hunter',
+      lifeMax: 4,
+      lifeCurrent: 4,
+      skill: 4,
+      goldCost: 0
+    } as any);
+    addLogFn('👥 救出した [ホーク (ハンター)] が従者として仲間に加わりました！', 'success');
+  } else {
+    addLogFn(`😢 失敗... ワニは差し出されたものだけでは満足せず、襲いかかってきました！ (出目: ${roll})`, 'error');
+    handleCrocodileFight(context);
+  }
+}
+
+function handleCrocodileFight(context: ScenarioPluginContext) {
+  const { combatState, startEncounter } = context;
+  startEncounter!();
+  combatState.active = true;
+  combatState.round = 0;
 }
 
 export const pyramidPlugin = {
   id: 'pyramid_of_chronodemon',
+
+  updateHelpers(context: ScenarioPluginContext) {
+    if (context.addLog) {
+      addLogFn = context.addLog;
+    }
+    if (context.startEncounter) {
+      startEncounterFn = context.startEncounter;
+    }
+  },
 
   onAdventureStart(context: ScenarioPluginContext) {
     const { character } = context;
@@ -149,7 +265,23 @@ export const pyramidPlugin = {
           d66Code: "Middle3",
           description: "落とし穴の底にある無数の針にぶら下がっていたホークを救助するため、下から登ってきた巨大な「砂漠ワニ」の注意を引いて戦闘に入ります！\n※食料2つまたは弱い従者1体のワイロ（1-3で友好）が可能です。防御判定ファンブル時、噛みつき（毎ラウンド終了時ダメージ2）が発生。逃走不可。",
           type: "npc",
-          npcType: "desert_crocodile",
+          customChoices: [
+            ...(character.value.food >= 2 ? [{
+              id: "crocodile_bribe_food",
+              label: `💸 食料 2 個を差し出してワイロを試みる (現在の食料: ${character.value.food}個)`,
+              onSelect: () => handleCrocodileBribe(context, 'food')
+            }] : []),
+            ...(followers.value.some((f: any) => f.goldCost <= 10) ? [{
+              id: "crocodile_bribe_follower",
+              label: "👥 弱い従者 1 体を差し出してワイロを試みる",
+              onSelect: () => handleCrocodileBribe(context, 'follower')
+            }] : []),
+            {
+              id: "crocodile_fight",
+              label: "⚔️ 交渉決裂！戦う！",
+              onSelect: () => handleCrocodileFight(context)
+            }
+          ],
           enemies: [
             { name: "砂漠ワニ", level: 4, lifeMax: 9, lifeCurrent: 9, attackCount: 1, tags: ["weak"], count: 1, weaponAttribute: "slash" }
           ]
@@ -185,14 +317,19 @@ export const pyramidPlugin = {
     if (triggerFinal) {
       let finalEvent: any;
       if (run === 1) {
+        (character.value as any).pyramidFinal1Step = 1;
         finalEvent = {
           title: "【決戦】崩落する床 (1回目の冒険)",
           d66Code: "Final1",
-          description: "ドワーフの魔道士ミロスの過去の幻影に出会いました。話している最中、足元の床が崩落を始めます！\n崩れ去る床を跳び越えるため、3回の【器用度判定】を行ってください。",
-          type: "trap",
-          trapStat: "dexterity",
-          trapTarget: 3,
-          trapDamage: 1,
+          description: "ドワーフの魔道士ミロスの過去の幻影に出会いました。話している最中、足元の床が崩落を始めます！\n崩れ去る床を跳び越えるため、3回の【器用度判定】を行ってください。\n\n🏃 床の崩落を跳び越える (器用判定 1回目 / 3回中)\n1回目目標値: 3 (失敗時: 生命力 -1)",
+          type: "npc",
+          customChoices: [
+            {
+              id: "final1_jump",
+              label: `🎲 器用判定ロールを行う (能力値: ${character.value.skillCurrent})`,
+              onSelect: () => handleFinal1Jump(context)
+            }
+          ],
           isResolved: false
         };
       } else if (run === 2) {
@@ -201,7 +338,55 @@ export const pyramidPlugin = {
           d66Code: "Final2",
           description: "大広間でシーリーンとバーランドが対峙しています。背後の巨像「至高のヘラクレオス」が動き出しました！\nどちらを相手にするか選んでください。",
           type: "npc",
-          npcType: "final2_choice",
+          customChoices: [
+            {
+              id: "heracles",
+              label: "🤖 至高のヘラクレオスと戦う (Level 5 / Life 12)",
+              onSelect: () => {
+                startEncounterFn();
+                combatState.enemies = [
+                  {
+                    name: "至高のヘラクレオス",
+                    level: 5,
+                    lifeMax: 12,
+                    lifeCurrent: 12,
+                    attackCount: 1,
+                    tags: ["golem", "strong"],
+                    count: 1,
+                    resistances: [
+                      { attribute: "slash", modifier: -2 },
+                      { attribute: "strike", modifier: 1 }
+                    ]
+                  }
+                ];
+                combatState.active = true;
+                combatState.round = 0;
+                addLogFn("⚔️ 至高のヘラクレオスとの戦闘を開始しました！ (石化/麻痺無効、打撃武器は攻撃判定ロールに -1 修正)", "info");
+              }
+            },
+            {
+              id: "shireen",
+              label: "🔮 異端者シーリーンと戦う (Level 5 / Life 5)",
+              onSelect: () => {
+                startEncounterFn();
+                combatState.enemies = [
+                  {
+                    name: "異端者シーリーン",
+                    level: 5,
+                    lifeMax: 5,
+                    lifeCurrent: 5,
+                    attackCount: 3,
+                    tags: ["strong"],
+                    count: 1,
+                    evasionRule: "shireen_future_sight"
+                  }
+                ];
+                combatState.active = true;
+                combatState.round = 0;
+                addLogFn("⚔️ 異端者シーリーンとの戦闘を開始しました！ (彼女は予知能力で攻撃を完全に回避するため、通常武器は手がかりアイテムを消費しなければ無効化されます)", "info");
+              }
+            }
+          ],
           isResolved: false
         };
       } else {
@@ -641,6 +826,46 @@ export const pyramidPlugin = {
   async onCombatVictory(context: ScenarioPluginContext): Promise<boolean | void> {
     const { character, combatState, dungeonDepth, activeEvent, activeScenario, pyramidRunCount } = context;
     
+    if (activeEvent.value?.d66Code === '23') {
+      const run = pyramidRunCount.value;
+      if (run === 1) {
+        character.value.items.push({
+          id: 'strong_pill',
+          name: '剛力丸',
+          type: 'accessory',
+          goldCost: 15,
+          value: 15,
+          description: '【シナリオ限定】強壮剤。【筋力ロール】時に服用すると、＋1のボーナスが受けられる。１回分（使い捨て）。'
+        } as any);
+        addLogFn('🎁 ジル＝メガから手助けの礼として『剛力丸』を受け取りました！', 'success');
+      } else if (run === 2) {
+        character.value.items.push({
+          id: 'substitute_amulet',
+          name: '身代わりのアミュレット',
+          type: 'accessory',
+          goldCost: 30,
+          value: 30,
+          description: '【打撃】により生命点１点を失う際、身代わりになって生命力の減少を無効化する。残り3回分。',
+          charges: 3
+        } as any);
+        addLogFn('🎁 ジル＝メガから手助けの礼として『身代わりのアミュレット』を受け取りました！', 'success');
+      } else {
+        addLogFn('🎁 ジル＝メガは自分に託された使命として『封印の壺』を君に託しました！', 'success');
+      }
+    }
+
+    if (activeEvent.value?.d66Code === '25') {
+      character.value.items.push({
+        id: 'adamantite',
+        name: 'アダマンタイト',
+        type: 'quest',
+        goldCost: 20,
+        value: 20,
+        description: '頑強な地下鉱物の原石。武具の素材として使われる。原石のまま投擲武器としても使用できるが、大きく重いため【判定ロール】に−２の修正が入る。代わりに命中すればダメージに＋１される。１回の戦闘で１度しか使用できない。逃走した場合は失われる。'
+      } as any);
+      addLogFn('🎁 アランに勝利し、見事に『アダマンタイト』を獲得しました！', 'success');
+    }
+
     if (activeEvent.value?.d66Code === 'Final2') {
       const scenarioData = activeScenario.value;
       const origin = (character.value as any).pyramidOrigin || 'polomeia';
@@ -731,6 +956,123 @@ export const pyramidPlugin = {
       }
     }
 
+  },
+
+  onCustomSetupSelect(context: ScenarioPluginContext, choiceId: string) {
+    const { character, activeScenario } = context;
+    (character.value as any).pyramidOriginChosen = true;
+    (character.value as any).pyramidOrigin = choiceId;
+    (character.value as any).customSetupChosen = true;
+
+    const scenarioData = activeScenario.value;
+    if (scenarioData && (scenarioData as any).prologues) {
+      const prologue = (scenarioData as any).prologues["1"]?.[choiceId];
+      if (prologue) {
+        const paragraphs = prologue.text.split('\n');
+        paragraphs.forEach((p: string) => {
+          if (p.trim()) {
+            addLogFn(p.trim(), 'info');
+          }
+        });
+      }
+    }
+
+    if (choiceId === 'polomeia') {
+      character.value.items.push({
+        id: 'golden_brooch',
+        name: '黄金虫のブローチ',
+        type: 'accessory',
+        goldCost: 0,
+        description: 'これを身につけていると、副能力値が【器用点】でなくても『察知』を行うことができる。副能力値が【器用点】の場合は、判定ロールに＋１の修正を加えることができる。２回の使用で、ブローチにはヒビが入り効果を失う。また冒険が終わったとき残っていたら、王に返却すること。',
+        value: 0,
+        charges: 2
+      } as any);
+    }
+
+    (character.value as any).pyramidPrepRun = 1;
+    (character.value as any).prepRunCompleted = 1;
+    (character.value as any).pyramidSliderShopDone = true;
+    (character.value as any).sliderShopDone = true;
+  },
+
+  onPrepPhaseStart(context: ScenarioPluginContext) {
+    const { character, activeScenario, pyramidRunCount } = context;
+    const run = pyramidRunCount.value;
+    const origin = (character.value as any).pyramidOrigin || 'polomeia';
+    const scenarioData = activeScenario.value;
+    if (!scenarioData || !(scenarioData as any).prologues) return;
+
+    let storyText = '';
+    if (run === 1) {
+      storyText = (scenarioData as any).prologues["1"]?.[origin]?.text || '';
+    } else if (run === 2) {
+      storyText = (scenarioData as any).prologues["2"]?.[origin]?.text || '';
+    } else if (run === 3) {
+      const commonText = (scenarioData as any).prologues["3"]?.common?.text || '';
+      const uniqueText = (scenarioData as any).prologues["3"]?.[origin]?.text || '';
+      storyText = commonText + '\n\n' + uniqueText;
+    }
+
+    if (storyText) {
+      const paragraphs = storyText.split('\n');
+      paragraphs.forEach((p: string) => {
+        if (p.trim()) {
+          addLogFn(p.trim(), 'info');
+        }
+      });
+    }
+
+    if (run === 3) {
+      const rewardKey = origin === 'polomeia' ? 'rewardItemsPolomeia' : 'rewardItemsAlmaciuda';
+      const rewards = (scenarioData as any).prologues["3"]?.common?.[rewardKey];
+      if (rewards) {
+        rewards.forEach((r: any) => {
+          if (r.type === 'one-handed') {
+            if (!character.value.weapons.some(w => w.name === r.name)) {
+              character.value.weapons.push({ ...r });
+              addLogFn(`⚔️ 支給品 『${r.name}』 を受け取りました！`, 'success');
+            }
+          } else {
+            if (!character.value.items.some(i => i.id === r.id)) {
+              character.value.items.push({ ...r });
+              addLogFn(`🎒 支給品 『${r.name}』 を受け取りました！`, 'success');
+            }
+          }
+        });
+      }
+    }
+
+    (character.value as any).pyramidPrepRun = run;
+    (character.value as any).prepRunCompleted = run;
+
+    if (run === 3) {
+      (character.value as any).pyramidSliderShopDone = false;
+      (character.value as any).sliderShopDone = false;
+    } else {
+      (character.value as any).pyramidSliderShopDone = true;
+      (character.value as any).sliderShopDone = true;
+    }
+  },
+
+  onSliderShopFinish(context: ScenarioPluginContext) {
+    (context.character.value as any).pyramidSliderShopDone = true;
+    (context.character.value as any).sliderShopDone = true;
+  },
+
+  onResolveEventOverride(context: ScenarioPluginContext) {
+    const { activeEvent, pyramidRunCount, dungeonDepth, currentScreen } = context;
+    if (activeEvent.value?.d66Code === 'Final1' || activeEvent.value?.d66Code === 'Final2') {
+      if (activeEvent.value?.d66Code === 'Final1') {
+        pyramidRunCount.value = 2;
+      } else if (activeEvent.value?.d66Code === 'Final2') {
+        pyramidRunCount.value = 3;
+      }
+      dungeonDepth.value = 0;
+      activeEvent.value = null;
+      currentScreen.value = 'levelup';
+      addLogFn(`🧭 冒険を終え、無事に砂漠の迷宮から帰還しました！ (次の周回: ${pyramidRunCount.value}回目 / 3)`, 'success');
+      return true;
+    }
     return false;
   }
 };

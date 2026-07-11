@@ -1323,6 +1323,9 @@ function clearDiceTray() {
 export function useGameState() {
   if (typeof window !== 'undefined') {
     (window as any).character = character;
+    (window as any).activeScenario = activeScenario;
+    (window as any).pyramidRunCount = pyramidRunCount;
+    (window as any).activeSession = activeSession;
   }
   return {
     // State
