@@ -53,7 +53,7 @@ describe('Game Balance & Playthrough Simulator', () => {
         const screen = gameState.currentScreen.value;
 
         if (screen === 'explore') {
-          const event = gameState.activeEvent.value;
+          const event = gameState.activeEvent.value as any;
           if (event) {
             if (event.type === 'trap') {
               // Resolve trap check
@@ -83,8 +83,11 @@ describe('Game Balance & Playthrough Simulator', () => {
               const attack = activeAttacks[0];
               await combat.resolveDefense(attack.id, 'hero');
             } else {
-              // Perform player attack turn
-              await combat.playerAttack();
+              // Perform player attack turn on a living enemy
+              const livingEnemy = gameState.combatState.enemies.find((e: any) => e.lifeCurrent > 0);
+              if (livingEnemy) {
+                await combat.playerAttack(livingEnemy.id);
+              }
             }
           } else {
             // Resolve victory loot screens

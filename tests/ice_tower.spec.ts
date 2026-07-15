@@ -9,11 +9,14 @@ async function isElementEnabled(locator: Locator): Promise<boolean> {
   }
 }
 
-test('Ice Tower scenario full play-through verification', async ({ page }) => {
+test('Ice Tower scenario full play-through verification', async ({ page }, testInfo) => {
   test.setTimeout(300000);
 
   await page.goto('/');
   await disableAnimations(page);
+
+  const isWebkit = testInfo.project.name === 'webkit';
+  const delay = isWebkit ? 150 : 50;
 
   const maxActions = 250;
   const maxLoops = 2500;
@@ -27,7 +30,7 @@ test('Ice Tower scenario full play-through verification', async ({ page }) => {
   while (actionCount < maxActions && loopCount < maxLoops) {
     loopCount++;
     
-    await page.waitForTimeout(50);
+    await page.waitForTimeout(delay);
 
     const screen = await page.evaluate(() => {
       if (document.querySelector('.victory-card')) return 'victory';
@@ -82,7 +85,7 @@ test('Ice Tower scenario full play-through verification', async ({ page }) => {
         if (!success) break;
         learnedSpell = true;
         actionCount++;
-        await page.waitForTimeout(50);
+        await page.waitForTimeout(delay);
       }
 
       const lifeBtn = page.locator('.ledger-row:has-text("生命点") button:has-text("+1上昇")');
@@ -93,7 +96,7 @@ test('Ice Tower scenario full play-through verification', async ({ page }) => {
         if (!success) break;
         clickedLife = true;
         actionCount++;
-        await page.waitForTimeout(50);
+        await page.waitForTimeout(delay);
       }
 
       if (!clickedLife && !learnedSpell) {
@@ -135,9 +138,12 @@ test('Ice Tower scenario full play-through verification', async ({ page }) => {
       const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
       const exploreBtn = page.locator('button:has-text("d66を振って次の部屋を探索する")');
       const trapDamageHeroBtn = page.locator('button:has-text("主人公が受ける")');
+      const customChoiceBtn = page.locator('.custom-choices-panel button.btn-ink:not([disabled])');
 
       if (await proceedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(proceedBtn)) {
         if (await safeClick(proceedBtn, 'Proceed to next room')) actionCount++;
+      } else if (await customChoiceBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(customChoiceBtn.first())) {
+        if (await safeClick(customChoiceBtn.first(), 'Click scenario plugin custom choice')) actionCount++;
       } else if (await trapBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(trapBtn.first())) {
         if (await safeClick(trapBtn.first(), 'Attempt trap roll')) actionCount++;
       } else if (await trapDamageHeroBtn.first().isVisible({ timeout: 0 }) && await isElementEnabled(trapDamageHeroBtn.first())) {
@@ -199,7 +205,7 @@ test('Ice Tower scenario full play-through verification', async ({ page }) => {
           if (!success) break;
           defenseCount++;
           actionCount++;
-          await page.waitForTimeout(50);
+          await page.waitForTimeout(delay);
         }
       } else if (cannotAttack && await escapeBtn.isVisible({ timeout: 0 }) && await isElementEnabled(escapeBtn)) {
         if (await safeClick(escapeBtn, 'Escape from combat due to paralysis/petrification')) actionCount++;

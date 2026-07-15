@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateId, SeededRandom, hashSeed, randomInt } from './random';
+import { generateId, SeededRandom, hashSeed } from './random';
 
 describe('Random Utility Library', () => {
   describe('generateId', () => {

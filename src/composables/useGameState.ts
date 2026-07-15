@@ -396,7 +396,7 @@ function rollD6(isCheck: boolean = false): Promise<number> {
     diceTray.isCritical = false;
     diceTray.isFumble = false;
 
-    const delay = typeof process !== 'undefined' && process.env.NODE_ENV === 'test' ? 0 : 700;
+    const delay = typeof (globalThis as any).process !== 'undefined' && (globalThis as any).process.env?.NODE_ENV === 'test' ? 0 : 700;
     setTimeout(() => {
       const roll = randomInt(1, 6);
       diceTray.d1 = roll;
@@ -428,7 +428,7 @@ function rollD66(): Promise<{ d1: number; d2: number; value: number }> {
     diceTray.isCritical = false;
     diceTray.isFumble = false;
 
-    const delay = typeof process !== 'undefined' && process.env.NODE_ENV === 'test' ? 0 : 900;
+    const delay = typeof (globalThis as any).process !== 'undefined' && (globalThis as any).process.env?.NODE_ENV === 'test' ? 0 : 900;
     setTimeout(() => {
       let d1 = randomInt(1, 6);
       if (nextRoomTensDigitOverride.value !== null) {
