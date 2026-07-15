@@ -236,3 +236,21 @@ sequenceDiagram
 画面の遷移処理や進行状態の制御は、`currentScreen.value = 'explore'` のように直接変更するのではなく、`useGameState.ts` 内に定義されたドメインイベントメソッドを呼び出す設計に統一されています。
 * **進行メソッド例**: `triggerGameOver()`, `triggerLevelUp()`, `transitionToExplore()`, `transitionToCombat()`, `transitionToSuccess()`
 * これにより、ドメインロジックの実行からUIへのフィードバック経路が一元化され、表示と制御の疎結合性が確保されています。
+
+---
+
+## 5. テスト環境とハーネスエンジニアリング (Testing & Harness Engineering)
+
+本システムは、E2Eテストおよびゲームバランス検証を安定かつ決定論的に行うための各種テストハーネスを備えています。
+
+### 5.1 決定論的乱数モック (PRNG & Mocking)
+* **シード可能なPRNG**: ID生成を `Math.random` から完全に分離し、ゲームロジックは [src/domain/random.ts](file:///workspaces/roguelike-half/src/domain/random.ts) でシード可能な Mulberry32 PRNG に基づいて動作します。これにより、同じシード値であれば完全に同一のダンジョン進行や戦闘結果が再現されます。
+* **E2E用出目スタブ**: [tests/helpers/test-utils.ts](file:///workspaces/roguelike-half/tests/helpers/test-utils.ts) の `setupMockRandom` を使用することで、d66ダイスロールおよび後続の戦闘・トラップ判定のダイス出目を決定論的にスタブ化できます。
+
+### 5.2 単体テスト・シミュレーター (Vitest)
+Vite環境と統合された **Vitest** を用いて高速な単体テストおよびシミュレーションを実行します。
+* **ユニットテスト**: `npm run test:unit` で実行。キャラクターのステータス再計算や乱数アルゴリズムの整合性を検証します。
+* **バランス・シミュレーター**: [src/domain/balance-simulation.test.ts](file:///workspaces/roguelike-half/src/domain/balance-simulation.test.ts) により、ダイス遅延アニメーションをテスト時は 0ms に短縮し、迷宮の自動高速周回シミュレーションを行ってクリア率やゴールド獲得統計などのゲームバランス統計を計測します。
+
+### 5.3 状態インジェクション (State Injection)
+E2Eテストやデバッグ時に、任意のセッション状態でゲームを再開できるようにするためのヘルパー `injectTestSession` が実装されています。これを用いて localStorage の保存状態をモックしてテストを開始できます。
