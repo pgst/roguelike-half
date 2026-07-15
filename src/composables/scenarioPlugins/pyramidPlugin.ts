@@ -1,4 +1,5 @@
 import type { Ref } from 'vue';
+import { generateId, randomInt } from '../../domain/random';
 import type { Character, DungeonEvent, Follower } from '../../types';
 import type { ScenarioPluginContext } from './index';
 
@@ -43,7 +44,7 @@ async function handleFinal1Jump(context: ScenarioPluginContext) {
       goldReward = epilogue.goldBase;
       const rolls = [];
       for (let i = 0; i < epilogue.goldDiceCount; i++) {
-        const d = Math.floor(Math.random() * 6) + 1;
+        const d = randomInt(1, 6);
         rolls.push(d);
         goldReward += d;
       }
@@ -175,7 +176,7 @@ export const pyramidPlugin = {
       addLogFn(`🐜 アリ人の群れがギ酸の唾を飛ばしてきました！ (第0ラウンド・遠距離攻撃 - 射手: ${spitAntsCount}体)`, 'error');
       
       if (spitAntsCount > 0) {
-        const pRoll = Math.floor(Math.random() * 6) + 1;
+        const pRoll = randomInt(1, 6);
         addLogFn(`🧍 主人公の防御ロール: 出目 ${pRoll} (目標値: 4)`, 'roll');
         if (pRoll < 4) {
           addLogFn('🤢 ギ酸の唾が目に入り、視界がかすんだ！ (戦闘終了まで攻撃ロール-1ペナルティ)', 'damage');
@@ -186,7 +187,7 @@ export const pyramidPlugin = {
         
         followers.value.forEach(f => {
           if (f.lifeCurrent > 0 && f.isCombatant) {
-            const fRoll = Math.floor(Math.random() * 6) + 1;
+            const fRoll = randomInt(1, 6);
             addLogFn(`👥 従者 [${f.name}] の防御ロール: 出目 ${fRoll} (目標値: 4)`, 'roll');
             if (fRoll < 4) {
               addLogFn(`🤢 従者 [${f.name}] は視界がかすんだ！ (戦闘終了まで攻撃ロール-1ペナルティ)`, 'damage');
@@ -451,22 +452,22 @@ export const pyramidPlugin = {
     if (enemy.name === '刻の悪魔クロノヴァルス') {
       attackQueue.push({
         source: enemy,
-        id: Math.random().toString(36).substring(2, 9),
+        id: generateId(),
         type: 'wind'
       } as any);
       
       const activeFollowers = context.followers.value.filter(f => f.lifeCurrent > 0);
       if (activeFollowers.length > 0) {
-        const chosenFollower = activeFollowers[Math.floor(Math.random() * activeFollowers.length)];
+        const chosenFollower = activeFollowers[randomInt(0, activeFollowers.length - 1)];
         attackQueue.push({
           source: enemy,
-          id: Math.random().toString(36).substring(2, 9),
+          id: generateId(),
           type: 'spacetime_fang_hero',
           targetName: '主人公'
         } as any);
         attackQueue.push({
           source: enemy,
-          id: Math.random().toString(36).substring(2, 9),
+          id: generateId(),
           type: 'spacetime_fang_follower',
           targetName: `従者 ${chosenFollower.name}`,
           targetFollowerId: chosenFollower.id
@@ -474,13 +475,13 @@ export const pyramidPlugin = {
       } else {
         attackQueue.push({
           source: enemy,
-          id: Math.random().toString(36).substring(2, 9),
+          id: generateId(),
           type: 'spacetime_fang_hero_1',
           targetName: '主人公 (1回目)'
         } as any);
         attackQueue.push({
           source: enemy,
-          id: Math.random().toString(36).substring(2, 9),
+          id: generateId(),
           type: 'spacetime_fang_hero_2',
           targetName: '主人公 (2回目)'
         } as any);
@@ -491,14 +492,14 @@ export const pyramidPlugin = {
     if (enemy.name === '異端者シーリーン') {
       const round = context.combatState.round;
       if (round === 1) {
-        attackQueue.push({ source: enemy, id: Math.random().toString(36).substring(2, 9), type: 'evil_eye' } as any);
+        attackQueue.push({ source: enemy, id: generateId(), type: 'evil_eye' } as any);
       } else if (round === 2) {
-        attackQueue.push({ source: enemy, id: Math.random().toString(36).substring(2, 9), type: 'slash_eye' } as any);
+        attackQueue.push({ source: enemy, id: generateId(), type: 'slash_eye' } as any);
       } else if (round === 3) {
-        attackQueue.push({ source: enemy, id: Math.random().toString(36).substring(2, 9), type: 'mad_eye' } as any);
+        attackQueue.push({ source: enemy, id: generateId(), type: 'mad_eye' } as any);
       } else {
         for (let i = 0; i < 3; i++) {
-          attackQueue.push({ source: enemy, id: Math.random().toString(36).substring(2, 9), type: 'normal' } as any);
+          attackQueue.push({ source: enemy, id: generateId(), type: 'normal' } as any);
         }
       }
       return true;
@@ -587,7 +588,7 @@ export const pyramidPlugin = {
               f.lifeCurrent = 0;
               const charmedLevel = f.skill + 4;
               combatState.enemies.push({
-                id: Math.random().toString(36).substring(2, 9),
+                id: generateId(),
                 name: `魅了された${f.name}`,
                 level: charmedLevel,
                 lifeMax: 2,
@@ -624,8 +625,8 @@ export const pyramidPlugin = {
         addLog('👁️ シーリーンの【狂視】により、精神が狂気に侵されます！', 'error');
         const res = await context.rollSpellResistance!(5);
         if (!res.success) {
-          const cRoll = Math.floor(Math.random() * 6) + 1;
-          addLog(`🎲 狂気ロール: 出目 ${cRoll}`, 'info');
+          const cRoll = randomInt(1, 6);
+          addLogFn(`🎲 狂気ロール: 出目 ${cRoll}`, 'info');
           if (cRoll === 1) {
             combatState.isStunned = true;
             addLog('🌀 狂気効果：狂乱状態で行動不能になりました！ 次のラウンドは攻撃も防御もできません。', 'error');
@@ -634,7 +635,7 @@ export const pyramidPlugin = {
             addLog('🌀 狂気効果：恐怖のあまりランタンの火を消してしまいました！ 周囲が暗闇に包まれます。', 'error');
           } else if (cRoll === 3) {
             if (character.value.items.length > 0) {
-              const itemIdx = Math.floor(Math.random() * character.value.items.length);
+              const itemIdx = randomInt(0, character.value.items.length - 1);
               const lostItem = character.value.items[itemIdx];
               character.value.items.splice(itemIdx, 1);
               addLog(`🌀 狂気効果：狂乱して所持品を投げ捨ててしまいました！ [${lostItem.name}] を破壊。`, 'error');
@@ -879,7 +880,7 @@ export const pyramidPlugin = {
         goldReward = epilogue.goldBase;
         const rolls = [];
         for (let i = 0; i < epilogue.goldDiceCount; i++) {
-          const d = Math.floor(Math.random() * 6) + 1;
+          const d = randomInt(1, 6);
           rolls.push(d);
           goldReward += d;
         }
@@ -1288,9 +1289,9 @@ function handleSphinxRiddle(
 // Room 24: Repairing Ant Folk Choice Builder & Combat Helper
 // -------------------------------------------------------------
 function setupAntFolkChoices(event: DungeonEvent, character: Ref<Character>) {
-  const reactRoll = Math.floor(Math.random() * 6) + 1;
+  const reactRoll = randomInt(1, 6);
   addLogFn(`🐜 アリ人の反応チェック (1d6ロール: ${reactRoll})`, 'roll');
-  const numAnts = (Math.floor(Math.random() * 6) + 1) + 3;
+  const numAnts = randomInt(1, 6) + 3;
   
   if (reactRoll <= 4) {
     event.description = `ピラミッドの壁や床を〈アリ人〉の修繕部隊（${numAnts}体）が修繕しています。彼らは君たちに気付くと、修繕を手伝ってほしいと身振り手振りで持ちかけてきました。（反応: 【中立】）`;
@@ -1650,7 +1651,7 @@ function setupChattySphinxChoices(event: DungeonEvent, character: Ref<Character>
       id: 'sphinx_listen',
       label: '💬 スフィンクスの話を聞く (反応表判定)',
       onSelect: async () => {
-        const reactRoll = Math.floor(Math.random() * 6) + 1;
+        const reactRoll = randomInt(1, 6);
         addLogFn(`🦁 スフィンクスの反応チェック (1d6ロール: ${reactRoll})`, 'roll');
         
         if (reactRoll === 6) {

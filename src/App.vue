@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue';
+import { generateId } from './domain/random';
 import { useGameState } from './composables/useGameState';
 import { DEFAULT_ITEMS, DEFAULT_WEAPONS, DEFAULT_SHIELDS, DEFAULT_ARMORS } from './composables/useGameState';
 import type { Weapon, Armor, Shield, GeneralItem } from './types';
@@ -197,7 +198,7 @@ function buyItem(item: Omit<GeneralItem, 'id'>) {
   character.value.gold -= item.goldCost;
   character.value.items.push({
     ...item,
-    id: Math.random().toString(36).substring(2, 9)
+    id: generateId()
   } as GeneralItem);
   addLog(`街の市場で [${item.name}] を購入しました。(金貨${item.goldCost}枚消費)`, 'success');
 }
@@ -309,7 +310,7 @@ function handleRetry() {
 
   // Everyone gets a lantern
   character.value.items.push({
-    id: Math.random().toString(36).substring(2, 9),
+    id: generateId(),
     name: 'ランタン',
     type: 'lantern',
     goldCost: 2,

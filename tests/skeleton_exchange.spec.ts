@@ -94,13 +94,7 @@ test.describe('砂掃きの骸骨 (Sand Cleaning Skeleton) 取引＆アドバイ
     // 5. 次の部屋探索の際に、十の位が1となり、一の位が1であれば d66=11 (ゴールデンポップコーン) が出現することを確認
     // d1は案内効果で固定されているので、d2の出目のみスタブする
     await page.evaluate(() => {
-      let callCount = 0;
-      window.Math.random = () => {
-        callCount++;
-        // 3番目のコール（d2のランダムダイス）の時に 0.0 を返し、出目を 1 に固定する
-        if (callCount === 3) return 0.0;
-        return 0.5;
-      };
+      (window as any).__mockRolls = [1, 1];
     });
 
     // 次の部屋を探索

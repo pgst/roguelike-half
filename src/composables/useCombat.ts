@@ -1,6 +1,7 @@
 import { useGameState } from './useGameState';
 import type { Enemy, GeneralItem } from '../types';
 import { runScenarioHook } from './scenarioPlugins';
+import { generateId, randomInt } from '../domain/random';
 
 export function useCombat() {
   const {
@@ -593,7 +594,7 @@ export function useCombat() {
 
       // --- CUSTOM LOGIC: Ancient Dragon's Rib-Sword Shockwave ---
       if (roll === 6 && character.value.equippedWeapon?.name === '古竜の肋骨剣' && enemy.tags.includes('weak')) {
-        const addKillCount = Math.floor(Math.random() * 3) + 1;
+        const addKillCount = randomInt(1, 3);
         addLog(`✨ 古竜の肋骨剣の衝撃波が発生！ 1d3体をさらに撃破します (ロール: ${addKillCount}体)`, 'success');
         
         let killed = 0;
@@ -753,7 +754,7 @@ export function useCombat() {
           ? overrideCount
           : (e.tags.includes('weak') ? e.count : e.attackCount);
         for (let i = 0; i < count; i++) {
-          attackQueue.push({ source: e, id: Math.random().toString(36).substring(2, 9), type: 'normal' } as any);
+          attackQueue.push({ source: e, id: generateId(), type: 'normal' } as any);
         }
       }
     });
@@ -1488,7 +1489,7 @@ export function useCombat() {
       if (roll === 6 || (roll !== 1 && total >= target.level)) {
         addLog(`✨ 成功！ ${target.name} は改心し、【捕虜】の従者として同行することになりました！`, 'success');
         followers.value.push({
-          id: Math.random().toString(36).substring(2, 9),
+          id: generateId(),
           name: `捕虜の${target.name}`,
           type: 'captive',
           isCombatant: false,
@@ -1756,7 +1757,7 @@ export function useCombat() {
       const d2 = await rollD6();
       const value = d1 * d2;
       const item: GeneralItem = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: generateId(),
         name: '魔除けのアクセサリー',
         type: 'accessory',
         goldCost: 0,
@@ -1771,7 +1772,7 @@ export function useCombat() {
       const d = await rollD6();
       const value = Math.max(15, d * 5);
       const item: GeneralItem = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: generateId(),
         name: '宝石（小）',
         type: 'gem_small',
         goldCost: 0,
@@ -1787,7 +1788,7 @@ export function useCombat() {
       const d2 = await rollD6();
       const value = Math.max(30, (d1 + d2) * 5);
       const item: GeneralItem = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: generateId(),
         name: '宝石（大）',
         type: 'gem_large',
         goldCost: 0,
@@ -1816,7 +1817,7 @@ export function useCombat() {
 
     if (roll === 1) {
       item = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: generateId(),
         name: '貫きの石弾 (5個)',
         type: 'holywater', // behaves like combat consumable
         goldCost: 15,
@@ -1829,7 +1830,7 @@ export function useCombat() {
       addLog('✨ 『貫きの石弾(5回分)』を獲得！ (攻撃時に+2ボーナス)', 'success');
     } else if (roll === 2) {
       item = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: generateId(),
         name: '安らぎのフルート',
         type: 'magic_flute',
         goldCost: 60,
@@ -1842,7 +1843,7 @@ export function useCombat() {
       addLog('✨ 『安らぎのフルート』を獲得！ (ノーコストで「気絶」を詠唱可能、3回制限)', 'success');
     } else if (roll === 3) {
       item = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: generateId(),
         name: '換石の杖',
         type: 'magic_staff',
         goldCost: 60,
@@ -1855,7 +1856,7 @@ export function useCombat() {
       addLog('✨ 『換石の杖』を獲得！ (広い戦闘エリアを狭いエリアに変更可能、3回制限)', 'success');
     } else if (roll === 4) {
       item = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: generateId(),
         name: '看破の片眼鏡',
         type: 'magic_monocle',
         goldCost: 60,
@@ -1871,7 +1872,7 @@ export function useCombat() {
       addLog(`✨ 『看破の片眼鏡』を獲得！ (${charges}回分、判定に+1修正)`, 'success');
     } else if (roll === 5) {
       item = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: generateId(),
         name: '魔法の大盾',
         type: 'magic_shield',
         goldCost: 60,
@@ -1883,7 +1884,7 @@ export function useCombat() {
     } else {
       // War doll (Golem Follower)
       item = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: generateId(),
         name: 'ウォー・ドール (未起動)',
         type: 'magic_doll',
         goldCost: 60,
@@ -1917,7 +1918,7 @@ export function useCombat() {
     character.value.items.splice(idx, 1);
 
     followers.value.push({
-      id: Math.random().toString(36).substring(2, 9),
+      id: generateId(),
       name: 'ウォー・ドール',
       type: 'soldier', // treats as soldier for slot, but has Golem traits
       isCombatant: true,

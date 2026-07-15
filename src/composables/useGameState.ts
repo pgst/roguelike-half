@@ -1,6 +1,7 @@
 import { ref, computed, watch } from 'vue';
 import type { Character, Follower, Enemy, Weapon, Armor, Shield, GeneralItem, DungeonEvent, Scenario, StatusEffectRule } from '../types';
 import { GameSession, PlayerCharacter } from '../domain';
+import { generateId, setGlobalSeed, randomInt } from '../domain/random';
 
 // Load Scenarios
 const scenarioModules = import.meta.glob<{ default: any }>('../data/scenarios/*.json', { eager: true });
@@ -172,6 +173,11 @@ function createDefaultLogs(): { id: string; text: string; type: 'info' | 'roll' 
 }
 
 const activeSession = ref<GameSession>(new GameSession());
+watch(() => activeSession.value.seed, (newSeed) => {
+  if (newSeed) {
+    setGlobalSeed(newSeed);
+  }
+}, { immediate: true });
 
 // Bridge reactive properties
 const activeScenario = computed<Scenario | null>({
@@ -371,7 +377,7 @@ function restorePyramidBossSnapshot(rewindAmount: number) {
 // Logs Manager
 function addLog(text: string, type: 'info' | 'roll' | 'combat' | 'error' | 'success' | 'damage' = 'info') {
   logs.value.push({
-    id: Math.random().toString(36).substring(2, 9),
+    id: generateId(),
     text,
     type,
   });
@@ -390,8 +396,9 @@ function rollD6(isCheck: boolean = false): Promise<number> {
     diceTray.isCritical = false;
     diceTray.isFumble = false;
 
+    const delay = typeof process !== 'undefined' && process.env.NODE_ENV === 'test' ? 0 : 700;
     setTimeout(() => {
-      const roll = Math.floor(Math.random() * 6) + 1;
+      const roll = randomInt(1, 6);
       diceTray.d1 = roll;
       diceTray.d2 = 0;
       diceTray.isRolling = false;
@@ -408,7 +415,7 @@ function rollD6(isCheck: boolean = false): Promise<number> {
         addLog(`1d6をロール: 出目 ${roll}`, 'roll');
       }
       resolve(roll);
-    }, 700);
+    }, delay);
   });
 }
 
@@ -421,13 +428,14 @@ function rollD66(): Promise<{ d1: number; d2: number; value: number }> {
     diceTray.isCritical = false;
     diceTray.isFumble = false;
 
+    const delay = typeof process !== 'undefined' && process.env.NODE_ENV === 'test' ? 0 : 900;
     setTimeout(() => {
-      let d1 = Math.floor(Math.random() * 6) + 1;
+      let d1 = randomInt(1, 6);
       if (nextRoomTensDigitOverride.value !== null) {
         d1 = nextRoomTensDigitOverride.value;
         nextRoomTensDigitOverride.value = null; // Consume override
       }
-      const d2 = Math.floor(Math.random() * 6) + 1;
+      const d2 = randomInt(1, 6);
       const value = d1 * 10 + d2;
       diceTray.d1 = d1;
       diceTray.d2 = d2;
@@ -436,7 +444,7 @@ function rollD66(): Promise<{ d1: number; d2: number; value: number }> {
       
       addLog(`d66をロール: 出目 ${d1}, ${d2} -> ${value}`, 'roll');
       resolve({ d1, d2, value });
-    }, 900);
+    }, delay);
   });
 }
 
@@ -709,7 +717,7 @@ function buyFollower(type: Follower['type'], attrib: 'strike' | 'slash' = 'strik
   character.value.gold -= cost;
   followers.value.push({
     ...followerData,
-    id: Math.random().toString(36).substring(2, 9),
+    id: generateId(),
   });
 
   addLog(`${followerData.name}を雇用しました。 (金貨${cost}枚消費)`, 'success');
@@ -1243,7 +1251,7 @@ function initNewCharacter(name: string, subStat: Character['subStatType']) {
 
   // Everyone gets a lantern
   character.value.items.push({
-    id: Math.random().toString(36).substring(2, 9),
+    id: generateId(),
     ...DEFAULT_ITEMS.lantern,
   });
 

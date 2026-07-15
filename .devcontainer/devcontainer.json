@@ -8,7 +8,9 @@
       "extensions": [
         "Vue.volar",
         "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode"
+        "esbenp.prettier-vscode",
+        "ms-playwright.playwright",
+        "vitest.vitest-vscode"
       ]
     }
   },
@@ -31,7 +33,7 @@
     "ANTIGRAVITY_LS_ADDRESS": "${localEnv:ANTIGRAVITY_LS_ADDRESS}",
     "ANTIGRAVITY_PROJECT_ID": "${localEnv:ANTIGRAVITY_PROJECT_ID}"
   },
-  "postCreateCommand": "sudo ln -s /home/node /home/pgst || true && npm install && npx playwright install && sudo npx playwright install-deps",
+  "postCreateCommand": "sudo ln -s /home/node /home/pgst || true && mkdir -p /workspaces/roguelike-half/.bin && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=\"/workspaces/roguelike-half/.bin\" sh && npm install && npx playwright install && sudo npx playwright install-deps",
   "remoteUser": "node"
 }
 

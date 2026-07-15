@@ -1,4 +1,5 @@
 import type { Character, Follower, DungeonEvent, Scenario, Weapon, Armor, Shield, GeneralItem, Enemy } from '../types';
+import { generateId } from './random';
 
 export function createDefaultDiceTray() {
   return {
@@ -230,9 +231,10 @@ export class GameSession {
   public activeScenario: Scenario | null;
   public pyramidRunCount: number;
   public pyramidBossSnapshot: any;
+  public seed: string;
 
   constructor(data?: any) {
-    this.sessionId = data?.sessionId || Math.random().toString(36).substring(2, 9);
+    this.sessionId = data?.sessionId || generateId();
     this.currentScreen = data?.currentScreen || 'scenario_select';
     this.isCharacterCreated = data?.isCharacterCreated ?? false;
     this.nextRoomTensDigitOverride = data?.nextRoomTensDigitOverride ?? null;
@@ -246,6 +248,7 @@ export class GameSession {
     this.activeScenario = data?.activeScenario || null;
     this.pyramidRunCount = data?.pyramidRunCount ?? 1;
     this.pyramidBossSnapshot = data?.pyramidBossSnapshot || null;
+    this.seed = data?.seed || generateId();
   }
 
   public toJSON() {
@@ -264,6 +267,7 @@ export class GameSession {
       activeScenario: this.activeScenario,
       pyramidRunCount: this.pyramidRunCount,
       pyramidBossSnapshot: this.pyramidBossSnapshot,
+      seed: this.seed,
     };
   }
 
@@ -277,10 +281,13 @@ export class GameSession {
   }
 
   public saveToLocalStorage(): void {
-    localStorage.setItem('roguelike_half_saved_session', this.serialize());
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('roguelike_half_saved_session', this.serialize());
+    }
   }
 
   public static loadFromLocalStorage(): GameSession | null {
+    if (typeof localStorage === 'undefined') return null;
     try {
       const jsonStr = localStorage.getItem('roguelike_half_saved_session');
       if (jsonStr) {
@@ -293,6 +300,8 @@ export class GameSession {
   }
 
   public static clearLocalStorage(): void {
-    localStorage.removeItem('roguelike_half_saved_session');
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('roguelike_half_saved_session');
+    }
   }
 }

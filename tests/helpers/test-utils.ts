@@ -45,30 +45,33 @@ export async function disableAnimations(page: any) {
  */
 export async function setupMockRandom(page: any, d66Result: number, rolls: number | number[]) {
   await page.evaluate(({ d66Result, rolls }) => {
-    let callCount = 0;
     const d1 = Math.floor(d66Result / 10);
     const d2 = d66Result % 10;
     
-    window.Math.random = () => {
-      callCount++;
-      // Call 1 is log ID
-      if (callCount === 1) return 0.5;
-      // Call 2 & 3 are d66 roll digits
-      if (callCount === 2) return (d1 - 1) / 6;
-      if (callCount === 3) return (d2 - 1) / 6;
-      
-      // Subsequent rolls
-      const rollIndex = callCount - 4;
-      if (Array.isArray(rolls)) {
-        if (rollIndex >= 0 && rollIndex < rolls.length) {
-          return (rolls[rollIndex] - 1) / 6 + 0.01;
-        }
-        return 0.5; // default middle roll
-      } else {
-        // Single normalRoll value
-        return (rolls - 1) / 6 + 0.01;
-      }
-    };
+    const mockRollList: number[] = [d1, d2];
+    if (Array.isArray(rolls)) {
+      mockRollList.push(...rolls);
+    } else {
+      mockRollList.push(rolls);
+    }
+    
+    // Inject the mock array to be consumed sequentially by randomInt
+    (window as any).__mockRolls = mockRollList;
+    
+    // Determine the fallback roll value when mockRollList runs out.
+    // If rolls is a single number, use it. If array, use its last element. Default to 6.
+    const lastRollVal = Array.isArray(rolls)
+      ? (rolls.length > 0 ? rolls[rolls.length - 1] : 6)
+      : rolls;
+    
+    // Provide a fallback value directly to prevent Math.random browser inconsistency
+    (window as any).__mockRollsFallback = lastRollVal;
+    
+    // Calculate the Math.random return value to match the desired roll
+    const fallbackRandomVal = (lastRollVal - 1) / 6 + 0.01;
+    
+    // Provide a stable Math.random stub that matches the expected last roll
+    window.Math.random = () => fallbackRandomVal;
   }, { d66Result, rolls });
 }
 
@@ -87,3 +90,111 @@ export async function handlePendingDefense(page: any) {
     await page.waitForTimeout(800);
   }
 }
+
+/**
+ * 任意のゲームセッション状態をブラウザの localStorage にインジェクションします。
+ * ナビゲーション（page.goto）を呼び出す前にこの関数を実行してください。
+ * 
+ * @param page PlaywrightのPageオブジェクト
+ * @param sessionData 部分的なセッション状態。デフォルト状態にマージされます。
+ */
+export async function injectTestSession(page: any, sessionData: any) {
+  const defaultSession = {
+    sessionId: `test-session-${Math.random().toString(36).substring(2, 9)}`,
+    currentScreen: 'explore',
+    isCharacterCreated: true,
+    nextRoomTensDigitOverride: null,
+    character: {
+      name: 'テスト冒険者',
+      level: 10,
+      exp: 10,
+      gold: 50,
+      food: 2,
+      skillMax: 0,
+      skillCurrent: 0,
+      lifeMax: 4,
+      lifeCurrent: 4,
+      subStatType: 'magic',
+      subStatMax: 2,
+      subStatCurrent: 2,
+      followerMax: 7,
+      followerCurrent: 7,
+      spells: [],
+      miracles: [],
+      weapons: [],
+      armors: [],
+      shields: [],
+      items: [{ id: 'lantern-id', name: 'ランタン', type: 'lantern', goldCost: 2, value: 0, description: 'ランタン' }],
+      equippedWeapon: null,
+      equippedArmor: null,
+      equippedShield: null,
+      hasActiveLantern: true,
+      statusEffects: []
+    },
+    followers: [],
+    activeEvent: null,
+    dungeonDepth: 1,
+    logs: [],
+    diceTray: {
+      isRolling: false,
+      d1: 0,
+      d2: 0,
+      sides: 6,
+      resultText: '',
+      isCritical: false,
+      isFumble: false
+    },
+    combatState: {
+      active: false,
+      enemies: [],
+      round: 0,
+      pendingRoarCheck: null,
+      roarCheckedThisCombat: false,
+      shireenClueSpent: false,
+      chronovalsWindPenalty: false,
+      isCharmed: false,
+      isStunned: false,
+      isClinging: false,
+      isBerserk: false,
+      isAnotherEnding: false,
+      activeAttacks: [],
+      log: [],
+      hasQuickStrikeActive: false,
+      hasWeaponCreatedThisRound: false,
+      hasCoveredInRound: false,
+      pendingCover: null,
+      lootText: '',
+      lootRolled: false
+    },
+    activeScenario: {
+      id: 'aranzas',
+      title: '魔将アラザスの迷宮',
+      description: 'デモ迷宮',
+      recommendedLevel: '10',
+      totalRoomsToClear: 8
+    },
+    pyramidRunCount: 1,
+    pyramidBossSnapshot: null,
+    seed: `test-seed-${Math.random().toString(36).substring(2, 9)}`
+  };
+
+  const mergeDeep = (target: any, source: any) => {
+    if (!source) return target;
+    for (const key of Object.keys(source)) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        if (!target[key]) target[key] = {};
+        mergeDeep(target[key], source[key]);
+      } else {
+        target[key] = source[key];
+      }
+    }
+    return target;
+  };
+
+  const finalSession = mergeDeep(defaultSession, sessionData);
+
+  await page.addInitScript((data: any) => {
+    window.localStorage.setItem('roguelike_half_saved_session', JSON.stringify(data));
+  }, finalSession);
+}
+

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import { generateId, randomInt } from '../domain/random';
 import { useGameState } from '../composables/useGameState';
 import { useDungeon } from '../composables/useDungeon';
 import { useCombat } from '../composables/useCombat';
@@ -111,7 +112,7 @@ function forgeItem(recipe: any) {
     character.value.shields.push({ ...res });
   } else {
     character.value.items.push({
-      id: Math.random().toString(36).substring(2, 9),
+      id: generateId(),
       ...res,
       charges: recipe.type === 'arrow' ? 1 : undefined
     });
@@ -245,7 +246,7 @@ function buyItemFromMerchant(item: Omit<GeneralItem, 'id'>) {
   character.value.gold -= item.goldCost;
   character.value.items.push({
     ...item,
-    id: Math.random().toString(36).substring(2, 9)
+    id: generateId()
   } as GeneralItem);
   addLog(`行商人から [${item.name}] を購入しました。(金貨${item.goldCost}枚消費)`, 'success');
 }
@@ -275,7 +276,7 @@ function resolvePriest(choice: 'heal' | 'holywater') {
     text = '巡礼の僧侶から神聖な癒やしを施され、パーティの生命力が全回復しました！';
   } else {
     character.value.items.push({
-      id: Math.random().toString(36).substring(2, 9),
+      id: generateId(),
       ...DEFAULT_ITEMS.holywater,
       value: 0
     } as GeneralItem);
@@ -329,7 +330,7 @@ async function rollAlanReaction() {
   if (roll <= 2) { // Friendly
     addLog(`🎲 反応チェック: ${roll} 【友好的】 - アランはアダマンタイトを譲ってくれました！`, 'success');
     character.value.items.push({
-      id: Math.random().toString(36).substring(2, 9),
+      id: generateId(),
       name: 'アダマンタイト',
       type: 'quest',
       goldCost: 20,
@@ -419,7 +420,7 @@ async function rollPaintingRanged() {
 function startPaintingFight() {
   if (!activeEvent.value) return;
   clearDiceTray();
-  const d6 = Math.floor(Math.random() * 6) + 1;
+  const d6 = randomInt(1, 6);
   addLog(`🎲 出現数ダイスロール: ${d6} (出現数: ${d6}体)`, 'info');
   activeEvent.value.enemies = [];
   for (let i = 0; i < d6; i++) {
@@ -567,7 +568,7 @@ function resolveMercenary(save: boolean) {
     character.value.gold -= 7;
     // Recruit Swordsman
     followers.value.push({
-      id: Math.random().toString(36).substring(2, 9),
+      id: generateId(),
       name: '救出された剣士',
       type: 'swordsman',
       isCombatant: true,
@@ -603,7 +604,7 @@ function resolveCaptive(enslave: boolean) {
 
     character.value.items.splice(ropeIdx, 1);
     followers.value.push({
-      id: Math.random().toString(36).substring(2, 9),
+      id: generateId(),
       name: 'ゴブリンの捕虜',
       type: 'captive',
       isCombatant: false,
@@ -738,7 +739,7 @@ function startGoblinFight() {
 
   // Generate goblin negotiator enemy
   combatState.enemies = [{
-    id: Math.random().toString(36).substring(2, 9),
+    id: generateId(),
     name: "ゴブリンの交渉人",
     level: 3,
     lifeMax: 2,

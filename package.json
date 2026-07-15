@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
     "test:e2e": "playwright test",
+    "test:unit": "vitest run",
     "show-report": "playwright show-report --host 0.0.0.0"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "ts-node": "^10.9.2",
     "typescript": "~6.0.2",
     "vite": "^8.0.12",
+    "vitest": "^4.1.10",
     "vue-tsc": "^3.2.8"
   }
 }

@@ -1,6 +1,7 @@
 import { useGameState } from './useGameState';
 import type { Enemy } from '../types';
 import { runScenarioHook } from './scenarioPlugins';
+import { generateId, randomInt } from '../domain/random';
 export function useDungeon() {
   const { 
     character, 
@@ -250,7 +251,7 @@ export function useDungeon() {
     // Populate enemies with IDs
     combatState.enemies = activeEvent.value.enemies.map(e => ({
       ...e,
-      id: Math.random().toString(36).substring(2, 9),
+      id: generateId(),
     })) as Enemy[];
 
     addLog(`クリーチャーと遭遇！戦闘に入ります。 (${combatState.enemies.length}体の敵)`, 'combat');
@@ -411,7 +412,7 @@ export function useDungeon() {
         return false;
       } else if (scope === 'random') {
         const candidates = ['hero', ...validFollowers.map(f => f.id)];
-        const randIndex = Math.floor(Math.random() * candidates.length);
+        const randIndex = randomInt(0, candidates.length - 1);
         const chosenId = candidates[randIndex];
         
         let targetName = '主人公';
@@ -457,12 +458,12 @@ export function useDungeon() {
         let chosenId = 'hero';
         
         if (nonCombatants.length > 0) {
-          const randIndex = Math.floor(Math.random() * nonCombatants.length);
+          const randIndex = randomInt(0, nonCombatants.length - 1);
           chosenId = nonCombatants[randIndex].id;
         } else {
           // Fallback to random 1 from general pool
           const candidates = ['hero', ...validFollowers.map(f => f.id)];
-          const randIndex = Math.floor(Math.random() * candidates.length);
+          const randIndex = randomInt(0, candidates.length - 1);
           chosenId = candidates[randIndex];
         }
 
@@ -510,7 +511,7 @@ export function useDungeon() {
         return false;
       } else if (scope === 'choose_1d3') {
         // Roll 1d3 to determine number of targets
-        const countRoll = Math.floor(Math.random() * 3) + 1;
+        const countRoll = randomInt(1, 3);
         addLog(`🎯 罠の対象者数を決定するため 1d3 をロール: 出目 ${countRoll}`, 'roll');
         
         const totalValidTargets = 1 + validFollowers.length; // Hero + valid followers
