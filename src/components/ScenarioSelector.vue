@@ -101,12 +101,12 @@ function selectScenario(scenario: Scenario) {
         <div class="tos-section">
           <h4 class="tos-section-title">📋 作品基本情報（規約に基づく必要事項）</h4>
           <ul class="tos-meta-list">
-            <li><span>👤 プレイヤー人数：</span><strong>人間1人</strong></li>
+            <li><span>👤 プレイヤー人数：</span><strong>1人</strong></li>
             <li><span>⏱️ プレイ時間：</span><strong>約10〜30分</strong></li>
-            <li><span>👪 対象年齢：</span><strong>親子（大きい人と小さい人）</strong></li>
+            <li><span>👪 対象年齢：</span><strong>15才以上対象</strong></li>
             <li><span>📖 GM有無：</span><strong>無</strong></li>
             <li><span>🏰 ジャンル：</span><strong>ファンタジー</strong></li>
-            <li><span>⚔️ 推奨レベル：</span><strong>ビギナー〜上級 (Lv.1〜15)</strong></li>
+            <li><span>⚔️ 推奨レベル：</span><strong>ビギナー〜中級</strong></li>
             <li><span>⚖️ 難易度：</span><strong>Easy、Normal、Hard</strong></li>
             <li><span>🎲 形式：</span><strong>シナリオ (d66)</strong></li>
             <li><span>🗺️ 世界観：</span><strong>共通世界 (アランツァ)</strong></li>
