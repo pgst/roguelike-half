@@ -11,7 +11,7 @@ This skill ensures that whenever you add new attributes, items, or states to the
 
 ## 1. Context: Autosave & Serialization Architecture
 The game saves state as a serialized JSON string under the key `roguelike_half_saved_session` in `localStorage`. 
-- **Serialization**: Handled via custom `.toJSON()` methods in [domain/index.ts](file:///workspaces/roguelike-half/src/domain/index.ts) on `GameSession` and `PlayerCharacter`.
+- **Serialization**: Handled via custom `.toJSON()` methods in [domain/index.ts](src/domain/index.ts) on `GameSession` and `PlayerCharacter`.
 - **Deserialization**: Handled via `GameSession.deserialize(json)` and `PlayerCharacter.fromJSON(data)`.
 
 Adding a new property to the classes without handling fallback logic *will* cause the application to crash or behave incorrectly when deserializing older save files that lack this property.
@@ -23,8 +23,8 @@ When expanding domain state:
 
 ### Step 1: Interface & Domain Class Update
 Add the property to:
-1. The TypeScript interface definitions in [types/index.ts](file:///workspaces/roguelike-half/src/types/index.ts).
-2. The class fields in `PlayerCharacter` and `GameSession` inside [domain/index.ts](file:///workspaces/roguelike-half/src/domain/index.ts).
+1. The TypeScript interface definitions in [types/index.ts](src/types/index.ts).
+2. The class fields in `PlayerCharacter` and `GameSession` inside [domain/index.ts](src/domain/index.ts).
 
 ### Step 2: Safe Deserialization (Crucial!)
 You **MUST** provide a fallback value for any newly added fields during deserialization.
@@ -51,7 +51,7 @@ toJSON() {
 ```
 
 ### Step 4: Reactive Bridge Check
-Verify if the new property needs to be accessed by Vue components. If so, update [composables/useGameState.ts](file:///workspaces/roguelike-half/src/composables/useGameState.ts) to expose it via a computed ref or ensure the Proxy maps to it correctly.
+Verify if the new property needs to be accessed by Vue components. If so, update [composables/useGameState.ts](src/composables/useGameState.ts) to expose it via a computed ref or ensure the Proxy maps to it correctly.
 
 ---
 

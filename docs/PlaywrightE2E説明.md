@@ -17,12 +17,12 @@
 
 本プロジェクトには、すでにPlaywrightの実行環境が整っています。主なファイルは以下の2つです。
 
-1. **設定ファイル**: [playwright.config.ts](file:///workspaces/roguelike-half/playwright.config.ts)
-2. **テストシナリオ**: [tests/roguelike-half.spec.ts](file:///workspaces/roguelike-half/tests/roguelike-half.spec.ts)
+1. **設定ファイル**: [playwright.config.ts](../playwright.config.ts)
+2. **テストシナリオ**: [tests/](../tests/)
 
 それぞれの役割を見ていきましょう。
 
-### ① 設定ファイル：[playwright.config.ts](file:///workspaces/roguelike-half/playwright.config.ts)
+### ① 設定ファイル：[playwright.config.ts](../playwright.config.ts)
 
 このファイルでは、テストを実行する際の設定を記述しています。特に重要なポイントは以下の通りです。
 
@@ -36,11 +36,11 @@
   ```
   手動でアプリを立ち上げなくても、Playwrightが自動的に `npm run dev` を裏で実行し、テスト環境を整えてくれます。
 - **対象ブラウザの設定 (`projects`)**:
-  `chromium`、`firefox`、`webkit` が定義されており、3つの異なるブラウザエンジンで全く同じテストが自動的に実行されます。
+  `chromium`、`firefox`、およびCI環境限定の `webkit` が定義されています。ローカル環境（Arch Linux等）ではライブラリ依存差異を避けるため Chromium と Firefox が実行され、Ubuntu環境であるCI（GitHub Actions）では3ブラウザすべてが検証されます。
 
 ---
 
-### ② テストコード：[tests/roguelike-half.spec.ts](file:///workspaces/roguelike-half/tests/roguelike-half.spec.ts)
+### ② テストコード：[tests/](../tests/)
 
 このファイルには、実際にゲームを自動プレイするためのロジックが書かれています。
 

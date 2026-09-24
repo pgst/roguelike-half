@@ -52,7 +52,8 @@ export default defineConfig({
    * 【Playwright】 `'html'` を指定すると、テスト完了後に詳細な結果を確認できるHTML形式のレポートが生成されます。
    */
   reporter: [
-    ['html', { host: '0.0.0.0', port: 9323 }]
+    ['list'],
+    ['html', { host: '0.0.0.0', port: 9323, open: 'never' }]
   ],
 
   /**
@@ -102,13 +103,17 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
     },
 
-    {
-      name: 'webkit',
-      /**
-       * 【Playwright】 Apple Safari で使われている WebKit レンダリングエンジンのデフォルト設定を適用します。
-       */
-      use: { ...devices['Desktop Safari'] },
-    },
+    /**
+     * WebKit (Safariエンジン)
+     * 【注意】Ubuntu環境以外（Arch Linux等）では共有ライブラリのバージョン差異（libicu等）により起動できないため、
+     * CI環境（GitHub Actions等のUbuntuランナー）でのみ実行します。
+     */
+    ...(process.env.CI ? [
+      {
+        name: 'webkit',
+        use: { ...devices['Desktop Safari'] },
+      },
+    ] : []),
   ],
 
   /**

@@ -10,7 +10,7 @@ This skill provides guidelines and templates for writing, enhancing, and debuggi
 ---
 
 ## 1. Compliance with Test Execution Policies
-Under the rules of [AGENTS.md](file:///workspaces/roguelike-half/.agents/AGENTS.md), the AI agent **MUST NOT** run Playwright tests automatically (e.g., `npx playwright test` or `npm run test:e2e`). 
+Under the rules of [AGENTS.md](.agents/AGENTS.md), the AI agent **MUST NOT** run Playwright tests automatically (e.g., `npx playwright test` or `npm run test:e2e`). 
 - Generate, edit, and fix test scripts as requested.
 - Explain the logic clearly.
 - Instruct the user to run the tests in their own terminal and report the output back if issues occur.

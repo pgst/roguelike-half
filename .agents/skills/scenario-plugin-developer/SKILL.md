@@ -21,7 +21,7 @@ Activate this skill whenever you are tasked with:
 Before writing any TypeScript code, define the scenario data. You must place the new scenario JSON file in `src/data/scenarios/<scenario_id>.json`.
 
 ### Verification Steps
-To prevent runtime crashes, you **MUST** statically verify the JSON content against the TypeScript types defined in [types/index.ts](file:///workspaces/roguelike-half/src/types/index.ts). Specifically:
+To prevent runtime crashes, you **MUST** statically verify the JSON content against the TypeScript types defined in [types/index.ts](src/types/index.ts). Specifically:
 1. **Scenario Interface Check**: Ensure the top-level keys match the `Scenario` type.
 2. **Enemy Structure Check**: Ensure each enemy defined in `enemies` matches the `Enemy` type structure (e.g., resistances, attributes, health, etc.).
 3. **Event Structure Check**: Validate that all dungeon events and trap modifiers comply with the `DungeonEvent` types.
@@ -31,7 +31,7 @@ To prevent runtime crashes, you **MUST** statically verify the JSON content agai
 ## 3. Step 2: Generate Plugin Template
 Create a new plugin file at `src/composables/scenarioPlugins/<scenario_id>Plugin.ts`. 
 
-You **MUST** use the following complete skeleton template. It includes all lifecycle hooks declared in the `ScenarioPlugin` interface of [scenarioPlugins/index.ts](file:///workspaces/roguelike-half/src/composables/scenarioPlugins/index.ts). Delete or keep as empty stubs only the hooks that your specific scenario does not require, but do not omit them from the generated skeleton initially.
+You **MUST** use the following complete skeleton template. It includes all lifecycle hooks declared in the `ScenarioPlugin` interface of [scenarioPlugins/index.ts](src/composables/scenarioPlugins/index.ts). Delete or keep as empty stubs only the hooks that your specific scenario does not require, but do not omit them from the generated skeleton initially.
 
 ```typescript
 import type { ScenarioPlugin, ScenarioPluginContext } from './index';
@@ -194,7 +194,7 @@ export const <scenario_id>Plugin: ScenarioPlugin = {
 ---
 
 ## 4. Step 3: Register the Plugin Automagic
-The plugin must be registered in [scenarioPlugins/index.ts](file:///workspaces/roguelike-half/src/composables/scenarioPlugins/index.ts).
+The plugin must be registered in [scenarioPlugins/index.ts](src/composables/scenarioPlugins/index.ts).
 You **MUST** perform this edit automatically by parsing the file and making the following insertions:
 
 1. **Import Statement**: Insert the import statement pointing to your newly created file at the top of `index.ts`.
@@ -214,7 +214,7 @@ Verify that the file syntax is correct after replacement.
 ---
 
 ## 5. Step 4: Verification and Testing Policy
-Under the project's rules defined in [AGENTS.md](file:///workspaces/roguelike-half/.agents/AGENTS.md), you **MUST NOT** run test suites automatically.
+Under the project's rules defined in [AGENTS.md](.agents/AGENTS.md), you **MUST NOT** run test suites automatically.
 
 - **Do NOT execute commands** such as `npm run test`, `npx playwright test`, or `npm run build` on your own.
 - **Instruct the user** in your final response to manually run their test suites (e.g., `npm run test` or `npm run dev`) to verify that Vite compiles the new plugin registration without errors and that the scenario works as intended.

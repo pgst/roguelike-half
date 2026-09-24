@@ -25,7 +25,7 @@ Do **NOT** destructure reactive objects (`reactive(...)` or proxies like `combat
 ---
 
 ## 2. TypeScript Guidelines
-1. **Explicit Types**: Avoid using `any` inside Vue components and composables. Reference types from [src/types/index.ts](file:///workspaces/roguelike-half/src/types/index.ts).
+1. **Explicit Types**: Avoid using `any` inside Vue components and composables. Reference types from [src/types/index.ts](src/types/index.ts).
 2. **Prop Definitions**: When writing Vue components, declare props with strict TypeScript typing using `defineProps<Props>()`.
 3. **Ref Typing**: Explicitly type refs containing non-primitive objects, e.g., `ref<Character | null>(null)`.
 
