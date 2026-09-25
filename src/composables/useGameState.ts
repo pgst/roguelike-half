@@ -3,20 +3,35 @@ import type { Character, Follower, Enemy, Weapon, Armor, Shield, GeneralItem, Du
 import { GameSession, PlayerCharacter } from '../domain';
 import { generateId, setGlobalSeed, randomInt } from '../domain/random';
 
-// Load Scenarios
-const scenarioModules = import.meta.glob<{ default: any }>('../data/scenarios/*.json', { eager: true });
+// Load Scenarios: 公開用シナリオは常時バンドル、開発検証用モックはDEV環境のみバンドル
+const publicModules = import.meta.glob<{ default: any }>('../data/scenarios/public/*.json', { eager: true });
+const mockModules = import.meta.env.DEV
+  ? import.meta.glob<{ default: any }>('../data/scenarios/mock/*.json', { eager: true })
+  : {};
+const scenarioModules = { ...publicModules, ...mockModules };
 function getStartLevel(recommendedLevel: string): number {
   const match = recommendedLevel.match(/\d+/);
   return match ? parseInt(match[0], 10) : 0;
 }
 
 const availableScenarios = computed<Scenario[]>(() => {
+  const isDev = import.meta.env.DEV;
   const list: { scenario: Scenario; path: string }[] = [];
   for (const path in scenarioModules) {
     const mod = scenarioModules[path];
     const data = mod.default || mod;
     if (data && data.id) {
-      list.push({ scenario: data as Scenario, path });
+      // 本番環境（PROD）では著作権・TOS遵守のため「刻の悪魔のピラミッド」を除外
+      if (!isDev && data.id === 'pyramid_of_chronodemon') {
+        continue;
+      }
+
+      const scenarioData: Scenario = { ...(data as Scenario) };
+      if (isDev && scenarioData.id === 'pyramid_of_chronodemon') {
+        scenarioData.title = `${scenarioData.title} 【開発検証用】`;
+      }
+
+      list.push({ scenario: scenarioData, path });
     }
   }
 
@@ -333,6 +348,11 @@ function saveSession() {
 function loadSession(): boolean {
   const saved = GameSession.loadFromLocalStorage();
   if (saved) {
+    // 本番環境で「刻の悪魔のピラミッド」のセーブデータが残っている場合は再開不可としてクリア
+    if (!import.meta.env.DEV && saved.activeScenario?.id === 'pyramid_of_chronodemon') {
+      GameSession.clearLocalStorage();
+      return false;
+    }
     activeSession.value = saved;
     return true;
   }
@@ -348,7 +368,12 @@ function hasSavedSession(): boolean {
     const jsonStr = localStorage.getItem('roguelike_half_saved_session');
     if (jsonStr) {
       const data = JSON.parse(jsonStr);
-      return !!data.isCharacterCreated && data.activeScenario !== null && data.activeScenario !== undefined;
+      if (!data.isCharacterCreated || !data.activeScenario) return false;
+      // 本番環境で「刻の悪魔のピラミッド」のセーブデータがある場合は再開バナーを出さない
+      if (!import.meta.env.DEV && data.activeScenario.id === 'pyramid_of_chronodemon') {
+        return false;
+      }
+      return true;
     }
   } catch (e) {
     console.error(e);

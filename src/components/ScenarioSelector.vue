@@ -5,6 +5,14 @@ import type { Scenario } from '../types';
 
 const { availableScenarios, activeScenario, currentScreen, isCharacterCreated, hasSavedSession, loadSession } = useGameState();
 
+const isDev = import.meta.env.DEV;
+const devReferenceInfo = isDev ? {
+  title: '『刻の悪魔のピラミッド』',
+  author: '火呂居美智 氏',
+  publisher: 'FT書房 (FT新聞 No.4911)',
+  url: 'https://ftbooks.xyz/ftnews/gamebook/RogueLikeHalf_ThePyramid_of_ChronoDemon.txt',
+} : null;
+
 const hasSaved = ref(false);
 const savedScenarioTitle = ref('');
 const savedDepth = ref(1);
@@ -127,21 +135,21 @@ function selectScenario(scenario: Scenario) {
             <p class="tos-note">※再配布そのものを目的としたデータ利用は禁止されています。</p>
           </div>
 
-          <div class="tos-reference-box" style="margin-top: 10px;">
+          <div v-if="devReferenceInfo" class="tos-reference-box" style="margin-top: 10px;">
             <p><strong>🖋️ シナリオ参考文献（d66データ引用元）：</strong></p>
             <ul class="tos-ref-list">
               <li>
-                <strong>作品名：</strong>『刻の悪魔のピラミッド』
+                <strong>作品名：</strong>{{ devReferenceInfo.title }}
               </li>
               <li>
-                <strong>著者：</strong>火呂居美智 氏
+                <strong>著者：</strong>{{ devReferenceInfo.author }}
               </li>
               <li>
-                <strong>パブリッシャー：</strong>FT書房 (FT新聞 No.4911)
+                <strong>パブリッシャー：</strong>{{ devReferenceInfo.publisher }}
               </li>
               <li>
                 <strong>原作ソース：</strong>
-                <a href="https://ftbooks.xyz/ftnews/gamebook/RogueLikeHalf_ThePyramid_of_ChronoDemon.txt" target="_blank" rel="noopener noreferrer">
+                <a :href="devReferenceInfo.url" target="_blank" rel="noopener noreferrer">
                   FT新聞アーカイブで原本を読む
                 </a>
               </li>

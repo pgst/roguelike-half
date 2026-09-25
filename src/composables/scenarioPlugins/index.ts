@@ -1,6 +1,5 @@
 import type { Ref } from 'vue';
 import type { Character, Follower, DungeonEvent, Scenario, Enemy } from '../../types';
-import { pyramidPlugin } from './pyramidPlugin';
 
 export interface CustomChoice {
   id: string;
@@ -69,9 +68,12 @@ export interface ScenarioPlugin {
   onResolveEventOverride?: (context: ScenarioPluginContext) => boolean | void;
 }
 
-const plugins: Record<string, ScenarioPlugin> = {
-  [pyramidPlugin.id]: pyramidPlugin
-};
+const plugins: Record<string, ScenarioPlugin> = {};
+
+if (import.meta.env.DEV) {
+  const { pyramidPlugin } = await import('./pyramidPlugin');
+  plugins[pyramidPlugin.id] = pyramidPlugin;
+}
 
 export function registerScenarioPlugin(plugin: ScenarioPlugin) {
   plugins[plugin.id] = plugin;

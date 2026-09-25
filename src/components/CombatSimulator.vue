@@ -155,10 +155,10 @@ function closeRangedRound() {
     <div v-if="combatState.pendingRoarCheck" class="roar-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;">
       <div class="roar-box paper-sheet" style="max-width: 500px; width: 100%; border: 3px double #8c1c1c; padding: 25px; text-align: center; background: #fffcf5; box-shadow: var(--card-shadow); border-radius: 6px;">
         <h3 style="color: #8c1c1c; font-family: 'Noto Serif JP', serif; font-size: 1.3rem; margin-bottom: 15px; font-weight: bold;">
-          😈 刻の悪魔クロノヴァルス：時喰いの咆哮
+          😈 ボス特殊能力：時喰いの咆哮
         </h3>
         <p style="font-size: 0.95rem; line-height: 1.6; color: var(--ink-dark); margin-bottom: 20px;">
-          悪魔が空間を引き裂き、時間を巻き戻す魔力の咆哮を放ちました！<br/>
+          強大な魔物が空間を引き裂き、時間を巻き戻す魔力の咆哮を放ちました！<br/>
           対魔法ロール（目標値: 5）に失敗すると、これまでの時間が巻き戻されてしまいます！
         </p>
         <div v-if="character.items.some(i => i.name === '水晶の薔薇') || (character.equippedArmor && character.equippedArmor.name === '天使のヘルメット')" style="margin-bottom: 15px; padding: 8px; background: rgba(40, 167, 69, 0.05); border: 1px dashed green; border-radius: 4px; font-size: 0.85rem; color: green; font-weight: bold;">
