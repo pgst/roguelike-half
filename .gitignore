@@ -41,3 +41,8 @@ env/
 .serena/
 .bin/
 .aider*
+
+# Firebase
+.firebase/
+.firebaserc.local
+firebase-debug.log*
