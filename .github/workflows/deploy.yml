@@ -1,9 +1,9 @@
-name: Deploy Vue App
+name: Deploy Version 1 to Shinfree
 
 on:
   push:
     branches:
-      - main # デプロイのトリガーにするブランチ（masterの場合は変更してください）
+      - v1
 
 jobs:
   deploy:
