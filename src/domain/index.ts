@@ -52,6 +52,7 @@ export class PlayerCharacter implements Character {
   public food: number;
   public skillMax: number;
   public skillCurrent: number;
+  public baseLifeMax: number;
   public lifeMax: number;
   public lifeCurrent: number;
   public subStatType: 'magic' | 'luck' | 'strength' | 'dexterity';
@@ -79,8 +80,6 @@ export class PlayerCharacter implements Character {
     this.food = data?.food ?? 2;
     this.skillMax = data?.skillMax ?? 0;
     this.skillCurrent = data?.skillCurrent ?? 0;
-    this.lifeMax = data?.lifeMax ?? 4;
-    this.lifeCurrent = data?.lifeCurrent ?? 4;
     this.subStatType = data?.subStatType || 'magic';
     this.subStatMax = data?.subStatMax ?? 2;
     this.subStatCurrent = data?.subStatCurrent ?? 2;
@@ -97,6 +96,28 @@ export class PlayerCharacter implements Character {
     this.equippedShield = data?.equippedShield || null;
     this.hasActiveLantern = data?.hasActiveLantern ?? true;
     this.statusEffects = data?.statusEffects ? [...data.statusEffects] : [];
+
+    const armorBonus = this.equippedArmor?.modLife || 0;
+    const shieldBonus = this.equippedShield?.modLife || 0;
+
+    if (data?.baseLifeMax !== undefined) {
+      this.baseLifeMax = data.baseLifeMax;
+      this.lifeMax = data.lifeMax ?? (this.baseLifeMax + armorBonus + shieldBonus);
+    } else if (data?.lifeMax !== undefined) {
+      this.baseLifeMax = Math.max(4, data.lifeMax - armorBonus - shieldBonus);
+      this.lifeMax = data.lifeMax;
+    } else {
+      this.baseLifeMax = 4;
+      this.lifeMax = 4 + armorBonus + shieldBonus;
+    }
+    this.lifeCurrent = data?.lifeCurrent ?? this.lifeMax;
+  }
+
+  public recalculateLife(): void {
+    const armorBonus = this.equippedArmor?.modLife || 0;
+    const shieldBonus = this.equippedShield?.modLife || 0;
+    this.lifeMax = this.baseLifeMax + armorBonus + shieldBonus;
+    this.lifeCurrent = Math.min(this.lifeMax, this.lifeCurrent);
   }
 
   public takeDamage(amount: number): void {
@@ -124,7 +145,7 @@ export class PlayerCharacter implements Character {
   }
 
   public useFood(): boolean {
-    if (this.food > 0) {
+    if (this.food > 0 && this.lifeCurrent < this.lifeMax) {
       this.food--;
       this.heal(2);
       return true;
@@ -153,32 +174,26 @@ export class PlayerCharacter implements Character {
     }
     if (weapon.type === 'two-handed') {
       this.equippedShield = null;
+      this.recalculateLife();
     }
     this.equippedWeapon = weapon;
   }
 
   public equipArmor(armor: Armor | null): void {
-    if (this.equippedArmor) {
-      const oldArmor = this.equippedArmor;
-      this.lifeMax = Math.max(1, this.lifeMax - oldArmor.modLife);
-      this.lifeCurrent = Math.max(1, Math.min(this.lifeMax, this.lifeCurrent - oldArmor.modLife));
-    }
     this.equippedArmor = armor;
-    if (armor) {
-      this.lifeMax += armor.modLife;
-      this.lifeCurrent += armor.modLife;
-    }
+    this.recalculateLife();
   }
 
   public equipShield(shield: Shield | null): void {
     if (!shield) {
       this.equippedShield = null;
-      return;
+    } else {
+      if (this.equippedWeapon && this.equippedWeapon.type === 'two-handed') {
+        this.equippedWeapon = null;
+      }
+      this.equippedShield = shield;
     }
-    if (this.equippedWeapon && this.equippedWeapon.type === 'two-handed') {
-      this.equippedWeapon = null;
-    }
-    this.equippedShield = shield;
+    this.recalculateLife();
   }
 
   public static fromJSON(data: any): PlayerCharacter {
@@ -194,6 +209,7 @@ export class PlayerCharacter implements Character {
       food: this.food,
       skillMax: this.skillMax,
       skillCurrent: this.skillCurrent,
+      baseLifeMax: this.baseLifeMax,
       lifeMax: this.lifeMax,
       lifeCurrent: this.lifeCurrent,
       subStatType: this.subStatType,

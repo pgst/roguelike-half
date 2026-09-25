@@ -39,17 +39,42 @@ describe('PlayerCharacter Domain Model', () => {
     expect(pc.gold).toBe(5); // unchanged
   });
 
-  it('should dynamically update lifeMax on armor equip/unequip', () => {
+  it('should dynamically update lifeMax on armor equip/unequip preserving baseLifeMax', () => {
     const pc = new PlayerCharacter({ lifeMax: 4, lifeCurrent: 4 });
+    expect(pc.baseLifeMax).toBe(4);
+
     const leatherArmor = { name: '革鎧', type: 'leather' as const, modLife: 2, modDex: 1, modDef: 0, goldCost: 10, description: '革鎧' };
 
     pc.equipArmor(leatherArmor);
+    expect(pc.baseLifeMax).toBe(4);
     expect(pc.lifeMax).toBe(6);
     expect(pc.lifeCurrent).toBe(6);
 
+    // Growing baseLifeMax while wearing armor
+    pc.baseLifeMax = 5;
+    pc.recalculateLife();
+    expect(pc.baseLifeMax).toBe(5);
+    expect(pc.lifeMax).toBe(7);
+
     pc.equipArmor(null);
-    expect(pc.lifeMax).toBe(4);
-    expect(pc.lifeCurrent).toBe(4);
+    expect(pc.baseLifeMax).toBe(5);
+    expect(pc.lifeMax).toBe(5);
+    expect(pc.lifeCurrent).toBe(5);
+  });
+
+  it('should backward-compatibly restore baseLifeMax from legacy character data', () => {
+    // Legacy data without baseLifeMax but wearing armor with modLife = 2
+    const plateArmor = { name: '板金鎧', type: 'plate' as const, modLife: 2, modDex: -1, modDef: 0, goldCost: 30, description: '板金鎧' };
+    const legacyData = {
+      name: 'ベテラン戦士',
+      lifeMax: 6,
+      lifeCurrent: 6,
+      armor: plateArmor
+    };
+
+    const pc = new PlayerCharacter(legacyData as any);
+    expect(pc.baseLifeMax).toBe(4); // 6 - 2 = 4
+    expect(pc.lifeMax).toBe(6);
   });
 });
 

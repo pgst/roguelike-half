@@ -55,6 +55,7 @@ export interface Character {
   skillMax: number;
   skillCurrent: number;
   lifeMax: number;
+  baseLifeMax?: number; // Base life before armor/shield modifiers
   lifeCurrent: number;
   subStatType: 'magic' | 'luck' | 'strength' | 'dexterity';
   subStatMax: number;

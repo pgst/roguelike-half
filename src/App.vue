@@ -22,7 +22,7 @@ const {
   spendExpForStat,
   refundExpForStat,
   checkpointSkillMax,
-  checkpointLifeMax,
+  checkpointBaseLifeMax,
   checkpointSubStatMax,
   checkpointFollowerMax,
   checkpointSpells,
@@ -106,19 +106,28 @@ const townWeapons = [
   { ...DEFAULT_WEAPONS.oneHanded },
   { ...DEFAULT_WEAPONS.twoHanded },
   { ...DEFAULT_WEAPONS.sling },
-  { ...DEFAULT_WEAPONS.bow }
+  { ...DEFAULT_WEAPONS.bow },
+  { ...DEFAULT_WEAPONS.magicLight },
+  { ...DEFAULT_WEAPONS.magicOneHanded },
+  { ...DEFAULT_WEAPONS.magicTwoHanded }
 ] as Weapon[];
 
 const townArmors = [
   { ...DEFAULT_ARMORS.cloth },
   { ...DEFAULT_ARMORS.leather },
   { ...DEFAULT_ARMORS.chain },
-  { ...DEFAULT_ARMORS.plate }
+  { ...DEFAULT_ARMORS.plate },
+  { ...DEFAULT_ARMORS.magicCloth },
+  { ...DEFAULT_ARMORS.magicLeather },
+  { ...DEFAULT_ARMORS.magicChain },
+  { ...DEFAULT_ARMORS.magicPlate }
 ] as Armor[];
 
 const townShields = [
   { ...DEFAULT_SHIELDS.wood },
-  { ...DEFAULT_SHIELDS.round }
+  { ...DEFAULT_SHIELDS.round },
+  { ...DEFAULT_SHIELDS.magicWood },
+  { ...DEFAULT_SHIELDS.magicRound }
 ] as Shield[];
 
 const townItems = [
@@ -440,12 +449,12 @@ watch(() => logs.value.length, async () => {
             <!-- Life -->
             <div class="ledger-row">
               <span class="row-label">❤️ <b>生命点:</b></span>
-              <span class="row-val">{{ character.lifeMax }} / 8 (限界値)</span>
+              <span class="row-val">{{ character.baseLifeMax ?? 4 }} / 8 (装備込み: {{ character.lifeMax }})</span>
               <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
                 <button 
                   @click="refundExpForStat('life')" 
                   class="btn-ink btn-mini" 
-                  :disabled="character.lifeMax <= checkpointLifeMax"
+                  :disabled="(character.baseLifeMax ?? 4) <= checkpointBaseLifeMax"
                   style="border-color: #8c1c1c; color: #8c1c1c;"
                 >
                   - 戻す
@@ -453,7 +462,7 @@ watch(() => logs.value.length, async () => {
                 <button 
                   @click="spendExpForStat('life')" 
                   class="btn-ink btn-mini" 
-                  :disabled="character.exp < 1 || character.lifeMax >= 8"
+                  :disabled="character.exp < 1 || (character.baseLifeMax ?? 4) >= 8"
                 >
                   +1上昇 (1 EXP)
                 </button>

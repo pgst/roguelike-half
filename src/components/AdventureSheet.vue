@@ -90,12 +90,20 @@ const maxBackpackSlots = computed(() => {
       </div>
       <div class="supply-item" style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
         <span><b>食料:</b> {{ character.food }} 食分</span>
-        <button @click="useFood(false)" class="btn-ink btn-mini" :disabled="character.food <= 0">食べる (+2回復)</button>
+        <button 
+          @click="useFood(false)" 
+          class="btn-ink btn-mini" 
+          :disabled="character.food <= 0 || character.lifeCurrent >= character.lifeMax || combatState.active"
+          :title="combatState.active ? '戦闘中は食べられません' : character.lifeCurrent >= character.lifeMax ? '生命力は満タンです' : '食料を食べて2点回復'"
+        >
+          食べる (+2回復)
+        </button>
         <button 
           v-if="character.subStatType === 'luck' && character.miracles.includes('聖餐') && character.subStatCurrent >= 1"
           @click="useFood(true)" 
           class="btn-ink btn-mini btn-strength" 
-          :disabled="character.food <= 0"
+          :disabled="character.food <= 0 || character.lifeCurrent >= character.lifeMax || combatState.active"
+          :title="combatState.active ? '戦闘中は食べられません' : character.lifeCurrent >= character.lifeMax ? '生命力は満タンです' : '奇跡【聖餐】を発動して3点回復'"
         >
           ✨ 聖餐 (+3回復, 幸運1)
         </button>

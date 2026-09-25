@@ -227,6 +227,10 @@ export const DEFAULT_WEAPONS = {
   twoHanded: { name: '両手武器 (大剣/戦斧)', type: 'two-handed', modAttack: 1, attribute: 'slash', goldCost: 15, isMagic: false, description: '攻撃力+1。両手が必要なため盾やランタンは装備不可。' } as Weapon,
   sling: { name: 'スリング (投石器)', type: 'ranged', modAttack: -1, attribute: 'strike', goldCost: 3, isMagic: false, description: '射撃用の飛び道具。攻撃力-1。戦闘開始時(第0ラウンド)のみ使用可能。' } as Weapon,
   bow: { name: '弓と十分な矢', type: 'ranged', modAttack: 0, attribute: 'slash', goldCost: 18, isMagic: false, description: '射撃用の飛び道具。第0ラウンドのみ使用可能。' } as Weapon,
+  // 魔法の武器 (ルール28: 通常の5倍の価格。戦闘最初の攻撃ロールに+1)
+  magicLight: { name: '魔法の軽い武器', type: 'light', modAttack: -1, attribute: 'strike', goldCost: 10, isMagic: true, description: '攻撃力-1。魔法の力により戦闘最初の攻撃ロールに+1。' } as Weapon,
+  magicOneHanded: { name: '魔法の片手武器', type: 'one-handed', modAttack: 0, attribute: 'slash', goldCost: 25, isMagic: true, description: '標準的な片手武器。魔法の力により戦闘最初の攻撃ロールに+1。' } as Weapon,
+  magicTwoHanded: { name: '魔法の両手武器', type: 'two-handed', modAttack: 1, attribute: 'slash', goldCost: 75, isMagic: true, description: '攻撃力+1。魔法の力により戦闘最初の攻撃ロールに+1。' } as Weapon,
 };
 
 export const DEFAULT_ARMORS = {
@@ -234,11 +238,19 @@ export const DEFAULT_ARMORS = {
   leather: { name: '革鎧', type: 'leather', modLife: 2, modDex: 1, modDef: 0, goldCost: 10, description: '生命力最大値+2、器用ロール+1。静かで身軽な防具。' } as Armor,
   chain: { name: '鎖鎧', type: 'chain', modLife: 1, modDex: 0, modDef: 1, goldCost: 30, description: '生命力最大値+1、防御ロール+1。防御性能の高い防具。' } as Armor,
   plate: { name: '板金鎧', type: 'plate', modLife: 2, modDex: 0, modDef: 1, goldCost: 50, description: '生命力最大値+2、防御ロール+1。最も堅牢な金属防具。' } as Armor,
+  // 魔法の鎧 (ルール28: 通常の5倍の価格。生命点最大値にさらに+1)
+  magicCloth: { name: '魔法の布鎧', type: 'cloth', modLife: 2, modDex: 1, modDef: 0, goldCost: 20, isMagic: true, description: '魔法の加護を受けた布鎧。生命力最大値+2、器用ロール+1。' } as Armor,
+  magicLeather: { name: '魔法の革鎧', type: 'leather', modLife: 3, modDex: 1, modDef: 0, goldCost: 50, isMagic: true, description: '魔法の加護を受けた革鎧。生命力最大値+3、器用ロール+1。' } as Armor,
+  magicChain: { name: '魔法の鎖鎧', type: 'chain', modLife: 2, modDex: 0, modDef: 1, goldCost: 150, isMagic: true, description: '魔法の加護を受けた鎖鎧。生命力最大値+2、防御ロール+1。' } as Armor,
+  magicPlate: { name: '魔法の板金鎧', type: 'plate', modLife: 3, modDex: 0, modDef: 1, goldCost: 250, isMagic: true, description: '魔法の加護を受けた板金鎧。生命力最大値+3、防御ロール+1。' } as Armor,
 };
 
 export const DEFAULT_SHIELDS = {
   wood: { name: '木盾', type: 'wood', modLife: 1, modDefRanged: 0, goldCost: 5, description: '生命力最大値+1。軽量な木製防盾。' } as Shield,
   round: { name: '丸盾', type: 'round', modLife: 2, modDefRanged: 0, goldCost: 15, description: '生命力最大値+2。しっかり防げる丸盾。' } as Shield,
+  // 魔法の盾 (ルール28: 通常の10倍の価格。飛び道具に対する防御ロールに+1)
+  magicWood: { name: '魔法の木盾', type: 'wood', modLife: 1, modDefRanged: 1, goldCost: 50, isMagic: true, description: '魔法の木盾。生命力最大値+1、飛び道具に対する防御ロール+1。' } as Shield,
+  magicRound: { name: '魔法の丸盾', type: 'round', modLife: 2, modDefRanged: 1, goldCost: 150, isMagic: true, description: '魔法の丸盾。生命力最大値+2、飛び道具に対する防御ロール+1。' } as Shield,
 };
 
 export const DEFAULT_ITEMS = {
@@ -268,6 +280,7 @@ const activeEvent = computed<DungeonEvent | null>({
 // Level-up stats checkpoints (to support refund/undo of allocation before finalization)
 const checkpointSkillMax = ref(0);
 const checkpointLifeMax = ref(0);
+const checkpointBaseLifeMax = ref(4);
 const checkpointSubStatMax = ref(0);
 const checkpointFollowerMax = ref(0);
 const checkpointExp = ref(0);
@@ -278,6 +291,7 @@ watch(currentScreen, (newScreen) => {
   if (newScreen === 'levelup') {
     checkpointSkillMax.value = character.value.skillMax;
     checkpointLifeMax.value = character.value.lifeMax;
+    checkpointBaseLifeMax.value = character.value.baseLifeMax ?? 4;
     checkpointSubStatMax.value = character.value.subStatMax;
     checkpointFollowerMax.value = character.value.followerMax;
     checkpointExp.value = character.value.exp;
@@ -1088,14 +1102,16 @@ function spendExpForStat(stat: 'skill' | 'life' | 'sub' | 'follower'): boolean {
 
   if (stat === 'life') {
     // 1 exp per life max. Limit is +4 from base (base 4, max 8)
-    if (character.value.lifeMax >= 8) {
-      addLog('生命力の上限(+4)に達しています。', 'error');
+    const currentBase = character.value.baseLifeMax ?? 4;
+    if (currentBase >= 8) {
+      addLog('基礎生命力の上限(8)に達しています。', 'error');
       return false;
     }
     character.value.exp -= 1;
+    character.value.baseLifeMax = currentBase + 1;
     character.value.lifeMax += 1;
-    character.value.lifeCurrent = character.value.lifeMax;
-    addLog('生命力最大値が1上昇しました！', 'success');
+    character.value.lifeCurrent += 1;
+    addLog('基礎生命力が1上昇しました！', 'success');
     return true;
   }
 
@@ -1147,12 +1163,14 @@ function refundExpForStat(stat: 'skill' | 'life' | 'sub' | 'follower'): boolean 
   }
 
   if (stat === 'life') {
-    if (character.value.lifeMax <= checkpointLifeMax.value) {
+    const currentBase = character.value.baseLifeMax ?? 4;
+    if (currentBase <= checkpointBaseLifeMax.value) {
       addLog('この画面で上昇させた値より下げることはできません。', 'error');
       return false;
     }
+    character.value.baseLifeMax = currentBase - 1;
     character.value.lifeMax -= 1;
-    character.value.lifeCurrent = character.value.lifeMax;
+    character.value.lifeCurrent = Math.min(character.value.lifeMax, character.value.lifeCurrent);
     character.value.exp += 1;
     addLog('生命力最大値の割り振りをキャンセルし、1経験点を払い戻しました。', 'info');
     return true;
@@ -1361,6 +1379,7 @@ export function useGameState() {
     isSwitchingWeapons,
     checkpointSkillMax,
     checkpointLifeMax,
+    checkpointBaseLifeMax,
     checkpointSubStatMax,
     checkpointFollowerMax,
     checkpointSpells,
