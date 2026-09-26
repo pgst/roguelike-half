@@ -205,10 +205,6 @@ async function handleFileSelected(event: Event) {
               <h3 class="list-item-title">{{ scenario.title }}</h3>
               <span class="scenario-level-badge list-badge">{{ scenario.recommendedLevel }}</span>
             </div>
-            <div class="list-item-meta">
-              <span class="list-rooms-count">🧭 {{ scenario.totalRoomsToClear }} 部屋</span>
-              <span class="list-arrow-icon">›</span>
-            </div>
           </div>
         </div>
 
@@ -225,16 +221,6 @@ async function handleFileSelected(event: Event) {
 
             <div class="detail-body">
               <p class="detail-desc">{{ selectedOfficialScenario.description }}</p>
-              
-              <!-- ボス警戒情報プレビュー -->
-              <div v-if="selectedOfficialScenario.bossEvent" class="detail-boss-preview">
-                <div class="boss-preview-title">
-                  <span>👑 最深部：{{ selectedOfficialScenario.bossEvent.title }}</span>
-                </div>
-                <p class="boss-preview-desc">
-                  {{ selectedOfficialScenario.bossEvent.description }}
-                </p>
-              </div>
             </div>
 
             <div class="detail-footer">
@@ -502,13 +488,16 @@ async function handleFileSelected(event: Event) {
 }
 
 .scenario-list-item.scenario-card {
-  padding: 12px 14px;
+  padding: 8px 12px;
   border-width: 1px;
   border-color: #cbbba9;
   background: #fffcf8;
-  gap: 6px;
+  gap: 0;
   transform: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  min-height: 38px;
+  display: flex;
+  justify-content: center;
 }
 
 .scenario-list-item.scenario-card:hover {
@@ -530,6 +519,7 @@ async function handleFileSelected(event: Event) {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  width: 100%;
 }
 
 .list-item-title {
@@ -538,38 +528,26 @@ async function handleFileSelected(event: Event) {
   font-size: 0.95rem;
   font-weight: bold;
   color: var(--ink-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
 }
 
 .list-badge {
   font-size: 0.75rem;
   padding: 1px 6px;
   white-space: nowrap;
-}
-
-.list-item-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.8rem;
-  color: var(--ink-light);
-}
-
-.list-arrow-icon {
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: #a8927d;
-}
-
-.scenario-list-item.scenario-card.active .list-arrow-icon {
-  color: #8b263e;
+  flex-shrink: 0;
 }
 
 /* 詳細パネル (ボード風) */
 .scenario-detail-panel {
-  padding: 24px;
+  padding: 20px 24px;
   border: 2px solid #5c4b3d;
   background: #fefdfa;
-  min-height: 400px;
+  min-height: 280px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -586,8 +564,8 @@ async function handleFileSelected(event: Event) {
 
 .detail-header {
   border-bottom: 2px solid #dfd3c3;
-  padding-bottom: 12px;
-  margin-bottom: 14px;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .detail-title-group {
@@ -602,7 +580,7 @@ async function handleFileSelected(event: Event) {
 .detail-title {
   margin: 0;
   font-family: 'Noto Serif JP', serif;
-  font-size: 1.4rem;
+  font-size: 1.35rem;
   font-weight: bold;
   color: var(--ink-dark);
 }
@@ -622,7 +600,7 @@ async function handleFileSelected(event: Event) {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .detail-desc {
@@ -632,38 +610,15 @@ async function handleFileSelected(event: Event) {
   margin: 0;
 }
 
-.detail-boss-preview {
-  background: #fbf4ec;
-  border: 1px dashed #b8977e;
-  border-radius: 4px;
-  padding: 12px;
-  margin-top: 10px;
-}
-
-.boss-preview-title {
-  font-family: 'Noto Serif JP', serif;
-  font-weight: bold;
-  font-size: 0.95rem;
-  color: #8c1c1c;
-  margin-bottom: 4px;
-}
-
-.boss-preview-desc {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #5c4b3d;
-  line-height: 1.4;
-}
-
 .detail-footer {
-  margin-top: 20px;
-  padding-top: 14px;
+  margin-top: 18px;
+  padding-top: 12px;
   border-top: 1px dashed #d4c5b3;
 }
 
 .btn-start-adventure {
   width: 100%;
-  padding: 12px 20px;
+  padding: 11px 20px;
   font-size: 1.05rem;
   font-weight: bold;
   background: #8b263e;
@@ -1126,7 +1081,10 @@ async function handleFileSelected(event: Event) {
     gap: 16px;
   }
   .scenario-master-list {
-    max-height: 240px;
+    max-height: 200px;
+  }
+  .scenario-list-item.scenario-card {
+    padding: 9px 12px;
   }
   .scenario-detail-panel {
     min-height: auto;
