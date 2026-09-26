@@ -3,9 +3,14 @@ import { disableAnimations, setupMockRandom } from './helpers/test-utils';
 
 test.describe('状態異常システム (Status Effect Rules) 検証テスト', () => {
 
-  test('麻痺状態：トラップ失敗で麻痺になり、戦闘中に攻撃不能になること', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    page.on('dialog', dialog => dialog.accept());
     await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
     await disableAnimations(page);
+  });
+
+  test('麻痺状態：トラップ失敗で麻痺になり、戦闘中に攻撃不能になること', async ({ page }) => {
 
     // 1. シナリオ選択
     await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });

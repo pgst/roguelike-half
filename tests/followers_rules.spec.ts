@@ -3,13 +3,20 @@ import { disableAnimations, setupMockRandom, handlePendingDefense } from './help
 
 test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行使テスト', () => {
 
-  test('魔術師従者：氷槍を習得して雇用し、戦闘で氷槍（2点ダメージ）を唱えること', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    // 予期せぬダイアログによるハングを防止
+    page.on('dialog', dialog => dialog.accept());
     await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
     await disableAnimations(page);
+  });
 
+  test('魔術師従者：氷槍を習得して雇用し、戦闘で氷槍（2点ダメージ）を唱えること', async ({ page }) => {
     // 1. シナリオ選択
-    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
-    await page.waitForTimeout(500);
+    const scenarioCard = page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first();
+    await scenarioCard.waitFor({ state: 'visible', timeout: 5000 });
+    await scenarioCard.click({ force: true });
+    await page.waitForTimeout(300);
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト魔術師氷槍');
@@ -20,11 +27,15 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     // 3. レベルアップ・雇用画面
     // 魔術師の呪文を「氷槍」に変更
     const mageRecruiter = page.locator('.recruiter-column > div > div').filter({ hasText: '魔術師' });
-    await mageRecruiter.locator('select').first().selectOption('氷槍', { timeout: 10000 });
+    const selectEl = mageRecruiter.locator('select').first();
+    await selectEl.selectOption('氷槍', { timeout: 10000 });
+    await expect(selectEl).toHaveValue('氷槍', { timeout: 3000 });
     await page.waitForTimeout(200);
 
     // 武器属性を「斬撃」にする
-    await mageRecruiter.locator('input[value="slash"]').check({ timeout: 10000, force: true });
+    const slashRadio = mageRecruiter.locator('input[value="slash"]');
+    await slashRadio.check({ timeout: 10000, force: true });
+    await expect(slashRadio).toBeChecked({ timeout: 3000 });
     await page.waitForTimeout(200);
 
     // 魔術師を雇用
@@ -50,16 +61,22 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
     await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
     await skipPerceptionBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // 接近戦へ移行する
-    await page.locator('button:has-text("接近戦へ移行する")').click({ force: true });
-    await page.waitForTimeout(1000);
+    const closeMeleeBtn = page.locator('button:has-text("接近戦へ移行する")');
+    await closeMeleeBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await closeMeleeBtn.click({ force: true });
+    await page.waitForTimeout(500);
+
+    // 敵の反撃キューがあれば防御ロールを自動解決
+    await handlePendingDefense(page);
 
     // 従者魔術師の呪文詠唱ボタンをクリックして氷槍を唱える
     const followerSpellBtn = page.locator('button:has-text("の呪文 [氷槍]")').first();
+    await followerSpellBtn.waitFor({ state: 'visible', timeout: 5000 });
     await followerSpellBtn.click({ force: true });
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1000);
 
     // ログに氷槍のキャストとダメージが記録されていることを確認
     const logbook = page.locator('.logbook-entries');
@@ -68,12 +85,11 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
   });
 
   test('魔術師従者：気絶を習得して雇用し、弱い敵に対して気絶を唱えること', async ({ page }) => {
-    await page.goto('/');
-    await disableAnimations(page);
-
     // 1. シナリオ選択
-    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
-    await page.waitForTimeout(500);
+    const scenarioCard = page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first();
+    await scenarioCard.waitFor({ state: 'visible', timeout: 5000 });
+    await scenarioCard.click({ force: true });
+    await page.waitForTimeout(300);
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト魔術師気絶');
@@ -84,7 +100,9 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     // 3. レベルアップ・雇用画面
     // 魔術師の呪文を「気絶」に変更
     const mageRecruiter = page.locator('.recruiter-column > div > div').filter({ hasText: '魔術師' });
-    await mageRecruiter.locator('select').first().selectOption('気絶');
+    const selectEl = mageRecruiter.locator('select').first();
+    await selectEl.selectOption('気絶', { timeout: 10000 });
+    await expect(selectEl).toHaveValue('気絶', { timeout: 3000 });
     await page.waitForTimeout(200);
 
     // 魔術師を雇用
@@ -110,16 +128,22 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
     await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
     await skipPerceptionBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // 接近戦へ移行する
-    await page.locator('button:has-text("接近戦へ移行する")').click({ force: true });
-    await page.waitForTimeout(1000);
+    const closeMeleeBtn = page.locator('button:has-text("接近戦へ移行する")');
+    await closeMeleeBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await closeMeleeBtn.click({ force: true });
+    await page.waitForTimeout(500);
+
+    // 敵の反撃キューがあれば防御ロールを自動解決
+    await handlePendingDefense(page);
 
     // 従者魔術師の呪文詠唱ボタンをクリックして気絶を唱える
     const followerSpellBtn = page.locator('button:has-text("の呪文 [気絶]")').first();
+    await followerSpellBtn.waitFor({ state: 'visible', timeout: 5000 });
     await followerSpellBtn.click({ force: true });
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1000);
 
     // ログに気絶成功と眠りに落ちたログが記録されていることを確認
     const logbook = page.locator('.logbook-entries');
@@ -128,12 +152,11 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
   });
 
   test('魔術師従者：炎球を習得して雇用し、戦闘で炎球（地形範囲攻撃）を唱えること', async ({ page }) => {
-    await page.goto('/');
-    await disableAnimations(page);
-
     // 1. シナリオ選択
-    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
-    await page.waitForTimeout(500);
+    const scenarioCard = page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first();
+    await scenarioCard.waitFor({ state: 'visible', timeout: 5000 });
+    await scenarioCard.click({ force: true });
+    await page.waitForTimeout(300);
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト魔術師炎球');
@@ -161,16 +184,22 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
     await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
     await skipPerceptionBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // 接近戦へ移行する
-    await page.locator('button:has-text("接近戦へ移行する")').click({ force: true });
-    await page.waitForTimeout(1000);
+    const closeMeleeBtn = page.locator('button:has-text("接近戦へ移行する")');
+    await closeMeleeBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await closeMeleeBtn.click({ force: true });
+    await page.waitForTimeout(500);
+
+    // 敵の反撃キューがあれば防御ロールを自動解決
+    await handlePendingDefense(page);
 
     // 従者魔術師の呪文詠唱ボタンをクリックして炎球を唱える
     const followerSpellBtn = page.locator('button:has-text("の呪文 [炎球]")').first();
+    await followerSpellBtn.waitFor({ state: 'visible', timeout: 5000 });
     await followerSpellBtn.click({ force: true });
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1000);
 
     // ログに炎球のキャストとダメージが記録されていることを確認
     const logbook = page.locator('.logbook-entries');
@@ -180,12 +209,11 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
   });
 
   test('従者：罠の判定失敗時に従者を身代わりにしてダメージを回避すること', async ({ page }) => {
-    await page.goto('/');
-    await disableAnimations(page);
-
     // 1. シナリオ選択
-    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
-    await page.waitForTimeout(500);
+    const scenarioCard = page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first();
+    await scenarioCard.waitFor({ state: 'visible', timeout: 5000 });
+    await scenarioCard.click({ force: true });
+    await page.waitForTimeout(300);
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト罠身代わり');
@@ -212,12 +240,13 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
     await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
     await skipPerceptionBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // 判定ロールに挑戦する
     const trapCheckBtn = page.locator('button:has-text("判定ロールに挑戦する"), button:has-text("で挑戦")').first();
+    await trapCheckBtn.waitFor({ state: 'visible', timeout: 5000 });
     await trapCheckBtn.click({ force: true });
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1000);
 
     // ダメージ対象選択パネルが表示されていることを確認
     const selectionPanel = page.locator('.trap-damage-target-select');
@@ -225,6 +254,7 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
 
     // 従者のボタンをクリックして身代わりにする
     const followerShieldBtn = selectionPanel.locator('button:has-text("身代わりになってもらう")').first();
+    await followerShieldBtn.waitFor({ state: 'visible', timeout: 5000 });
     await followerShieldBtn.click({ force: true });
     await page.waitForTimeout(1000);
 

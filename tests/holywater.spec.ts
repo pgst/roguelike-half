@@ -1,15 +1,22 @@
 import { test, expect } from '@playwright/test';
-import { disableAnimations, setupMockRandom } from './helpers/test-utils';
+import { disableAnimations, setupMockRandom, handlePendingDefense } from './helpers/test-utils';
 
 test.describe('聖水（Holy Water）の戦闘行使テスト', () => {
 
-  test('聖水の購入と戦闘での使用：弱い敵2体を一撃で即座に浄化すること', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    // 予期せぬダイアログによるハングを防止
+    page.on('dialog', dialog => dialog.accept());
     await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
     await disableAnimations(page);
+  });
 
+  test('聖水の購入と戦闘での使用：弱い敵2体を一撃で即座に浄化すること', async ({ page }) => {
     // 1. シナリオ選択
-    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
-    await page.waitForTimeout(500);
+    const scenarioCard = page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first();
+    await scenarioCard.waitFor({ state: 'visible', timeout: 5000 });
+    await scenarioCard.click({ force: true });
+    await page.waitForTimeout(300);
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト聖水使い');
@@ -40,14 +47,17 @@ test.describe('聖水（Holy Water）の戦闘行使テスト', () => {
     const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
     await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
     await skipPerceptionBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // 5. 戦闘フェーズ（第0ラウンド）
     // 第0ラウンドでは反応チェック前は聖水は使えないため、接近戦へ移行する
     const closeRangedBtn = page.locator('button:has-text("接近戦へ移行する")');
     await expect(closeRangedBtn).toBeVisible({ timeout: 5000 });
     await closeRangedBtn.click({ force: true });
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
+
+    // 敵の反撃キューがあれば防御ロールを自動解決
+    await handlePendingDefense(page);
 
     // 第1ラウンド（接近戦）：聖水ボタンが表示されるのを待つ
     const holyWaterBtn = page.locator('button:has-text("聖水を使用")').first();

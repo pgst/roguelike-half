@@ -3,9 +3,14 @@ import { disableAnimations, setupMockRandom, handlePendingDefense } from './help
 
 test.describe('太刀持ち従者の武器持ち替え省略＆リセット判定テスト', () => {
   
-  test('太刀持ち従者あり：射撃後の接近戦武器への持ち替えラウンドが省略されること', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    page.on('dialog', dialog => dialog.accept());
     await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
     await disableAnimations(page);
+  });
+
+  test('太刀持ち従者あり：射撃後の接近戦武器への持ち替えラウンドが省略されること', async ({ page }) => {
 
     // 1. シナリオ選択
     await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });

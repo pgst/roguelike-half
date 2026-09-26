@@ -11,6 +11,7 @@ test.describe('砂掃きの骸骨 (Sand Cleaning Skeleton) 取引＆アドバイ
     });
 
     await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
     await disableAnimations(page);
 
     // 1. シナリオ選択 - 刻の悪魔のピラミッド
