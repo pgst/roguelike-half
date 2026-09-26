@@ -13,7 +13,7 @@ const emit = defineEmits<{
   (e: 'saved', scenario: Scenario): void;
 }>();
 
-const { saveCustomScenario, createDefaultTemplate, cloneFromExisting, exportScenarioAsJson } = useCustomScenarios();
+const { saveCustomScenario, createDefaultTemplate, cloneFromExisting, exportScenarioAsJson, calculateRecommendedLevel } = useCustomScenarios();
 const { availableScenarios } = useGameState();
 
 // 編集用ドラフトの初期化
@@ -22,6 +22,15 @@ const draft = reactive<Scenario>(
     ? JSON.parse(JSON.stringify(props.initialScenario))
     : createDefaultTemplate()
 );
+
+// リアルタイム推奨適正レベルの算出
+const computedRecommendedLevel = computed(() => {
+  return calculateRecommendedLevel(draft);
+});
+
+function applyRecommendedLevel() {
+  draft.recommendedLevel = computedRecommendedLevel.value;
+}
 
 const activeTab = ref<'meta' | 'boss' | 'grid'>('meta');
 const selectedD66Code = ref<string>('11');
@@ -220,6 +229,17 @@ function getRoomTypeBadge(type: string) {
           <div class="form-group" style="flex: 1;">
             <label>適正レベル表示</label>
             <input v-model="draft.recommendedLevel" type="text" class="input-ink" placeholder="例: 適正レベル：11-12" />
+            <div class="level-recommend-assistant">
+              <span class="recommend-label">💡 推奨算出: <strong>{{ computedRecommendedLevel }}</strong></span>
+              <button 
+                type="button" 
+                class="btn-ink btn-mini btn-apply-level" 
+                title="算出された推奨適正レベルを入力欄に反映します"
+                @click="applyRecommendedLevel"
+              >
+                反映
+              </button>
+            </div>
           </div>
 
           <div class="form-group" style="flex: 1;">
@@ -672,6 +692,43 @@ function getRoomTypeBadge(type: string) {
   padding: 2px 6px;
   cursor: pointer;
   font-size: 0.8rem;
+}
+
+.level-recommend-assistant {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 5px 10px;
+  background: #fbf7ed;
+  border: 1px dashed #c2b09a;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.recommend-label {
+  color: #5d4037;
+}
+
+.recommend-label strong {
+  color: #8b263e;
+}
+
+.btn-apply-level {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  background: #efe6d8;
+  color: var(--ink-dark);
+  border: 1px solid #b8977e;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.btn-apply-level:hover {
+  background: #e4d5c0;
 }
 
 @media (max-width: 768px) {

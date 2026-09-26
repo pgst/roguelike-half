@@ -46,6 +46,64 @@ export const ALL_D66_CODES = [
   '61', '62', '63', '64', '65', '66'
 ];
 
+/**
+ * シナリオのデータ（部屋数、敵の平均Lv・強敵数、ボスの脅威度）から適正レベル帯を自動計算
+ */
+export function calculateRecommendedLevel(scenario: Partial<Scenario>): string {
+  const rooms = typeof scenario.totalRoomsToClear === 'number' ? scenario.totalRoomsToClear : 8;
+  const bossList = scenario.bossEvent?.enemies || [];
+  const boss = bossList[0] || {};
+  const bHp = Math.max(boss.lifeMax || 5, 1);
+  const bAtk = Math.max(boss.attackCount || 1, 1);
+  const bLvl = Math.max(boss.level || 5, 1);
+  const bTags = boss.tags || [];
+
+  // アンデッドかつ強敵ボスは聖水（器用目標4で大ダメージ）が有効なためHP負担が軽減される
+  const isUndeadBoss = bTags.includes('undead') && bTags.includes('strong');
+  const effectiveHp = isUndeadBoss ? bHp * 0.5 : bHp;
+
+  // 36部屋の道中敵の平均レベルと強敵数
+  const levels: number[] = [];
+  let strongMooks = 0;
+  if (scenario.d66EventTable) {
+    for (const ev of Object.values(scenario.d66EventTable)) {
+      if (ev && ev.enemies && Array.isArray(ev.enemies)) {
+        for (const e of ev.enemies) {
+          levels.push(e.level || 2);
+          if ((e.tags && e.tags.includes('strong')) || (e.lifeMax && e.lifeMax >= 2)) {
+            strongMooks += (e.count || 1);
+          }
+        }
+      }
+    }
+  }
+
+  const avgLvl = levels.length > 0 ? levels.reduce((a, b) => a + b, 0) / levels.length : 2.5;
+
+  // 1. 部屋数スコア (6部屋=0, 8部屋=1.4, 11部屋=3.5)
+  const rScore = (rooms - 6) * 0.7;
+
+  // 2. 道中敵スコア
+  const mScore = (avgLvl - 2.5) * 1.0 + (strongMooks - 6) * 0.05;
+
+  // 3. ボス脅威度スコア
+  const bScore = (effectiveHp - 5) * 0.25 + (bAtk - 1) * 0.3 + (bLvl - 5) * 0.2;
+
+  const score = 10.0 + rScore + mScore + bScore;
+
+  if (score < 11.2) {
+    return '適正レベル：10-11';
+  } else if (score < 12.5) {
+    return '適正レベル：11-12';
+  } else if (score < 14.0) {
+    return '適正レベル：12-13';
+  } else if (score < 18.0) {
+    return '適正レベル：13-15';
+  } else {
+    return '適正レベル：15以上';
+  }
+}
+
 export function useCustomScenarios() {
   const { currentUser } = useAuth();
 
@@ -369,7 +427,7 @@ export function useCustomScenarios() {
       id: scenarioId,
       title: '名もなき地下迷宮',
       description: '新たに発見された未開の迷宮。未知の脅威とお宝が眠る。',
-      recommendedLevel: '適正レベル：11-12',
+      recommendedLevel: calculateRecommendedLevel({ totalRoomsToClear: 8, d66EventTable: eventTable, bossEvent }),
       totalRoomsToClear: 8,
       d66EventTable: eventTable,
       bossEvent
@@ -415,6 +473,7 @@ export function useCustomScenarios() {
     importScenarioFromJson,
     createDefaultTemplate,
     cloneFromExisting,
-    syncFromCloud
+    syncFromCloud,
+    calculateRecommendedLevel
   };
 }
