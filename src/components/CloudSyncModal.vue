@@ -8,12 +8,14 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-const { isAnonymous, userDisplayName, isLinking, linkGoogleAccount, logout } = useAuth();
+const { isAnonymous, userDisplayName, isLinking, linkGoogleAccount, signInWithGoogle, logout } = useAuth();
 const { syncStatus, syncError, cloudSaveMetadata, saveToCloud, checkCloudSave, loadFromCloud } = useCloudSync();
 const { activeSession, saveSession } = useGameState();
 
 const isCheckingCloud = ref(false);
 const isLoggingOut = ref(false);
+const isSigningInExisting = ref(false);
+const hasAccountConflict = ref(false);
 const message = ref<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
 onMounted(async () => {
@@ -24,12 +26,38 @@ onMounted(async () => {
 
 async function handleLinkGoogle() {
   message.value = null;
+  hasAccountConflict.value = false;
   const res = await linkGoogleAccount();
   if (res.success) {
     message.value = { text: '✨ Googleアカウントと正常に連携しました！ データが永続化されます。', type: 'success' };
     await handleBackupNow();
   } else {
-    message.value = { text: `⚠️ 連携に失敗しました: ${res.error || '不明なエラー'}`, type: 'error' };
+    if (res.code === 'credential-already-in-use') {
+      hasAccountConflict.value = true;
+      message.value = { 
+        text: '⚠️ このGoogleアカウントは既に別の冒険者データとして登録されています。既存アカウントでログインすると、クラウド上の冒険データを読み込むことができます。', 
+        type: 'error' 
+      };
+    } else {
+      message.value = { text: `⚠️ 連携に失敗しました: ${res.error || '不明なエラー'}`, type: 'error' };
+    }
+  }
+}
+
+async function handleSignInExisting() {
+  if (!confirm('既存のGoogleアカウントに切り替えてログインしますか？\n\n※ログイン後、クラウドに保存されている冒険データを復元できるようになります。\n※現在のゲスト進行データで上書きしたい場合は、別のアカウントと連携してください。')) {
+    return;
+  }
+  isSigningInExisting.value = true;
+  message.value = null;
+  const res = await signInWithGoogle();
+  isSigningInExisting.value = false;
+  if (res.success) {
+    hasAccountConflict.value = false;
+    message.value = { text: '🔑 既存のGoogleアカウントでログインしました！ クラウドセーブデータを確認してください。', type: 'success' };
+    await checkCloudSave();
+  } else {
+    message.value = { text: `⚠️ ログインに失敗しました: ${res.error || '不明なエラー'}`, type: 'error' };
   }
 }
 
@@ -109,14 +137,25 @@ async function handleRestoreFromCloud() {
             Googleアカウントと連携済みです。データは安全にクラウドへ同期されます。
           </p>
 
-          <div v-if="isAnonymous" class="action-row">
+          <div v-if="isAnonymous" class="action-row" style="display: flex; flex-direction: column; gap: 8px;">
             <button 
               @click="handleLinkGoogle" 
               class="btn-ink btn-google" 
-              :disabled="isLinking"
+              :disabled="isLinking || isSigningInExisting"
             >
               <span v-if="isLinking">連携処理中...</span>
               <span v-else>🔗 Googleアカウントと連携してデータを保存</span>
+            </button>
+
+            <!-- 既存アカウント登録済みの場合のログイン切り替えボタン -->
+            <button 
+              v-if="hasAccountConflict"
+              @click="handleSignInExisting"
+              class="btn-ink btn-signin-existing animate-fade-in"
+              :disabled="isLinking || isSigningInExisting"
+            >
+              <span v-if="isSigningInExisting">ログイン中...</span>
+              <span v-else>🔑 既存のGoogleアカウントでログインする</span>
             </button>
           </div>
           <div v-else class="action-row">
@@ -336,6 +375,27 @@ async function handleRestoreFromCloud() {
 }
 
 .btn-logout:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-signin-existing {
+  width: 100%;
+  background: #fdf5e6;
+  border: 1px solid #8c6d46;
+  color: #3b2c1a;
+  font-weight: bold;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-signin-existing:hover:not(:disabled) {
+  background: #f5e8d0;
+  border-color: #5c4327;
+}
+
+.btn-signin-existing:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

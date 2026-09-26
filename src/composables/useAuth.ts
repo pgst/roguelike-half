@@ -60,7 +60,7 @@ export function useAuth() {
   }
 
   // Googleアカウントとの連携（匿名アカウントからの昇格）
-  async function linkGoogleAccount(): Promise<{ success: boolean; error?: string }> {
+  async function linkGoogleAccount(): Promise<{ success: boolean; error?: string; code?: string }> {
     const authInstance = auth;
     if (!authInstance) return { success: false, error: 'Firebase Auth is disabled' };
     authError.value = null;
@@ -81,6 +81,34 @@ export function useAuth() {
       }
     } catch (e: any) {
       console.error('[useAuth] Google account linking failed:', e);
+      authError.value = e.message;
+      const isAlreadyInUse = e.code === 'auth/credential-already-in-use' || e.message?.includes('credential-already-in-use');
+      return { 
+        success: false, 
+        error: isAlreadyInUse 
+          ? 'このGoogleアカウントは既に別の冒険者データとして登録されています。' 
+          : e.message,
+        code: isAlreadyInUse ? 'credential-already-in-use' : e.code
+      };
+    } finally {
+      isLinking.value = false;
+    }
+  }
+
+  // 既存のGoogleアカウントでサインイン（アカウント切り替え）
+  async function signInWithGoogle(): Promise<{ success: boolean; error?: string }> {
+    const authInstance = auth;
+    if (!authInstance) return { success: false, error: 'Firebase Auth is disabled' };
+    authError.value = null;
+    isLinking.value = true;
+
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(authInstance, provider);
+      currentUser.value = result.user;
+      return { success: true };
+    } catch (e: any) {
+      console.error('[useAuth] Google sign-in failed:', e);
       authError.value = e.message;
       return { success: false, error: e.message };
     } finally {
@@ -116,6 +144,7 @@ export function useAuth() {
     userDisplayName,
     initAuth,
     linkGoogleAccount,
+    signInWithGoogle,
     logout
   };
 }
