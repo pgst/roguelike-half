@@ -2,6 +2,8 @@ import { ref, computed, watch } from 'vue';
 import type { Character, Follower, Enemy, Weapon, Armor, Shield, GeneralItem, DungeonEvent, Scenario, StatusEffectRule } from '../types';
 import { GameSession, PlayerCharacter } from '../domain';
 import { generateId, setGlobalSeed, randomInt } from '../domain/random';
+import { useCloudSync } from './useCloudSync';
+import { useHallOfFame } from './useHallOfFame';
 
 // Load Scenarios: 公開用シナリオは常時バンドル、開発検証用モックはDEV環境のみバンドル
 const publicModules = import.meta.glob<{ default: any }>('../data/scenarios/public/*.json', { eager: true });
@@ -340,6 +342,12 @@ const pyramidBossSnapshot = computed<any>({
 function saveSession() {
   if (isCharacterCreated.value && currentScreen.value !== 'scenario_select' && activeScenario.value !== null) {
     activeSession.value.saveToLocalStorage();
+    try {
+      const { saveToCloud } = useCloudSync();
+      saveToCloud(activeSession.value, false);
+    } catch (e) {
+      // Offline fallback silent
+    }
   } else {
     clearSavedSession();
   }
@@ -1333,6 +1341,16 @@ function transitionToCombat() {
 
 function transitionToSuccess() {
   transitionTo('success');
+  try {
+    if (activeScenario.value) {
+      const { registerClearRecord } = useHallOfFame();
+      registerClearRecord(character.value, activeScenario.value);
+    }
+    const { saveToCloud } = useCloudSync();
+    saveToCloud(activeSession.value, true);
+  } catch (e) {
+    // Offline silent
+  }
 }
 
 function handleDeath() {

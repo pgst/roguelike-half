@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useGameState } from '../composables/useGameState';
+import { useAuth } from '../composables/useAuth';
+import CloudSyncModal from './CloudSyncModal.vue';
+import HallOfFameModal from './HallOfFameModal.vue';
 import type { Scenario } from '../types';
 
 const { availableScenarios, activeScenario, currentScreen, isCharacterCreated, hasSavedSession, loadSession } = useGameState();
+const { initAuth, userDisplayName } = useAuth();
+
+const showCloudModal = ref(false);
+const showHallModal = ref(false);
 
 const isDev = import.meta.env.DEV;
 const devReferenceInfo = isDev ? {
@@ -17,7 +24,10 @@ const hasSaved = ref(false);
 const savedScenarioTitle = ref('');
 const savedDepth = ref(1);
 
-onMounted(() => {
+onMounted(async () => {
+  // 認証の初期化（匿名サインイン）
+  initAuth();
+
   hasSaved.value = hasSavedSession();
   if (hasSaved.value) {
     try {
@@ -55,10 +65,28 @@ function selectScenario(scenario: Scenario) {
 
 <template>
   <div class="scenario-selector paper-sheet animate-fade-in">
+    <div class="top-nav-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <span class="user-chip" style="font-size: 0.8rem; color: var(--ink-light); background: rgba(0,0,0,0.04); padding: 3px 8px; border-radius: 4px; border: 1px dashed #c2b09a;">
+        👤 {{ userDisplayName }}
+      </span>
+      <div style="display: flex; gap: 8px;">
+        <button @click="showHallModal = true" class="btn-ink btn-mini" style="font-size: 0.8rem;">
+          🏆 冒険の殿堂
+        </button>
+        <button @click="showCloudModal = true" class="btn-ink btn-mini" style="font-size: 0.8rem;">
+          ☁️ クラウド同期
+        </button>
+      </div>
+    </div>
+
     <h1 class="game-title">⚔️ ローグライクハーフ ⚔️</h1>
     <p class="subtitle">- 冒険の舞台を選択せよ -</p>
     
     <div class="divider"></div>
+
+    <!-- Modals -->
+    <CloudSyncModal v-if="showCloudModal" @close="showCloudModal = false" />
+    <HallOfFameModal v-if="showHallModal" @close="showHallModal = false" />
 
     <!-- Resume Saved Adventure Banner -->
     <div v-if="hasSaved" class="saved-session-banner">
