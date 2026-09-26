@@ -8,11 +8,12 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-const { isAnonymous, userDisplayName, isLinking, linkGoogleAccount } = useAuth();
+const { isAnonymous, userDisplayName, isLinking, linkGoogleAccount, logout } = useAuth();
 const { syncStatus, syncError, cloudSaveMetadata, saveToCloud, checkCloudSave, loadFromCloud } = useCloudSync();
 const { activeSession, saveSession } = useGameState();
 
 const isCheckingCloud = ref(false);
+const isLoggingOut = ref(false);
 const message = ref<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
 onMounted(async () => {
@@ -29,6 +30,22 @@ async function handleLinkGoogle() {
     await handleBackupNow();
   } else {
     message.value = { text: `⚠️ 連携に失敗しました: ${res.error || '不明なエラー'}`, type: 'error' };
+  }
+}
+
+async function handleLogout() {
+  if (!confirm('Googleアカウントからログアウトしますか？\n\n※現在のローカル冒険データは保持されたまま、ゲスト状態に戻ります。\n※最新のプレイ進行度をクラウドに残したい場合は、事前に［今すぐバックアップ］を行ってください。')) {
+    return;
+  }
+  isLoggingOut.value = true;
+  message.value = null;
+  const res = await logout();
+  isLoggingOut.value = false;
+  if (res.success) {
+    message.value = { text: '🚪 ログアウトしました。ゲスト冒険者としてプレイを継続できます。', type: 'info' };
+    await checkCloudSave();
+  } else {
+    message.value = { text: `⚠️ ログアウトに失敗しました: ${res.error || '不明なエラー'}`, type: 'error' };
   }
 }
 
@@ -100,6 +117,16 @@ async function handleRestoreFromCloud() {
             >
               <span v-if="isLinking">連携処理中...</span>
               <span v-else>🔗 Googleアカウントと連携してデータを保存</span>
+            </button>
+          </div>
+          <div v-else class="action-row">
+            <button 
+              @click="handleLogout" 
+              class="btn-ink btn-logout" 
+              :disabled="isLoggingOut"
+            >
+              <span v-if="isLoggingOut">ログアウト中...</span>
+              <span v-else>🚪 Googleアカウントからログアウト（ゲストに戻る）</span>
             </button>
           </div>
         </div>
@@ -283,5 +310,33 @@ async function handleRestoreFromCloud() {
   background: #ffebee;
   border: 1px solid #ef9a9a;
   color: #c62828;
+}
+
+.alert-box.info {
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  color: #0d47a1;
+}
+
+.btn-logout {
+  width: 100%;
+  background: #faf8f5;
+  border-color: #c2b09a;
+  color: #705844;
+  font-weight: bold;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-logout:hover:not(:disabled) {
+  background: #f4ede2;
+  border-color: #8c1c1c;
+  color: #8c1c1c;
+}
+
+.btn-logout:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

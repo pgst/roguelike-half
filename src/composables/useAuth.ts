@@ -88,13 +88,22 @@ export function useAuth() {
     }
   }
 
-  async function logout(): Promise<void> {
+  async function logout(): Promise<{ success: boolean; error?: string }> {
     const authInstance = auth;
-    if (!authInstance) return;
-    await signOut(authInstance);
-    currentUser.value = null;
-    // ログアウト後は再度匿名サインインで新しい冒険者として開始
-    await signInAnonymously(authInstance);
+    if (!authInstance) return { success: false, error: 'Firebase Auth is disabled' };
+    authError.value = null;
+    try {
+      await signOut(authInstance);
+      currentUser.value = null;
+      // ログアウト後は再度匿名サインインで新しい冒険者として開始
+      const credential = await signInAnonymously(authInstance);
+      currentUser.value = credential.user;
+      return { success: true };
+    } catch (e: any) {
+      console.error('[useAuth] Logout failed:', e);
+      authError.value = e.message;
+      return { success: false, error: e.message };
+    }
   }
 
   return {
