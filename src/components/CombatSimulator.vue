@@ -250,12 +250,17 @@ function closeRangedRound() {
           <!-- 聖水使用ボタン -->
           <div v-if="isHolyWaterAvailable" class="combat-actions" style="margin-top: 10px; width: 100%;">
             <button 
+              v-if="enemy.tags.includes('weak') || enemy.tags.includes('undead')"
               @click="useHolyWater(enemy.id)"
               class="btn-ink btn-mini"
               style="width: 100%; text-align: center; font-weight: bold; background: #e0f2f1; border-color: #4db6ac; color: #00796b;"
+              :disabled="diceTray.isRolling"
             >
               🧪 聖水を使用 (対象: {{ enemy.name }})
             </button>
+            <span v-else style="font-size: 0.8rem; color: var(--ink-light); font-style: italic; width: 100%; display: block; text-align: center; padding: 5px;">
+              （アンデッドではない強敵のため聖水無効）
+            </span>
           </div>
 
           <!-- 招天フェーズ時の攻撃ボタン -->

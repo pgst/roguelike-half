@@ -26,7 +26,8 @@ export function useCombat() {
     transitionToExplore,
     triggerLevelUp,
     triggerGameOver,
-    savePyramidBossSnapshot
+    savePyramidBossSnapshot,
+    diceTray
   } = useGameState();
 
   const context = {
@@ -2106,6 +2107,7 @@ export function useCombat() {
 
   async function useHolyWater(targetEnemyId: string) {
     if (combatState.isOver) return;
+    if (diceTray.isRolling) return;
 
     const idx = character.value.items.findIndex(i => i.type === 'holywater');
     if (idx === -1) {
@@ -2116,33 +2118,86 @@ export function useCombat() {
     const target = combatState.enemies.find(e => e.id === targetEnemyId);
     if (!target) return;
 
-    addLog(`🧪 聖水を ${target.name} に投げつけた！`, 'success');
-    character.value.items.splice(idx, 1);
-
     const isUndead = hasTag(target, 'undead');
     const isWeak = target.tags.includes('weak');
 
-    if (isUndead || !isWeak) {
-      // アンデッドや強い敵には2点ダメージ
-      target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
-      addLog(`✨ 聖水が清浄なる炎をあげた！ ${target.name} に2点ダメージ！`, 'success');
-      if (target.lifeCurrent <= 0) {
-        addLog(`💀 ${target.name} は浄化され、崩れ去った。`, 'success');
+    // 強い敵かつアンデッドではない場合は効果なし（UIでも防ぐが二重保護）
+    if (!isWeak && !isUndead) {
+      addLog(`⚠️ ${target.name} はアンデッドではない強敵のため、聖水は効果がありません！`, 'error');
+      return;
+    }
+
+    // 聖水を消費
+    character.value.items.splice(idx, 1);
+    addLog(`🧪 聖水を ${target.name} に投げつけた！`, 'success');
+
+    // 【器用ロール】の実行 (目標値: 4)
+    clearDiceTray();
+    diceTray.sides = 6;
+
+    // 器用修正値の計算: 敏捷(dexterity)を持つ場合はその現在値、それ以外は技量点
+    const dexSkill = (character.value.subStatType === 'dexterity' && character.value.subStatCurrent > 0)
+      ? character.value.subStatCurrent
+      : character.value.skillCurrent;
+
+    let modifier = dexSkill;
+
+    // 布鎧・革鎧の器用ボーナス (+1)
+    if (character.value.equippedArmor?.name === '布鎧' || character.value.equippedArmor?.name === '革鎧') {
+      modifier += 1;
+    }
+
+    // ランタンなしペナルティ (-2)
+    if (!carriesLantern.value) {
+      modifier -= 2;
+    }
+
+    const roll = await rollD6(true);
+    const isCritical = roll === 6;
+    const isFumble = roll === 1;
+    const total = roll + modifier;
+    const isSuccess = !isFumble && (isCritical || total >= 4);
+
+    if (isFumble) {
+      diceTray.isFumble = true;
+      diceTray.resultText = `痛恨のファンブル！ (出目: 1)`;
+      addLog(`💀 判定出目: 1 (ファンブル！) 聖水の瓶は手元から滑り落ち、砕け散ってしまった！`, 'error');
+    } else if (isCritical) {
+      diceTray.isCritical = true;
+      diceTray.resultText = `会心のクリティカル！ (出目: 6)`;
+      addLog(`✨ 判定出目: 6 (クリティカル！) 聖水は完璧な放物線を描き直撃した！`, 'success');
+    } else if (isSuccess) {
+      diceTray.resultText = `器用判定成功！ 威力: ${total} (目標値: 4)`;
+      addLog(`🎲 【器用ロール】 達成値 ${total} (出目${roll} + 修正${modifier}) >= 目標値 4 : 命中成功！`, 'success');
+    } else {
+      diceTray.resultText = `器用判定失敗... 威力: ${total} (目標値: 4)`;
+      addLog(`💨 【器用ロール】 達成値 ${total} (出目${roll} + 修正${modifier}) < 目標値 4 : 命中失敗！ 聖水の瓶は外れて床で砕け散った...`, 'error');
+    }
+
+    // 命中時のみ効果を発揮
+    if (isSuccess) {
+      if (isUndead && !isWeak) {
+        // アンデッドかつ強い敵には2点ダメージ
+        target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
+        addLog(`✨ 聖水が清浄なる炎をあげた！ ${target.name} に2点ダメージ！`, 'success');
+        if (target.lifeCurrent <= 0) {
+          addLog(`💀 ${target.name} は浄化され、崩れ去った。`, 'success');
+          const tIdx = combatState.enemies.findIndex(e => e.id === targetEnemyId);
+          if (tIdx !== -1) combatState.enemies.splice(tIdx, 1);
+        }
+      } else if (isWeak) {
+        // 弱い敵なら2体を一撃で倒す
+        addLog(`✨ 聖水が炸裂し、清浄な霧が広がった！ ${target.name} は即座に浄化された！`, 'success');
         const tIdx = combatState.enemies.findIndex(e => e.id === targetEnemyId);
         if (tIdx !== -1) combatState.enemies.splice(tIdx, 1);
-      }
-    } else {
-      // 弱い敵なら2体を一撃で倒す
-      addLog(`✨ 聖水が炸裂し、清浄な霧が広がった！ ${target.name} は即座に浄化された！`, 'success');
-      const tIdx = combatState.enemies.findIndex(e => e.id === targetEnemyId);
-      if (tIdx !== -1) combatState.enemies.splice(tIdx, 1);
 
-      // もう1体弱い敵がいればそれも一撃で倒す
-      const nextWeakIdx = combatState.enemies.findIndex(e => e.tags.includes('weak'));
-      if (nextWeakIdx !== -1) {
-        const nextWeak = combatState.enemies[nextWeakIdx];
-        addLog(`✨ さらに ${nextWeak.name} も聖水の霧に包まれ、浄化された！`, 'success');
-        combatState.enemies.splice(nextWeakIdx, 1);
+        // もう1体弱い敵がいればそれも一撃で倒す
+        const nextWeakIdx = combatState.enemies.findIndex(e => e.tags.includes('weak'));
+        if (nextWeakIdx !== -1) {
+          const nextWeak = combatState.enemies[nextWeakIdx];
+          addLog(`✨ さらに ${nextWeak.name} も聖水の霧に包まれ、浄化された！`, 'success');
+          combatState.enemies.splice(nextWeakIdx, 1);
+        }
       }
     }
 
