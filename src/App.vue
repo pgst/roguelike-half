@@ -7,7 +7,6 @@ import type { Weapon, Armor, Shield, GeneralItem } from './types';
 import { runScenarioHook } from './composables/scenarioPlugins';
 import ScenarioSelector from './components/ScenarioSelector.vue';
 import CharacterCreator from './components/CharacterCreator.vue';
-import AdventureSheet from './components/AdventureSheet.vue';
 import DiceRoller from './components/DiceRoller.vue';
 import DungeonExplorer from './components/DungeonExplorer.vue';
 import CombatSimulator from './components/CombatSimulator.vue';
@@ -740,11 +739,6 @@ watch(() => logs.value.length, async () => {
         </div>
       </div>
 
-      <!-- RIGHT COLUMN: Character Sheet -->
-      <div class="right-sidebar">
-        <AdventureSheet v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" />
-      </div>
-
     </div>
 
     <!-- 運命のダイス（自動フェード オーバーレイモーダル） -->
@@ -755,7 +749,7 @@ watch(() => logs.value.length, async () => {
 <style>
 /* Global styling variables for layouts */
 .tabletop-container {
-  max-width: 1200px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 20px;
   display: flex;
@@ -765,31 +759,15 @@ watch(() => logs.value.length, async () => {
 }
 
 .desktop-layout {
-  display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 .left-book-section {
   display: flex;
   flex-direction: column;
-}
-
-.right-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-@media (min-width: 901px) {
-  .right-sidebar {
-    position: sticky;
-    top: 55px;
-    align-self: start;
-    max-height: calc(100vh - 70px);
-    overflow-y: auto;
-    padding-right: 4px;
-  }
+  width: 100%;
 }
 
 /* Growth stat ledger styling */

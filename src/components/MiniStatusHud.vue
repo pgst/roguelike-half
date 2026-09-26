@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useGameState } from '../composables/useGameState';
 import AdventureSheet from './AdventureSheet.vue';
+import SettingsModal from './SettingsModal.vue';
 
 const {
   character,
@@ -12,6 +13,7 @@ const {
 } = useGameState();
 
 const showDetailModal = ref(false);
+const showSettingsModal = ref(false);
 
 const hpRatio = computed(() => {
   if (!character.value.lifeMax) return 1;
@@ -90,10 +92,13 @@ const subStatIcon = computed(() => {
         </div>
       </div>
 
-      <!-- Right: Detailed Sheet Toggle Button -->
+      <!-- Right: Detailed Sheet Toggle Button & Settings -->
       <div class="hud-right">
         <button @click="showDetailModal = true" class="btn-hud-detail" title="冒険者シートの詳細を表示">
           📜 <span class="btn-text">ステータス詳細</span>
+        </button>
+        <button @click="showSettingsModal = true" class="btn-hud-settings" title="環境設定">
+          ⚙️ <span class="btn-text">設定</span>
         </button>
       </div>
     </div>
@@ -112,6 +117,9 @@ const subStatIcon = computed(() => {
         </div>
       </div>
     </Teleport>
+
+    <!-- 環境設定モーダル -->
+    <SettingsModal v-if="showSettingsModal" @close="showSettingsModal = false" />
   </header>
 </template>
 
@@ -241,9 +249,10 @@ const subStatIcon = computed(() => {
 .hud-right {
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
-.btn-hud-detail {
+.btn-hud-detail, .btn-hud-settings {
   background: var(--paper-bg);
   border: 1.5px solid var(--ink-dark);
   color: var(--ink-dark);
@@ -260,13 +269,13 @@ const subStatIcon = computed(() => {
   gap: 4px;
 }
 
-.btn-hud-detail:hover {
+.btn-hud-detail:hover, .btn-hud-settings:hover {
   transform: translate(-1px, -1px);
   box-shadow: 3px 3px 0 var(--ink-dark);
   background: #fff;
 }
 
-.btn-hud-detail:active {
+.btn-hud-detail:active, .btn-hud-settings:active {
   transform: translate(1px, 1px);
   box-shadow: 1px 1px 0 var(--ink-dark);
 }

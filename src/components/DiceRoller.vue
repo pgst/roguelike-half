@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue';
 import { useGameState } from '../composables/useGameState';
+import { useSettings } from '../composables/useSettings';
 
 const { diceTray } = useGameState();
+const { showDiceOverlay } = useSettings();
 
 const isVisible = ref(false);
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
@@ -18,6 +20,10 @@ watch(
   () => diceTray.isRolling,
   (rolling) => {
     clearTimer();
+    if (!showDiceOverlay.value) {
+      isVisible.value = false;
+      return;
+    }
     if (rolling) {
       isVisible.value = true;
     } else if (diceTray.d1 > 0) {
