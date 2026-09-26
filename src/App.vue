@@ -740,13 +740,15 @@ watch(() => logs.value.length, async () => {
         </div>
       </div>
 
-      <!-- RIGHT COLUMN: Dice Roller & Character Sheet -->
+      <!-- RIGHT COLUMN: Character Sheet -->
       <div class="right-sidebar">
-        <DiceRoller />
         <AdventureSheet v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" />
       </div>
 
     </div>
+
+    <!-- 運命のダイス（自動フェード オーバーレイモーダル） -->
+    <DiceRoller />
   </div>
 </template>
 
