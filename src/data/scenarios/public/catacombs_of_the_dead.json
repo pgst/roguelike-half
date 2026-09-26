@@ -2,7 +2,7 @@
   "id": "catacombs_of_the_dead",
   "title": "死者の眠る地下墓所",
   "description": "古代王朝の貴族や戦士が眠る広大な地下墓所（カタコンベ）。近年、邪悪な死霊術によって無数の死者がアンデッドとして蘇り、地表の村々を脅かしている。迷宮の深奥で棺を統べる「死霊騎士」を討ち滅ぼせ。",
-  "recommendedLevel": "推奨レベル：2-3",
+  "recommendedLevel": "適正レベル：11-12",
   "totalRoomsToClear": 8,
   "d66EventTable": {
     "11": {
