@@ -315,31 +315,44 @@ async function handleFileSelected(event: Event) {
     <div class="divider"></div>
 
     <!-- 権利表記・クレジット (TOS & Credits) -->
-    <div class="tos-credits-container">
-      <div class="tos-header">
-        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-          <img src="https://ftbooks.xyz/ftnews/article/RLH-100.jpg" alt="RLH ロゴ" class="rlh-logo" />
-          <div class="tos-title-group">
-            <h3 class="tos-title">🛡️ ローグライクハーフ 二次創作ガイドライン・権利表記</h3>
-            <p class="tos-subtitle">
-              本アプリケーションは、FT書房のライセンス規約に基づくTRPG「ローグライクハーフ」の二次創作デジタルゲームブックです。
-              <a href="https://ftbooks.booth.pm/items/4671946" target="_blank" rel="noopener noreferrer" class="tos-official-inline-link">
-                📖 公式基本ルール (FT書房 BOOTH)
-              </a>
-            </p>
-          </div>
-        </div>
+    <div class="tos-credits-container" :class="{ 'tos-collapsed': !showTosDetails }">
+      <!-- 閉じている時のコンパクトバー -->
+      <div v-if="!showTosDetails" class="tos-collapsed-bar animate-fade-in">
+        <img src="https://ftbooks.xyz/ftnews/article/RLH-100.jpg" alt="RLH ロゴ" class="rlh-logo-mini" />
         <button 
           type="button" 
-          class="btn-ink btn-mini btn-tos-toggle"
-          @click="showTosDetails = !showTosDetails"
+          class="btn-ink btn-mini btn-tos-open"
+          @click="showTosDetails = true"
         >
-          {{ showTosDetails ? '▲ 規約・作品情報を閉じる' : '▼ 規約・作品情報を表示' }}
+          🛡️ 二次創作ガイドライン・権利表記を表示
         </button>
       </div>
 
-      <!-- 詳細情報（アコーディオン展開） -->
-      <div v-if="showTosDetails" class="tos-content-grid animate-fade-in" style="margin-top: 15px;">
+      <!-- 展開時の詳細パネル -->
+      <div v-else class="tos-expanded-panel animate-fade-in">
+        <div class="tos-expanded-header">
+          <div class="tos-expanded-title-row">
+            <img src="https://ftbooks.xyz/ftnews/article/RLH-100.jpg" alt="RLH ロゴ" class="rlh-logo" />
+            <div class="tos-title-group">
+              <h3 class="tos-title">🛡️ ローグライクハーフ 二次創作ガイドライン・権利表記</h3>
+              <p class="tos-subtitle">
+                本アプリケーションは、FT書房のライセンス規約に基づくTRPG「ローグライクハーフ」の二次創作デジタルゲームブックです。
+                <a href="https://ftbooks.booth.pm/items/4671946" target="_blank" rel="noopener noreferrer" class="tos-official-inline-link">
+                  📖 公式基本ルール (FT書房 BOOTH)
+                </a>
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            class="btn-ink btn-mini btn-tos-toggle"
+            @click="showTosDetails = false"
+          >
+            ▲ 閉じる
+          </button>
+        </div>
+
+        <div class="tos-content-grid" style="margin-top: 15px;">
         <!-- 必要事項 -->
         <div class="tos-section">
           <h4 class="tos-section-title">📋 作品基本情報（規約に基づく必要事項）</h4>
@@ -394,6 +407,7 @@ async function handleFileSelected(event: Event) {
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <style scoped>
@@ -742,15 +756,67 @@ async function handleFileSelected(event: Event) {
   font-family: 'Noto Serif JP', Georgia, serif;
   color: var(--ink-dark);
   text-align: left;
+  transition: all 0.2s ease-in-out;
 }
 
-.tos-header {
+.tos-credits-container.tos-collapsed {
+  padding: 10px 16px;
+  background: rgba(92, 75, 61, 0.02);
+  border: 1px dashed #c2b09a;
+}
+
+.tos-collapsed-bar {
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.rlh-logo-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid #c2b09a;
+  object-fit: cover;
+  background: white;
+}
+
+.btn-tos-open {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #8c6d46;
+  color: #3b2c1a;
+  font-weight: bold;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-tos-open:hover {
+  background: #f4ede2;
+  border-color: #5c4327;
+  transform: translateY(-1px);
+}
+
+.tos-expanded-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.tos-expanded-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 15px;
   border-bottom: 1px solid #c2b09a;
   padding-bottom: 12px;
-  margin-bottom: 15px;
+}
+
+.tos-expanded-title-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 1;
 }
 
 .rlh-logo {
@@ -1094,10 +1160,15 @@ async function handleFileSelected(event: Event) {
     grid-template-columns: 1fr;
     gap: 15px;
   }
-  .tos-header {
+  .tos-expanded-header {
     flex-direction: column;
     text-align: center;
     align-items: center;
+    gap: 12px;
+  }
+  .tos-expanded-title-row {
+    flex-direction: column;
+    text-align: center;
   }
 }
 
