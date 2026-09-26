@@ -293,15 +293,16 @@ const subStatIcon = computed(() => {
 }
 
 .hud-detail-modal {
-  max-width: 600px;
+  max-width: 640px;
   width: 100%;
-  max-height: 90vh;
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
   border: 3px double var(--ink-dark);
   border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6);
   background: var(--paper-bg);
+  overflow: hidden;
 }
 
 .modal-header {
@@ -311,6 +312,7 @@ const subStatIcon = computed(() => {
   padding: 12px 18px;
   border-bottom: 2px solid var(--ink-dark);
   background: rgba(0,0,0,0.03);
+  flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -337,8 +339,9 @@ const subStatIcon = computed(() => {
 }
 
 .modal-body {
-  padding: 15px;
+  padding: 18px 22px 24px;
   overflow-y: auto;
+  flex: 1;
 }
 
 /* Mobile Responsiveness */

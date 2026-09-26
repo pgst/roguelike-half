@@ -285,13 +285,10 @@ const maxBackpackSlots = computed(() => {
 
 <style scoped>
 .adventure-sheet {
-  background: var(--paper-bg);
-  border: 3px double var(--ink-dark);
-  padding: 20px;
-  box-shadow: var(--card-shadow);
-  border-radius: 4px;
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }
 
 .sheet-header {
@@ -554,17 +551,7 @@ const maxBackpackSlots = computed(() => {
   margin-left: auto;
 }
 
-@media (max-width: 900px) {
-  .adventure-sheet {
-    max-height: none;
-    overflow-y: visible;
-  }
-}
-
 @media (max-width: 600px) {
-  .adventure-sheet {
-    padding: 15px;
-  }
   .stats-grid {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
