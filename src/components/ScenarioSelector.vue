@@ -6,6 +6,7 @@ import CloudSyncModal from './CloudSyncModal.vue';
 import HallOfFameModal from './HallOfFameModal.vue';
 import ScenarioEditor from './ScenarioEditor.vue';
 import SettingsModal from './SettingsModal.vue';
+import HelpModal from './HelpModal.vue';
 import { useCustomScenarios } from '../composables/useCustomScenarios';
 import type { Scenario } from '../types';
 
@@ -34,6 +35,7 @@ function handleSelectListItem(scenario: Scenario) {
 const showCloudModal = ref(false);
 const showHallModal = ref(false);
 const showSettingsModal = ref(false);
+const showHelpModal = ref(false);
 const showEditor = ref(false);
 const editingScenario = ref<Scenario | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
@@ -148,6 +150,9 @@ async function handleFileSelected(event: Event) {
         <button @click="showSettingsModal = true" class="btn-ink btn-mini" style="font-size: 0.8rem;">
           ⚙️ 設定
         </button>
+        <button @click="showHelpModal = true" class="btn-ink btn-mini" style="font-size: 0.8rem;">
+          ❓ ヘルプ
+        </button>
       </div>
     </div>
 
@@ -169,6 +174,7 @@ async function handleFileSelected(event: Event) {
     <CloudSyncModal v-if="showCloudModal" @close="showCloudModal = false" />
     <HallOfFameModal v-if="showHallModal" @close="showHallModal = false" />
     <SettingsModal v-if="showSettingsModal" @close="showSettingsModal = false" />
+    <HelpModal v-if="showHelpModal" @close="showHelpModal = false" />
 
     <!-- シナリオ作成・編集モーダル -->
     <ScenarioEditor 

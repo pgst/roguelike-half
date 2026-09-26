@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useGameState } from '../composables/useGameState';
 import AdventureSheet from './AdventureSheet.vue';
 import SettingsModal from './SettingsModal.vue';
+import HelpModal from './HelpModal.vue';
 
 const {
   character,
@@ -14,6 +15,7 @@ const {
 
 const showDetailModal = ref(false);
 const showSettingsModal = ref(false);
+const showHelpModal = ref(false);
 
 const hpRatio = computed(() => {
   if (!character.value.lifeMax) return 1;
@@ -92,13 +94,16 @@ const subStatIcon = computed(() => {
         </div>
       </div>
 
-      <!-- Right: Detailed Sheet Toggle Button & Settings -->
+      <!-- Right: Detailed Sheet Toggle Button, Settings & Help -->
       <div class="hud-right">
         <button @click="showDetailModal = true" class="btn-hud-detail" title="冒険者シートの詳細を表示">
           📜 <span class="btn-text">ステータス詳細</span>
         </button>
         <button @click="showSettingsModal = true" class="btn-hud-settings" title="環境設定">
           ⚙️ <span class="btn-text">設定</span>
+        </button>
+        <button @click="showHelpModal = true" class="btn-hud-help" title="冒険の手引き・操作ガイド">
+          ❓ <span class="btn-text">ヘルプ</span>
         </button>
       </div>
     </div>
@@ -120,6 +125,9 @@ const subStatIcon = computed(() => {
 
     <!-- 環境設定モーダル -->
     <SettingsModal v-if="showSettingsModal" @close="showSettingsModal = false" />
+
+    <!-- 総合ヘルプモーダル -->
+    <HelpModal v-if="showHelpModal" @close="showHelpModal = false" />
   </header>
 </template>
 
@@ -252,7 +260,7 @@ const subStatIcon = computed(() => {
   gap: 8px;
 }
 
-.btn-hud-detail, .btn-hud-settings {
+.btn-hud-detail, .btn-hud-settings, .btn-hud-help {
   background: var(--paper-bg);
   border: 1.5px solid var(--ink-dark);
   color: var(--ink-dark);
@@ -269,13 +277,13 @@ const subStatIcon = computed(() => {
   gap: 4px;
 }
 
-.btn-hud-detail:hover, .btn-hud-settings:hover {
+.btn-hud-detail:hover, .btn-hud-settings:hover, .btn-hud-help:hover {
   transform: translate(-1px, -1px);
   box-shadow: 3px 3px 0 var(--ink-dark);
   background: #fff;
 }
 
-.btn-hud-detail:active, .btn-hud-settings:active {
+.btn-hud-detail:active, .btn-hud-settings:active, .btn-hud-help:active {
   transform: translate(1px, 1px);
   box-shadow: 1px 1px 0 var(--ink-dark);
 }
@@ -363,7 +371,7 @@ const subStatIcon = computed(() => {
   .btn-text {
     display: none; /* Icon only on mobile */
   }
-  .btn-hud-detail {
+  .btn-hud-detail, .btn-hud-settings, .btn-hud-help {
     padding: 4px 8px;
   }
 }
