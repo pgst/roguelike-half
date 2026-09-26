@@ -4,6 +4,7 @@ import { GameSession, PlayerCharacter } from '../domain';
 import { generateId, setGlobalSeed, randomInt } from '../domain/random';
 import { useCloudSync } from './useCloudSync';
 import { useHallOfFame } from './useHallOfFame';
+import { useCustomScenarios } from './useCustomScenarios';
 
 // Load Scenarios: 公開用シナリオは常時バンドル、開発検証用モックはDEV環境のみバンドル
 const publicModules = import.meta.glob<{ default: any }>('../data/scenarios/public/*.json', { eager: true });
@@ -46,7 +47,13 @@ const availableScenarios = computed<Scenario[]>(() => {
     return a.path.localeCompare(b.path);
   });
 
-  return list.map(item => item.scenario);
+  const officialList = list.map(item => item.scenario);
+  try {
+    const { customScenarios } = useCustomScenarios();
+    return [...officialList, ...customScenarios.value];
+  } catch (e) {
+    return officialList;
+  }
 });
 
 // Factories for state initialization

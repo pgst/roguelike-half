@@ -1,16 +1,25 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useGameState } from '../composables/useGameState';
 import { useAuth } from '../composables/useAuth';
 import CloudSyncModal from './CloudSyncModal.vue';
 import HallOfFameModal from './HallOfFameModal.vue';
+import ScenarioEditor from './ScenarioEditor.vue';
+import { useCustomScenarios } from '../composables/useCustomScenarios';
 import type { Scenario } from '../types';
 
 const { availableScenarios, activeScenario, currentScreen, isCharacterCreated, hasSavedSession, loadSession } = useGameState();
 const { initAuth, userDisplayName } = useAuth();
+const { customScenarios, deleteCustomScenario, exportScenarioAsJson, importScenarioFromJson, syncFromCloud } = useCustomScenarios();
+
+const officialScenarios = computed(() => availableScenarios.value.filter(s => !s.id.startsWith('custom_')));
 
 const showCloudModal = ref(false);
 const showHallModal = ref(false);
+const showEditor = ref(false);
+const editingScenario = ref<Scenario | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const importMessage = ref<string | null>(null);
 
 const isDev = import.meta.env.DEV;
 const devReferenceInfo = isDev ? {
@@ -27,6 +36,7 @@ const savedDepth = ref(1);
 onMounted(async () => {
   // 認証の初期化（匿名サインイン）
   initAuth();
+  syncFromCloud();
 
   hasSaved.value = hasSavedSession();
   if (hasSaved.value) {
@@ -61,6 +71,46 @@ function selectScenario(scenario: Scenario) {
     currentScreen.value = 'levelup';
   }
 }
+
+function handleOpenNewScenario() {
+  editingScenario.value = null;
+  showEditor.value = true;
+}
+
+function handleEditScenario(scenario: Scenario) {
+  editingScenario.value = scenario;
+  showEditor.value = true;
+}
+
+function handleDeleteScenario(scenario: Scenario) {
+  if (confirm(`カスタムシナリオ「${scenario.title}」を削除しますか？`)) {
+    deleteCustomScenario(scenario.id);
+  }
+}
+
+function handleExportScenario(scenario: Scenario) {
+  exportScenarioAsJson(scenario);
+}
+
+function handleTriggerImport() {
+  fileInputRef.value?.click();
+}
+
+async function handleFileSelected(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  importMessage.value = null;
+  const res = await importScenarioFromJson(file);
+  if (res.success && res.scenario) {
+    importMessage.value = `✨ シナリオ「${res.scenario.title}」を正常にインポートしました！`;
+    setTimeout(() => { importMessage.value = null; }, 4000);
+  } else {
+    alert(`⚠️ インポート失敗: ${res.error || '不明なエラー'}`);
+  }
+  target.value = '';
+}
 </script>
 
 <template>
@@ -79,14 +129,54 @@ function selectScenario(scenario: Scenario) {
       </div>
     </div>
 
-    <h1 class="game-title">⚔️ ローグライクハーフ ⚔️</h1>
-    <p class="subtitle">- 冒険の舞台を選択せよ -</p>
-    
-    <div class="divider"></div>
+    <!-- 隠しファイル入力 -->
+    <input 
+      type="file" 
+      ref="fileInputRef" 
+      accept=".json,application/json" 
+      style="display: none;" 
+      @change="handleFileSelected" 
+    />
+
+    <!-- インポート成功・通知メッセージ -->
+    <div v-if="importMessage" class="import-alert animate-fade-in">
+      {{ importMessage }}
+    </div>
 
     <!-- Modals -->
     <CloudSyncModal v-if="showCloudModal" @close="showCloudModal = false" />
     <HallOfFameModal v-if="showHallModal" @close="showHallModal = false" />
+
+    <!-- シナリオ作成・編集モーダル -->
+    <ScenarioEditor 
+      v-if="showEditor" 
+      :initial-scenario="editingScenario" 
+      @close="showEditor = false" 
+    />
+
+    <h1 class="game-title">⚔️ ローグライクハーフ ⚔️</h1>
+    <p class="subtitle">- 冒険の舞台を選択せよ -</p>
+
+    <!-- シナリオ工房ツールバー -->
+    <div class="workshop-toolbar">
+      <div class="workshop-info">
+        <span class="workshop-icon">🛠️</span>
+        <div class="workshop-texts">
+          <span class="workshop-title">シナリオ工房</span>
+          <span class="workshop-desc">自作ダンジョン作成・JSONインポート</span>
+        </div>
+      </div>
+      <div class="workshop-actions">
+        <button @click="handleOpenNewScenario" class="btn-ink btn-workshop-create">
+          ➕ 新規作成
+        </button>
+        <button @click="handleTriggerImport" class="btn-ink btn-workshop-import">
+          📥 JSON読込
+        </button>
+      </div>
+    </div>
+    
+    <div class="divider"></div>
 
     <!-- Resume Saved Adventure Banner -->
     <div v-if="hasSaved" class="saved-session-banner">
@@ -99,24 +189,93 @@ function selectScenario(scenario: Scenario) {
       <button @click="resumeAdventure" class="btn-ink btn-resume">進行中の冒険を再開する</button>
     </div>
     
-    <div class="scenarios-grid">
-      <div 
-        v-for="scenario in availableScenarios" 
-        :key="scenario.id" 
-        class="scenario-card"
-        @click="selectScenario(scenario)"
-      >
-        <div class="scenario-header">
-          <h2 class="scenario-title">{{ scenario.title }}</h2>
-          <span class="scenario-level-badge">{{ scenario.recommendedLevel }}</span>
+    <!-- 公式シナリオ -->
+    <div class="scenario-section">
+      <h2 class="section-title">📜 公式シナリオ</h2>
+      <div class="scenarios-grid">
+        <div 
+          v-for="scenario in officialScenarios" 
+          :key="scenario.id" 
+          class="scenario-card"
+          @click="selectScenario(scenario)"
+        >
+          <div class="scenario-header">
+            <h3 class="scenario-title">{{ scenario.title }}</h3>
+            <span class="scenario-level-badge">{{ scenario.recommendedLevel }}</span>
+          </div>
+          
+          <p class="scenario-desc">{{ scenario.description }}</p>
+          
+          <div class="scenario-footer">
+            <span class="scenario-length">🧭 全 {{ scenario.totalRoomsToClear }} 部屋 + 決戦</span>
+            <button class="btn-ink btn-select">このシナリオに挑む</button>
+          </div>
         </div>
-        
-        <p class="scenario-desc">{{ scenario.description }}</p>
-        
-        <div class="scenario-footer">
-          <span class="scenario-length">🧭 全 {{ scenario.totalRoomsToClear }} 部屋 + 決戦</span>
-          <button class="btn-ink btn-select">このシナリオに挑む</button>
+      </div>
+    </div>
+
+    <!-- カスタムシナリオ (自作・インポート) -->
+    <div class="scenario-section" style="margin-top: 35px;">
+      <div class="section-header-row">
+        <h2 class="section-title">🛠️ カスタムシナリオ (自作・インポート)</h2>
+        <span class="custom-badge-count">{{ customScenarios.length }} 件</span>
+      </div>
+
+      <div v-if="customScenarios.length > 0" class="scenarios-grid">
+        <div 
+          v-for="scenario in customScenarios" 
+          :key="scenario.id" 
+          class="scenario-card custom-card"
+          @click="selectScenario(scenario)"
+        >
+          <div class="scenario-header">
+            <div class="title-with-tag">
+              <span class="custom-tag">自作</span>
+              <h3 class="scenario-title">{{ scenario.title }}</h3>
+            </div>
+            <span class="scenario-level-badge">{{ scenario.recommendedLevel }}</span>
+          </div>
+          
+          <p class="scenario-desc">{{ scenario.description }}</p>
+          
+          <div class="scenario-footer custom-footer">
+            <span class="scenario-length">🧭 全 {{ scenario.totalRoomsToClear }} 部屋 + 決戦</span>
+            <div class="card-action-buttons">
+              <button 
+                type="button" 
+                class="btn-ink btn-action-tool" 
+                title="編集"
+                @click.stop="handleEditScenario(scenario)"
+              >
+                ✏️ 編集
+              </button>
+              <button 
+                type="button" 
+                class="btn-ink btn-action-tool" 
+                title="JSONファイルとして保存"
+                @click.stop="handleExportScenario(scenario)"
+              >
+                💾 保存
+              </button>
+              <button 
+                type="button" 
+                class="btn-ink btn-action-tool btn-danger-tool" 
+                title="削除"
+                @click.stop="handleDeleteScenario(scenario)"
+              >
+                🗑️
+              </button>
+              <button class="btn-ink btn-select">挑む</button>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div v-else class="custom-empty-card">
+        <p>オリジナルのダンジョンを作成したり、配布されたJSONシナリオを読み込んで冒険することができます。</p>
+        <button @click="handleOpenNewScenario" class="btn-ink btn-create-first">
+          ✨ はじめてのシナリオを作成する
+        </button>
       </div>
     </div>
 
@@ -485,8 +644,206 @@ function selectScenario(scenario: Scenario) {
   gap: 4px;
 }
 
-.tos-ref-list li {
-  line-height: 1.4;
+/* インポート通知 */
+.import-alert {
+  background: #e8f4fd;
+  color: #1a5276;
+  border: 1px solid #a9cce3;
+  padding: 10px 16px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  font-weight: bold;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* シナリオ工房ツールバー */
+.workshop-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fbf7ef;
+  border: 2px dashed #b8977e;
+  border-radius: 8px;
+  padding: 12px 18px;
+  margin: 15px 0 25px 0;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.workshop-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.workshop-icon {
+  font-size: 1.6rem;
+}
+
+.workshop-texts {
+  display: flex;
+  flex-direction: column;
+}
+
+.workshop-title {
+  font-family: 'Noto Serif JP', serif;
+  font-weight: bold;
+  font-size: 1.05rem;
+  color: var(--ink-dark);
+}
+
+.workshop-desc {
+  font-size: 0.8rem;
+  color: var(--ink-light);
+}
+
+.workshop-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-workshop-create {
+  background: #8b263e;
+  color: #fcfbf9;
+  border: 1px solid #5c1828;
+  font-weight: bold;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-workshop-create:hover {
+  background: #a3314c;
+  transform: translateY(-1px);
+}
+
+.btn-workshop-import {
+  background: #efe6d8;
+  color: var(--ink-dark);
+  border: 1px solid #b8977e;
+  font-weight: bold;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-workshop-import:hover {
+  background: #e4d5c0;
+}
+
+/* セクション表示 */
+.section-title {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 1.2rem;
+  color: var(--ink-dark);
+  border-bottom: 2px solid #dfd3c3;
+  padding-bottom: 6px;
+  margin-bottom: 15px;
+}
+
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #dfd3c3;
+  padding-bottom: 6px;
+  margin-bottom: 15px;
+}
+
+.section-header-row .section-title {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.custom-badge-count {
+  font-size: 0.8rem;
+  background: #efe6d8;
+  color: #795548;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid #d7ccc8;
+  font-weight: bold;
+}
+
+/* カスタムカード */
+.custom-card {
+  border-color: #a1887f;
+  background: #fffdf9;
+}
+
+.title-with-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-tag {
+  font-size: 0.7rem;
+  background: #efebe9;
+  color: #5d4037;
+  border: 1px solid #bcaaa4;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.card-action-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-action-tool {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  background: #f5eedc;
+  color: var(--ink-dark);
+  border: 1px solid #c2b09a;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-action-tool:hover {
+  background: #e8dcc4;
+}
+
+.btn-danger-tool {
+  color: #a93226;
+  border-color: #e6b0aa;
+}
+
+.btn-danger-tool:hover {
+  background: #fadbd8;
+}
+
+.custom-empty-card {
+  text-align: center;
+  padding: 30px 20px;
+  background: rgba(0,0,0,0.02);
+  border: 1px dashed #c2b09a;
+  border-radius: 6px;
+  color: var(--ink-light);
+  font-size: 0.9rem;
+}
+
+.btn-create-first {
+  margin-top: 12px;
+  background: #8b263e;
+  color: #fcfbf9;
+  border: 1px solid #5c1828;
+  padding: 8px 16px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-create-first:hover {
+  background: #a3314c;
 }
 
 @media (max-width: 768px) {
