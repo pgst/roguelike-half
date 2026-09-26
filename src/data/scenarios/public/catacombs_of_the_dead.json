@@ -1,0 +1,358 @@
+{
+  "id": "catacombs_of_the_dead",
+  "title": "死者の眠る地下墓所",
+  "description": "古代王朝の貴族や戦士が眠る広大な地下墓所（カタコンベ）。近年、邪悪な死霊術によって無数の死者がアンデッドとして蘇り、地表の村々を脅かしている。迷宮の深奥で棺を統べる「死霊騎士」を討ち滅ぼせ。",
+  "recommendedLevel": "推奨レベル：2-3",
+  "totalRoomsToClear": 8,
+  "d66EventTable": {
+    "11": {
+      "title": "徘徊するスケルトン歩兵",
+      "d66Code": "11",
+      "description": "錆びた剣を握りしめた骸骨兵の小隊がカタカタと音を立てて迫ってきます！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "スケルトン歩兵 A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "slash" },
+        { "name": "スケルトン歩兵 B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "slash" }
+      ]
+    },
+    "12": {
+      "title": "石棺の毒針トラップ",
+      "d66Code": "12",
+      "description": "棺の蓋に隠されていた毒針が跳ね上がりました！器用さで躱してください。",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "13": {
+      "title": "迷い込んだ闇商人",
+      "d66Code": "13",
+      "description": "墓所の中で物資を調達している怪しげな闇商人がランプの明かりの下で手招きしています。",
+      "type": "npc",
+      "npcType": "merchant"
+    },
+    "14": {
+      "title": "墓暴きのグール",
+      "d66Code": "14",
+      "description": "死肉を喰らう醜悪なグールが腐臭を撒き散らしながら襲いかかってきます！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "グール", "level": 3, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "slash" }
+      ]
+    },
+    "15": {
+      "title": "貴族の副葬品",
+      "d66Code": "15",
+      "description": "装飾された古い石棺の中に、手付かずの装飾品や金貨が残されています。",
+      "type": "treasure",
+      "lootModifier": 0
+    },
+    "16": {
+      "title": "腐乱したゾンビの群れ",
+      "d66Code": "16",
+      "description": "土中から立ち上がったゾンビたちが、唸り声を上げながら取り囲んできます！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "腐乱ゾンビ A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "strike" },
+        { "name": "腐乱ゾンビ B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "strike" },
+        { "name": "腐乱ゾンビ C", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "strike" }
+      ]
+    },
+    "21": {
+      "title": "崩落する墓室の天井",
+      "d66Code": "21",
+      "description": "支柱が腐食し、頭上から大量の石塊が崩れ落ちてきました！力で押し返すか強靭さで耐えてください。",
+      "type": "trap",
+      "trapStat": "strength",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "22": {
+      "title": "スケルトン弓兵隊",
+      "d66Code": "22",
+      "description": "通路の奥から骨の弓を構えたスケルトンが矢を放ってきました！飛び道具による遠距離射撃です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "スケルトン弓兵 A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "isRanged": true, "weaponAttribute": "slash" },
+        { "name": "スケルトン弓兵 B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "isRanged": true, "weaponAttribute": "slash" }
+      ]
+    },
+    "23": {
+      "title": "隠された納骨堂の宝箱",
+      "d66Code": "23",
+      "description": "壁の隠し扉の奥に、鍵のかかった真鍮の小箱を見つけました！",
+      "type": "treasure",
+      "lootModifier": 1
+    },
+    "24": {
+      "title": "彷徨うレイス",
+      "d66Code": "24",
+      "description": "半透明の幽霊が冷気を放ちながら出現しました！恐ろしい死霊（強敵アンデッド）です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "彷徨うレイス", "level": 4, "lifeMax": 4, "lifeCurrent": 4, "attackCount": 1, "tags": ["strong", "undead"], "count": 1, "weaponAttribute": "strike" }
+      ]
+    },
+    "25": {
+      "title": "怨念の紫煙",
+      "d66Code": "25",
+      "description": "通路上に死者の怨嗟が凝縮した紫色の毒霧が漂っています！精神力で耐え抜いてください。",
+      "type": "trap",
+      "trapStat": "magic",
+      "trapTarget": 4,
+      "trapDamage": 1,
+      "statusEffect": "呪い"
+    },
+    "26": {
+      "title": "骸骨の小隊長",
+      "d66Code": "26",
+      "description": "大振りの古剣を構えた屈強な骸骨の戦士が、他の骨兵を引き連れて立ちふさがります！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "スケルトンキャプテン", "level": 4, "lifeMax": 3, "lifeCurrent": 3, "attackCount": 1, "tags": ["strong", "undead"], "count": 1, "weaponAttribute": "slash" },
+        { "name": "スケルトン従卒", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "slash" }
+      ]
+    },
+    "31": {
+      "title": "納骨堂のゴースト",
+      "d66Code": "31",
+      "description": "冷たい風と共に、嘆きの亡霊が突風のように襲いかかってきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "墓守のゴースト", "level": 3, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "strike" }
+      ]
+    },
+    "32": {
+      "title": "底なしの納骨坑",
+      "d66Code": "32",
+      "description": "足元の石畳が唐突に抜け、無数の人骨が敷き詰められた落とし穴が現れました！技量で跳び越えてください。",
+      "type": "trap",
+      "trapStat": "skill",
+      "trapTarget": 4,
+      "trapDamage": 2
+    },
+    "33": {
+      "title": "呪われた石棺のミイラ",
+      "d66Code": "33",
+      "description": "古い石棺が砕け散り、包帯に包まれた古代のミイラ（マミー）が立ち上がりました！【強敵・アンデッド】です！聖水が極めて有効です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "古代のマミー", "level": 4, "lifeMax": 5, "lifeCurrent": 5, "attackCount": 1, "tags": ["strong", "undead"], "count": 1, "weaponAttribute": "strike" }
+      ]
+    },
+    "34": {
+      "title": "聖職者の遺品",
+      "d66Code": "34",
+      "description": "かつてアンデッドの鎮魂に訪れた高潔な僧侶の遺品が残されています。聖なる加護が宿っています。",
+      "type": "treasure",
+      "lootModifier": 0
+    },
+    "35": {
+      "title": "死神の振り子刃",
+      "d66Code": "35",
+      "description": "ワイヤーに触れた瞬間、左右の石壁から巨大な大鎌の振り子が連続で落下してきました！",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 5,
+      "trapDamage": 2
+    },
+    "36": {
+      "title": "地下墓地の吸血蝙蝠",
+      "d66Code": "36",
+      "description": "天井に群れていた巨大なコウモリが一斉に急降下してきました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "ヴァンパイアバット A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1, "weaponAttribute": "strike" },
+        { "name": "ヴァンパイアバット B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1, "weaponAttribute": "strike" }
+      ]
+    },
+    "41": {
+      "title": "墓守の静かな霊",
+      "d66Code": "41",
+      "description": "かつてこの墓所を守っていた老守衛の霊が現れました。迷宮の道具を安価で譲ってくれます。",
+      "type": "npc",
+      "npcType": "merchant"
+    },
+    "42": {
+      "title": "墓守のゾンビドッグ",
+      "d66Code": "42",
+      "description": "生気を失い死霊となった獰猛な番犬たちが牙を剥いて飛びかかってきます！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "ゾンビハウンド A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "slash" },
+        { "name": "ゾンビハウンド B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "slash" }
+      ]
+    },
+    "43": {
+      "title": "石化の邪視",
+      "d66Code": "43",
+      "description": "石壁に彫られた邪眼のレリーフが妖しく光を放ちました！運を天に任せて視線を逸らしてください。",
+      "type": "trap",
+      "trapStat": "luck",
+      "trapTarget": 4,
+      "trapDamage": 0,
+      "statusEffect": "石化"
+    },
+    "44": {
+      "title": "死霊術の見習い",
+      "d66Code": "44",
+      "description": "死体を弄んでいた狂信的なネクロマンサーが、邪魔者を排除しようと呪文を唱え始めました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "死霊術士の見習い", "level": 3, "lifeMax": 3, "lifeCurrent": 3, "attackCount": 1, "tags": ["strong"], "count": 1, "weaponAttribute": "strike" }
+      ]
+    },
+    "45": {
+      "title": "古代の鉄製宝箱",
+      "d66Code": "45",
+      "description": "頑丈な鉄帯で封印された宝箱です。素晴らしい武具や財宝が期待できます！",
+      "type": "treasure",
+      "lootModifier": 1
+    },
+    "46": {
+      "title": "墓荒らしへの呪詛",
+      "d66Code": "46",
+      "description": "墓碑に刻まれた古代文字を読んだ途端、黒い瘴気が冒険者に絡みつきました！",
+      "type": "trap",
+      "trapStat": "luck",
+      "trapTarget": 5,
+      "trapDamage": 1,
+      "statusEffect": "呪い"
+    },
+    "51": {
+      "title": "石造のガーゴイル",
+      "d66Code": "51",
+      "description": "通路の角に佇んでいた石像が突如として翼を広げ、襲いかかってきました！【ゴーレム】属性の強敵です。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "ガーゴイル", "level": 4, "lifeMax": 4, "lifeCurrent": 4, "attackCount": 1, "tags": ["strong", "golem"], "count": 1, "weaponAttribute": "strike" }
+      ]
+    },
+    "52": {
+      "title": "囚われた探検家",
+      "d66Code": "52",
+      "description": "鉄格子の牢屋に、先に入った探検家が捕らえられています。助け出すと感謝の品や情報を得られます。",
+      "type": "npc",
+      "npcType": "captive"
+    },
+    "53": {
+      "title": "蠢くゾンビの大群",
+      "d66Code": "53",
+      "description": "前後の通路から這い出してきた無数のゾンビが群れをなして雪崩れ込んできました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "ゾンビの群れ", "level": 3, "lifeMax": 3, "lifeCurrent": 3, "attackCount": 1, "tags": ["weak", "undead"], "count": 4, "weaponAttribute": "strike" }
+      ]
+    },
+    "54": {
+      "title": "骨の手が伸びる落とし穴",
+      "d66Code": "54",
+      "description": "落とし穴の底から無数の白骨の腕が伸び、足首を掴もうと蠢いています！器用さで躱してください。",
+      "type": "trap",
+      "trapStat": "dexterity",
+      "trapTarget": 4,
+      "trapDamage": 1
+    },
+    "55": {
+      "title": "盗掘者の隠し財宝",
+      "d66Code": "55",
+      "description": "過去の盗掘者が隠したと思われる袋を見つけました！多額の金貨や貴重品が入っています。",
+      "type": "treasure",
+      "lootModifier": 2
+    },
+    "56": {
+      "title": "腐敗のミイラ戦士",
+      "d66Code": "56",
+      "description": "黄金の仮面を被った屈強なマミーが立ちはだかります！【強敵・アンデッド】です。聖水が猛威を振るいます。",
+      "type": "encounter",
+      "enemies": [
+        { "name": "ミイラ戦士", "level": 4, "lifeMax": 6, "lifeCurrent": 6, "attackCount": 1, "tags": ["strong", "undead"], "count": 1, "weaponAttribute": "strike" }
+      ]
+    },
+    "61": {
+      "title": "影の暗殺者シャドウ",
+      "d66Code": "61",
+      "description": "床の影が揺らめき、黒い刃を持った死霊の暗殺者が背後から音もなく現れました！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "シャドウアサシン", "level": 4, "lifeMax": 3, "lifeCurrent": 3, "attackCount": 1, "tags": ["strong", "undead"], "count": 1, "weaponAttribute": "slash" }
+      ]
+    },
+    "62": {
+      "title": "聖別された小礼拝堂",
+      "d66Code": "62",
+      "description": "アンデッドの侵入を拒む結界が張られた神聖な小部屋です。安全に休息を取り、傷を癒やすことができます。",
+      "type": "rest"
+    },
+    "63": {
+      "title": "旅の巡礼僧",
+      "d66Code": "63",
+      "description": "死者の魂を鎮めるために地下を巡る白衣の巡礼僧に出会いました。傷の手当てや祈りを捧げてくれます。",
+      "type": "npc",
+      "npcType": "priest"
+    },
+    "64": {
+      "title": "清らかな地下湧水",
+      "d66Code": "64",
+      "description": "墓所の片隅に、澄んだ水が湧き出る小さな泉があります。冷たい水を飲んで心身を休めることができます。",
+      "type": "rest"
+    },
+    "65": {
+      "title": "骸骨重装兵",
+      "d66Code": "65",
+      "description": "全身を錆びた鋼鉄の鎧で固めたスケルトンの重装兵が、巨大な戦斧を振りかざして立ちはだかります！",
+      "type": "encounter",
+      "enemies": [
+        { "name": "スケルトン重装兵", "level": 5, "lifeMax": 4, "lifeCurrent": 4, "attackCount": 1, "tags": ["strong", "undead"], "count": 1, "weaponAttribute": "slash" }
+      ]
+    },
+    "66": {
+      "title": "死霊王の魔方陣",
+      "d66Code": "66",
+      "description": "部屋全体に青白く輝く巨大な死霊の魔方陣が敷かれています！強力な知力で術式を解読して切り抜けてください。",
+      "type": "trap",
+      "trapStat": "magic",
+      "trapTarget": 5,
+      "trapDamage": 2,
+      "statusEffect": "呪い"
+    }
+  },
+  "bossEvent": {
+    "title": "【決戦】死霊騎士レヴナント・ナイト",
+    "d66Code": "Boss",
+    "description": "地下墓所の最深部、黒鉄の巨大な石棺から蘇った死霊騎士が両手剣を構えて立ち上がりました！冷気と死臭が立ち込め、最後の決戦が始まります！",
+    "type": "encounter",
+    "enemies": [
+      {
+        "name": "死霊騎士レヴナント・ナイト",
+        "level": 6,
+        "lifeMax": 10,
+        "lifeCurrent": 10,
+        "attackCount": 2,
+        "tags": ["strong", "undead"],
+        "count": 1,
+        "weaponAttribute": "slash"
+      }
+    ]
+  },
+  "statusEffectRules": {
+    "呪い": {
+      "description": "呪いにより、すべての判定ロール（攻撃・防御・能力値判定）に -1 のペナルティを受けます。",
+      "modAttack": -1,
+      "modDefense": -1,
+      "modSkill": -1
+    },
+    "麻痺": {
+      "description": "麻痺により、戦闘中に攻撃（物理・魔法）を行うことができません。また、かばう行動も不可となります。",
+      "preventsAttack": true,
+      "preventsCover": true
+    },
+    "石化": {
+      "description": "体が石化し、一切の行動（攻撃、防御、魔法、かばう）ができません。被弾時の防御判定は自動的に失敗します。",
+      "preventsAttack": true,
+      "preventsDefense": true,
+      "preventsMagic": true,
+      "preventsCover": true
+    }
+  }
+}
