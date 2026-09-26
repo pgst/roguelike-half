@@ -20,6 +20,7 @@ const showEditor = ref(false);
 const editingScenario = ref<Scenario | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const importMessage = ref<string | null>(null);
+const showTosDetails = ref(false);
 
 const isDev = import.meta.env.DEV;
 const devReferenceInfo = isDev ? {
@@ -156,25 +157,6 @@ async function handleFileSelected(event: Event) {
 
     <h1 class="game-title">⚔️ ローグライクハーフ ⚔️</h1>
     <p class="subtitle">- 冒険の舞台を選択せよ -</p>
-
-    <!-- シナリオ工房ツールバー -->
-    <div class="workshop-toolbar">
-      <div class="workshop-info">
-        <span class="workshop-icon">🛠️</span>
-        <div class="workshop-texts">
-          <span class="workshop-title">シナリオ工房</span>
-          <span class="workshop-desc">自作ダンジョン作成・JSONインポート</span>
-        </div>
-      </div>
-      <div class="workshop-actions">
-        <button @click="handleOpenNewScenario" class="btn-ink btn-workshop-create">
-          ➕ 新規作成
-        </button>
-        <button @click="handleTriggerImport" class="btn-ink btn-workshop-import">
-          📥 JSON読込
-        </button>
-      </div>
-    </div>
     
     <div class="divider"></div>
 
@@ -189,9 +171,9 @@ async function handleFileSelected(event: Event) {
       <button @click="resumeAdventure" class="btn-ink btn-resume">進行中の冒険を再開する</button>
     </div>
     
-    <!-- 公式シナリオ -->
+    <!-- シナリオ一覧 -->
     <div class="scenario-section">
-      <h2 class="section-title">📜 公式シナリオ</h2>
+      <h2 class="section-title">📜 シナリオ</h2>
       <div class="scenarios-grid">
         <div 
           v-for="scenario in officialScenarios" 
@@ -214,11 +196,21 @@ async function handleFileSelected(event: Event) {
       </div>
     </div>
 
-    <!-- カスタムシナリオ (自作・インポート) -->
+    <!-- カスタムシナリオ -->
     <div class="scenario-section" style="margin-top: 35px;">
-      <div class="section-header-row">
-        <h2 class="section-title">🛠️ カスタムシナリオ (自作・インポート)</h2>
-        <span class="custom-badge-count">{{ customScenarios.length }} 件</span>
+      <div class="section-header-row custom-section-header">
+        <div class="header-title-group">
+          <h2 class="section-title">🛠️ カスタムシナリオ</h2>
+          <span class="custom-badge-count">{{ customScenarios.length }} 件</span>
+        </div>
+        <div class="custom-header-actions">
+          <button @click="handleOpenNewScenario" class="btn-ink btn-mini btn-workshop-create">
+            ➕ 新規作成
+          </button>
+          <button @click="handleTriggerImport" class="btn-ink btn-mini btn-workshop-import">
+            📥 JSON読込
+          </button>
+        </div>
       </div>
 
       <div v-if="customScenarios.length > 0" class="scenarios-grid">
@@ -284,14 +276,29 @@ async function handleFileSelected(event: Event) {
     <!-- 権利表記・クレジット (TOS & Credits) -->
     <div class="tos-credits-container">
       <div class="tos-header">
-        <img src="https://ftbooks.xyz/ftnews/article/RLH-100.jpg" alt="RLH ロゴ" class="rlh-logo" />
-        <div class="tos-title-group">
-          <h3 class="tos-title">🛡️ ローグライクハーフ 二次創作ガイドライン・権利表記</h3>
-          <p class="tos-subtitle">本アプリケーションは、FT書房の登録商標・ライセンスに基づくTRPG「ローグライクハーフ」の二次創作デジタルゲームブックです。</p>
+        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+          <img src="https://ftbooks.xyz/ftnews/article/RLH-100.jpg" alt="RLH ロゴ" class="rlh-logo" />
+          <div class="tos-title-group">
+            <h3 class="tos-title">🛡️ ローグライクハーフ 二次創作ガイドライン・権利表記</h3>
+            <p class="tos-subtitle">
+              本アプリケーションは、FT書房のライセンス規約に基づくTRPG「ローグライクハーフ」の二次創作デジタルゲームブックです。
+              <a href="https://ftbooks.booth.pm/items/4671946" target="_blank" rel="noopener noreferrer" class="tos-official-inline-link">
+                📖 公式基本ルール (FT書房 BOOTH)
+              </a>
+            </p>
+          </div>
         </div>
+        <button 
+          type="button" 
+          class="btn-ink btn-mini btn-tos-toggle"
+          @click="showTosDetails = !showTosDetails"
+        >
+          {{ showTosDetails ? '▲ 規約・作品情報を閉じる' : '▼ 規約・作品情報を表示' }}
+        </button>
       </div>
 
-      <div class="tos-content-grid">
+      <!-- 詳細情報（アコーディオン展開） -->
+      <div v-if="showTosDetails" class="tos-content-grid animate-fade-in" style="margin-top: 15px;">
         <!-- 必要事項 -->
         <div class="tos-section">
           <h4 class="tos-section-title">📋 作品基本情報（規約に基づく必要事項）</h4>
@@ -303,7 +310,7 @@ async function handleFileSelected(event: Event) {
             <li><span>🏰 ジャンル：</span><strong>ファンタジー</strong></li>
             <li><span>⚔️ 推奨レベル：</span><strong>ビギナー〜中級</strong></li>
             <li><span>⚖️ 難易度：</span><strong>Easy、Normal、Hard</strong></li>
-            <li><span>🎲 形式：</span><strong>シナリオ (d66)</strong></li>
+            <li><span>🎲 形式：</span><strong>デジタルゲームブック / d66シナリオ</strong></li>
             <li><span>🗺️ 世界観：</span><strong>共通世界 (アランツァ)</strong></li>
           </ul>
         </div>
@@ -657,49 +664,25 @@ async function handleFileSelected(event: Event) {
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-/* シナリオ工房ツールバー */
-.workshop-toolbar {
+/* カスタムセクション ヘッダー & 工房アクション */
+.custom-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fbf7ef;
-  border: 2px dashed #b8977e;
-  border-radius: 8px;
-  padding: 12px 18px;
-  margin: 15px 0 25px 0;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.03);
-}
-
-.workshop-info {
-  display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
-.workshop-icon {
-  font-size: 1.6rem;
-}
-
-.workshop-texts {
+.header-title-group {
   display: flex;
-  flex-direction: column;
-}
-
-.workshop-title {
-  font-family: 'Noto Serif JP', serif;
-  font-weight: bold;
-  font-size: 1.05rem;
-  color: var(--ink-dark);
-}
-
-.workshop-desc {
-  font-size: 0.8rem;
-  color: var(--ink-light);
-}
-
-.workshop-actions {
-  display: flex;
+  align-items: center;
   gap: 10px;
+}
+
+.custom-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .btn-workshop-create {
@@ -707,10 +690,11 @@ async function handleFileSelected(event: Event) {
   color: #fcfbf9;
   border: 1px solid #5c1828;
   font-weight: bold;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
+  font-size: 0.8rem;
 }
 
 .btn-workshop-create:hover {
@@ -723,14 +707,44 @@ async function handleFileSelected(event: Event) {
   color: var(--ink-dark);
   border: 1px solid #b8977e;
   font-weight: bold;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
+  font-size: 0.8rem;
 }
 
 .btn-workshop-import:hover {
   background: #e4d5c0;
+}
+
+/* TOS アコーディオン・トグル */
+.btn-tos-toggle {
+  white-space: nowrap;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  background: #efe6d8;
+  color: var(--ink-dark);
+  border: 1px solid #c2b09a;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-tos-toggle:hover {
+  background: #e4d5c0;
+}
+
+.tos-official-inline-link {
+  display: inline-block;
+  margin-left: 8px;
+  color: #8c1c1c;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.tos-official-inline-link:hover {
+  color: #5c4b3d;
 }
 
 /* セクション表示 */
