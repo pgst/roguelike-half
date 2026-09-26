@@ -337,9 +337,6 @@ async function handleFileSelected(event: Event) {
               <h3 class="tos-title">🛡️ ローグライクハーフ 二次創作ガイドライン・権利表記</h3>
               <p class="tos-subtitle">
                 本アプリケーションは、FT書房のライセンス規約に基づくTRPG「ローグライクハーフ」の二次創作デジタルゲームブックです。
-                <a href="https://ftbooks.booth.pm/items/4671946" target="_blank" rel="noopener noreferrer" class="tos-official-inline-link">
-                  📖 公式基本ルール (FT書房 BOOTH)
-                </a>
               </p>
             </div>
           </div>
