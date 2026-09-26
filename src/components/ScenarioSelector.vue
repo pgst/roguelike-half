@@ -14,6 +14,22 @@ const { customScenarios, deleteCustomScenario, exportScenarioAsJson, importScena
 
 const officialScenarios = computed(() => availableScenarios.value.filter(s => !s.id.startsWith('custom_')));
 
+const selectedOfficialId = ref<string>('');
+const detailPanelRef = ref<HTMLElement | null>(null);
+
+const selectedOfficialScenario = computed<Scenario | null>(() => {
+  if (!officialScenarios.value.length) return null;
+  const found = officialScenarios.value.find(s => s.id === selectedOfficialId.value);
+  return found || officialScenarios.value[0] || null;
+});
+
+function handleSelectListItem(scenario: Scenario) {
+  selectedOfficialId.value = scenario.id;
+  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    detailPanelRef.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
 const showCloudModal = ref(false);
 const showHallModal = ref(false);
 const showEditor = ref(false);
@@ -171,26 +187,65 @@ async function handleFileSelected(event: Event) {
       <button @click="resumeAdventure" class="btn-ink btn-resume">進行中の冒険を再開する</button>
     </div>
     
-    <!-- シナリオ一覧 -->
+    <!-- シナリオ一覧 (マスター・ディテール) -->
     <div class="scenario-section">
       <h2 class="section-title">📜 シナリオ</h2>
-      <div class="scenarios-grid">
-        <div 
-          v-for="scenario in officialScenarios" 
-          :key="scenario.id" 
-          class="scenario-card"
-          @click="selectScenario(scenario)"
-        >
-          <div class="scenario-header">
-            <h3 class="scenario-title">{{ scenario.title }}</h3>
-            <span class="scenario-level-badge">{{ scenario.recommendedLevel }}</span>
+      
+      <div class="master-detail-container">
+        <!-- 左カラム: シナリオ一覧リスト（固定最大高さ＆スクロール） -->
+        <div class="scenario-master-list custom-scrollbar">
+          <div 
+            v-for="scenario in officialScenarios" 
+            :key="scenario.id" 
+            class="scenario-list-item scenario-card"
+            :class="{ active: selectedOfficialScenario?.id === scenario.id }"
+            @click="handleSelectListItem(scenario)"
+          >
+            <div class="list-item-header">
+              <h3 class="list-item-title">{{ scenario.title }}</h3>
+              <span class="scenario-level-badge list-badge">{{ scenario.recommendedLevel }}</span>
+            </div>
+            <div class="list-item-meta">
+              <span class="list-rooms-count">🧭 {{ scenario.totalRoomsToClear }} 部屋</span>
+              <span class="list-arrow-icon">›</span>
+            </div>
           </div>
-          
-          <p class="scenario-desc">{{ scenario.description }}</p>
-          
-          <div class="scenario-footer">
-            <span class="scenario-length">🧭 全 {{ scenario.totalRoomsToClear }} 部屋 + 決戦</span>
-            <button class="btn-ink btn-select">このシナリオに挑む</button>
+        </div>
+
+        <!-- 右カラム: 選択中シナリオの詳細プレビューボード -->
+        <div ref="detailPanelRef" class="scenario-detail-panel paper-sheet">
+          <div v-if="selectedOfficialScenario" class="detail-content animate-fade-in">
+            <div class="detail-header">
+              <div class="detail-title-group">
+                <h3 class="detail-title">{{ selectedOfficialScenario.title }}</h3>
+                <span class="scenario-level-badge detail-badge">{{ selectedOfficialScenario.recommendedLevel }}</span>
+              </div>
+              <span class="detail-rooms-badge">🧭 全 {{ selectedOfficialScenario.totalRoomsToClear }} 部屋 + 決戦</span>
+            </div>
+
+            <div class="detail-body">
+              <p class="detail-desc">{{ selectedOfficialScenario.description }}</p>
+              
+              <!-- ボス警戒情報プレビュー -->
+              <div v-if="selectedOfficialScenario.bossEvent" class="detail-boss-preview">
+                <div class="boss-preview-title">
+                  <span>👑 最深部：{{ selectedOfficialScenario.bossEvent.title }}</span>
+                </div>
+                <p class="boss-preview-desc">
+                  {{ selectedOfficialScenario.bossEvent.description }}
+                </p>
+              </div>
+            </div>
+
+            <div class="detail-footer">
+              <button @click="selectScenario(selectedOfficialScenario)" class="btn-ink btn-select btn-start-adventure">
+                ⚔️ このシナリオに挑む
+              </button>
+            </div>
+          </div>
+
+          <div v-else class="detail-empty-placeholder">
+            <p>左のリストから挑戦するシナリオを選択してください。</p>
           </div>
         </div>
       </div>
@@ -427,6 +482,211 @@ async function handleFileSelected(event: Event) {
   border-top: 1px solid var(--ink-dark);
   border-bottom: 1px solid var(--ink-dark);
   margin: 20px 0 30px 0;
+}
+
+/* マスター・ディテール レイアウト */
+.master-detail-container {
+  display: grid;
+  grid-template-columns: minmax(260px, 38%) 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.scenario-master-list {
+  max-height: 440px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 6px;
+}
+
+.scenario-list-item.scenario-card {
+  padding: 12px 14px;
+  border-width: 1px;
+  border-color: #cbbba9;
+  background: #fffcf8;
+  gap: 6px;
+  transform: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.scenario-list-item.scenario-card:hover {
+  background: #faf2e3;
+  border-color: #8b263e;
+  transform: translateX(2px);
+  box-shadow: 0 2px 5px rgba(139, 38, 62, 0.08);
+}
+
+.scenario-list-item.scenario-card.active {
+  background: #fbf3e6;
+  border-color: #8b263e;
+  border-left: 5px solid #8b263e;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.list-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.list-item-title {
+  margin: 0;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: var(--ink-dark);
+}
+
+.list-badge {
+  font-size: 0.75rem;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.list-item-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--ink-light);
+}
+
+.list-arrow-icon {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #a8927d;
+}
+
+.scenario-list-item.scenario-card.active .list-arrow-icon {
+  color: #8b263e;
+}
+
+/* 詳細パネル (ボード風) */
+.scenario-detail-panel {
+  padding: 24px;
+  border: 2px solid #5c4b3d;
+  background: #fefdfa;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 6px;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+}
+
+.detail-header {
+  border-bottom: 2px solid #dfd3c3;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+.detail-title-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.detail-title {
+  margin: 0;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: var(--ink-dark);
+}
+
+.detail-badge {
+  font-size: 0.85rem;
+  padding: 3px 10px;
+}
+
+.detail-rooms-badge {
+  font-size: 0.85rem;
+  color: #705844;
+  font-weight: bold;
+}
+
+.detail-body {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-desc {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--ink-dark);
+  margin: 0;
+}
+
+.detail-boss-preview {
+  background: #fbf4ec;
+  border: 1px dashed #b8977e;
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.boss-preview-title {
+  font-family: 'Noto Serif JP', serif;
+  font-weight: bold;
+  font-size: 0.95rem;
+  color: #8c1c1c;
+  margin-bottom: 4px;
+}
+
+.boss-preview-desc {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #5c4b3d;
+  line-height: 1.4;
+}
+
+.detail-footer {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px dashed #d4c5b3;
+}
+
+.btn-start-adventure {
+  width: 100%;
+  padding: 12px 20px;
+  font-size: 1.05rem;
+  font-weight: bold;
+  background: #8b263e;
+  color: #fff;
+  border: 1px solid #5c1828;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-start-adventure:hover {
+  background: #a3314c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(139, 38, 62, 0.2);
+}
+
+.detail-empty-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ink-light);
+  font-style: italic;
 }
 
 .scenarios-grid {
@@ -861,6 +1121,17 @@ async function handleFileSelected(event: Event) {
 }
 
 @media (max-width: 768px) {
+  .master-detail-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .scenario-master-list {
+    max-height: 240px;
+  }
+  .scenario-detail-panel {
+    min-height: auto;
+    padding: 16px;
+  }
   .tos-content-grid {
     grid-template-columns: 1fr;
     gap: 15px;
