@@ -855,6 +855,19 @@ function resolveSkeletonEvent() {
       </div>
     </div>
 
+    <!-- Dynamic Inline Dice Banner Overlay -->
+    <div v-if="diceTray.isRolling || diceTray.d1 > 0" class="combat-dice-banner" :class="{ 'banner-crit': diceTray.isCritical, 'banner-fumble': diceTray.isFumble }">
+      <div v-if="diceTray.isRolling" class="dice-rolling-indicator">
+        <span class="rolling-dice-icon">🎲</span> <b>ダイス判定中...</b>
+      </div>
+      <div v-else class="dice-result-indicator">
+        <span class="dice-value-chip">
+          🎲 出目: <b>{{ diceTray.d1 }}</b><span v-if="diceTray.d2 > 0"> + <b>{{ diceTray.d2 }}</b></span>
+        </span>
+        <span class="dice-result-text">{{ diceTray.resultText }}</span>
+      </div>
+    </div>
+
     <!-- Recent Event Log -->
     <div v-if="logs.length > 0" class="recent-event-box" style="margin: 0 0 20px 0; padding: 10px; border: 1px dashed var(--ink-light); background: rgba(255,255,255,0.5); border-radius: 4px; font-family: 'Noto Serif JP', serif; font-size: 0.9rem;">
       📖 <b>直近の出来事:</b> <span :class="logs[logs.length - 1]?.type">{{ logs[logs.length - 1]?.text }}</span>
@@ -1569,6 +1582,78 @@ function resolveSkeletonEvent() {
 .btn-primary-ink:hover:not(:disabled) {
   background: var(--ink-light) !important;
   box-shadow: 3px 3px 0 rgba(0,0,0,0.3) !important;
+}
+
+/* Dynamic Inline Dice Banner Overlay */
+.combat-dice-banner {
+  background: #fffdf8;
+  border: 2px solid var(--ink-dark);
+  box-shadow: 2px 2px 0 var(--ink-dark);
+  border-radius: 6px;
+  padding: 8px 14px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-family: 'Noto Serif JP', serif;
+  transition: all 0.3s ease;
+}
+
+.dice-rolling-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--ink-dark);
+}
+
+.rolling-dice-icon {
+  display: inline-block;
+  animation: spin-dice 0.6s linear infinite;
+}
+
+@keyframes spin-dice {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.15); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.dice-result-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.dice-value-chip {
+  background: rgba(44, 30, 14, 0.08);
+  border: 1px dashed var(--ink-dark);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.dice-result-text {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: var(--ink-dark);
+}
+
+.banner-crit {
+  border-color: #2e7d32 !important;
+  background: #f1f8e9 !important;
+  color: #2e7d32 !important;
+  box-shadow: 2px 2px 0 #2e7d32 !important;
+}
+
+.banner-fumble {
+  border-color: #c62828 !important;
+  background: #ffebee !important;
+  color: #c62828 !important;
+  box-shadow: 2px 2px 0 #c62828 !important;
 }
 
 @media (max-width: 600px) {

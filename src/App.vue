@@ -11,6 +11,7 @@ import AdventureSheet from './components/AdventureSheet.vue';
 import DiceRoller from './components/DiceRoller.vue';
 import DungeonExplorer from './components/DungeonExplorer.vue';
 import CombatSimulator from './components/CombatSimulator.vue';
+import MiniStatusHud from './components/MiniStatusHud.vue';
 
 const {
   currentScreen,
@@ -382,6 +383,7 @@ watch(() => logs.value.length, async () => {
 </script>
 
 <template>
+  <MiniStatusHud v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" />
   <div class="tabletop-container">
     <!-- TOP ROW: Calligraphic Logbook -->
     <div v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" class="narrative-logbook-container" style="margin-bottom: 5px;">
@@ -775,6 +777,17 @@ watch(() => logs.value.length, async () => {
   display: flex;
   flex-direction: column;
   gap: 15px;
+}
+
+@media (min-width: 901px) {
+  .right-sidebar {
+    position: sticky;
+    top: 55px;
+    align-self: start;
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
+    padding-right: 4px;
+  }
 }
 
 /* Growth stat ledger styling */
