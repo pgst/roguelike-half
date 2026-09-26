@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { disableAnimations, setupMockRandom, handlePendingDefense } from './helpers/test-utils';
+import { disableAnimations, setupMockRandom, handlePendingDefense, selectScenarioInUI, openAdventureSheet, closeAdventureSheet, rollD66AndSkipPerception, transitionToMelee } from './helpers/test-utils';
 
 test.describe('聖水（Holy Water）の戦闘行使テスト', () => {
 
@@ -13,10 +13,7 @@ test.describe('聖水（Holy Water）の戦闘行使テスト', () => {
 
   test('聖水の購入と戦闘での使用：弱い敵2体を一撃で即座に浄化すること', async ({ page }) => {
     // 1. シナリオ選択
-    const scenarioCard = page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first();
-    await scenarioCard.waitFor({ state: 'visible', timeout: 5000 });
-    await scenarioCard.click({ force: true });
-    await page.waitForTimeout(300);
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト聖水使い');
@@ -30,8 +27,10 @@ test.describe('聖水（Holy Water）の戦闘行使テスト', () => {
     await page.waitForTimeout(300);
 
     // 背負い袋に聖水があることを確認
+    await openAdventureSheet(page);
     const advSheetText = await page.locator('.adventure-sheet').textContent();
     expect(advSheetText).toContain('聖水');
+    await closeAdventureSheet(page);
 
     // 4. 冒険開始
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
@@ -40,21 +39,13 @@ test.describe('聖水（Holy Water）の戦闘行使テスト', () => {
     // d66 = 11 (ゴブリン斥候部隊: 雑魚3体との遭遇)
     await setupMockRandom(page, 11, [4, 4]);
 
-    // ダンジョン探索：d66を振る
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    
-    // 察知せずに部屋に入る
-    const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
-    await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await skipPerceptionBtn.click({ force: true });
+    // ダンジョン探索：d66を振って察知をスキップ
+    await rollD66AndSkipPerception(page);
     await page.waitForTimeout(500);
 
     // 5. 戦闘フェーズ（第0ラウンド）
     // 第0ラウンドでは反応チェック前は聖水は使えないため、接近戦へ移行する
-    const closeRangedBtn = page.locator('button:has-text("接近戦へ移行する")');
-    await expect(closeRangedBtn).toBeVisible({ timeout: 5000 });
-    await closeRangedBtn.click({ force: true });
-    await page.waitForTimeout(500);
+    await transitionToMelee(page);
 
     // 敵の反撃キューがあれば防御ロールを自動解決
     await handlePendingDefense(page);
@@ -73,8 +64,10 @@ test.describe('聖水（Holy Water）の戦闘行使テスト', () => {
     await expect(logbook).toContainText('さらに ゴブリン斥候 B も聖水の霧に包まれ、浄化された！', { timeout: 5000 });
 
     // 背負い袋から聖水が消えていることを確認
+    await openAdventureSheet(page);
     const postAdvSheetText = await page.locator('.adventure-sheet').textContent();
     expect(postAdvSheetText).not.toContain('🧪 聖水');
+    await closeAdventureSheet(page);
   });
 
 });

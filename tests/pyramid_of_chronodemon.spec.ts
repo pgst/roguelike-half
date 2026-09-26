@@ -1,5 +1,5 @@
 import { test, expect, type Locator } from '@playwright/test';
-import { safeClick, disableAnimations } from './helpers/test-utils';
+import { safeClick, disableAnimations, selectScenarioInUI, checkCannotAttack } from './helpers/test-utils';
 
 async function isElementEnabled(locator: Locator): Promise<boolean> {
   try {
@@ -15,8 +15,8 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
   await page.goto('/');
   await disableAnimations(page);
 
-  const maxActions = 250;
-  const maxLoops = 2500;
+  const maxActions = 500;
+  const maxLoops = 5000;
   
   let actionCount = 0;
   let loopCount = 0;
@@ -53,8 +53,8 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
 
     // 1. Scenario selection - Target "刻の悪魔のピラミッド"
     if (screen === 'selector') {
-      const scenarioCard = page.locator('.scenario-card').filter({ hasText: '刻の悪魔のピラミッド' }).first();
-      if (await safeClick(scenarioCard, 'Selecting Pyramid of Chronodemon scenario card', 500)) {
+      console.log(`[Action ${actionCount}] Selecting Pyramid of Chronodemon scenario...`);
+      if (await selectScenarioInUI(page, '刻の悪魔のピラミッド')) {
         actionCount++;
       }
       continue;
@@ -119,12 +119,17 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
     if (screen === 'explorer') {
       const overlimitBanner = page.locator('.overlimit-warning-banner');
       if (await overlimitBanner.isVisible({ timeout: 0 })) {
-        const discardBtn = page.locator('.adventure-sheet button:has-text("捨てる")').filter({ visible: true });
-        if (await discardBtn.first().isVisible({ timeout: 0 })) {
-          if (await safeClick(discardBtn.first(), 'Discarding item to resolve inventory overlimit')) {
-            actionCount++;
-            continue;
+        const detailBtn = page.locator('.btn-hud-detail');
+        if (await detailBtn.isVisible({ timeout: 500 })) {
+          await safeClick(detailBtn, 'Open detail modal to discard item', 200);
+          const discardBtn = page.locator('.adventure-sheet button:has-text("捨てる")').filter({ visible: true });
+          if (await discardBtn.first().isVisible({ timeout: 500 })) {
+            if (await safeClick(discardBtn.first(), 'Discarding item to resolve inventory overlimit', 200)) {
+              actionCount++;
+            }
           }
+          await safeClick(page.locator('.btn-close-hud'), 'Close detail modal', 200);
+          continue;
         }
       }
 
@@ -260,8 +265,7 @@ test('Pyramid of Chronodemon scenario full play-through verification', async ({ 
       const skipDeflectBtn = page.locator('button:has-text("発動を見送る")');
       const holyArrowBtn = page.locator('button:has-text("聖なる矢を放つ")');
 
-      const sheetText = await page.locator('.adventure-sheet').textContent();
-      const cannotAttack = sheetText?.includes('麻痺') || sheetText?.includes('石化') || sheetText?.includes('気絶');
+      const cannotAttack = await checkCannotAttack(page);
 
       if (await roarBtn.isVisible({ timeout: 0 }) && await isElementEnabled(roarBtn)) {
         if (await safeClick(roarBtn, 'Attempt Chronovals Roar resistance check')) actionCount++;

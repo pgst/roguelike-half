@@ -17,6 +17,7 @@ export function useCombat() {
     handleDeath,
     clearDiceTray,
     carriesLantern,
+    hasSwordbearer,
     playerActiveStatusEffectRules,
     pyramidRunCount,
     restorePyramidBossSnapshot,
@@ -740,10 +741,23 @@ export function useCombat() {
   // Enemy Attacks Turn - distributes and asks player to assign
   async function executeEnemyAttacks() {
     if (combatState.isOver) return;
+    const prevRound = combatState.round;
     combatState.round++;
     combatState.hasCoveredInRound = false;
     combatState.hasWeaponCreatedThisRound = false;
     addLog(`--- ラウンド ${combatState.round}: クリーチャーの反撃フェーズ ---`, 'info');
+
+    // 太刀持ち従者がいる場合、第0ラウンドの射撃後の第1ラウンド移行時に自動で接近戦用武器に持ち替える
+    if (prevRound === 0 && hasSwordbearer.value && character.value.equippedWeapon?.type === 'ranged') {
+      const meleeWeapon = character.value.weapons.find(w => w.type !== 'ranged');
+      if (meleeWeapon) {
+        character.value.equippedWeapon = meleeWeapon;
+        addLog(`⚔️ 太刀持ち従者の手助けにより、瞬時に武器を【${meleeWeapon.name}】に持ち替えました！`, 'success');
+      } else {
+        character.value.equippedWeapon = null;
+        addLog('⚔️ 接近戦用の武器が他にないため、素手になりました。', 'error');
+      }
+    }
 
     // Gather all enemy attacks
     const attackQueue: { source: Enemy; id: string }[] = [];

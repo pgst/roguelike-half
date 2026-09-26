@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { disableAnimations, setupMockRandom, safeClick } from './helpers/test-utils';
+import { disableAnimations, setupMockRandom, safeClick, selectScenarioInUI, openAdventureSheet, closeAdventureSheet } from './helpers/test-utils';
 
 test.describe('砂掃きの骸骨 (Sand Cleaning Skeleton) 取引＆アドバイス機能テスト', () => {
 
@@ -15,10 +15,7 @@ test.describe('砂掃きの骸骨 (Sand Cleaning Skeleton) 取引＆アドバイ
     await disableAnimations(page);
 
     // 1. シナリオ選択 - 刻の悪魔のピラミッド
-    const scenarioCard = page.locator('.scenario-card').filter({ hasText: '刻の悪魔のピラミッド' }).first();
-    await scenarioCard.waitFor({ state: 'visible', timeout: 5000 });
-    await scenarioCard.click({ force: true });
-    await page.waitForTimeout(500);
+    await selectScenarioInUI(page, '刻の悪魔のピラミッド');
 
     // 2. キャラクター作成（運/Luck アーキタイプを選択。初期装備に片手武器(斬撃)が含まれる）
     await page.fill('#char-name', 'テスト骸骨交換');
@@ -58,27 +55,32 @@ test.describe('砂掃きの骸骨 (Sand Cleaning Skeleton) 取引＆アドバイ
 
     // 次の部屋を探索
     await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // 接触を試みる (反応チェック)
-    const contactBtn = page.locator('button:has-text("接触を試みる")');
-    await expect(contactBtn).toBeVisible({ timeout: 5000 });
+    const contactBtn = page.locator('button:has-text("接触を試みる")').first();
+    await contactBtn.waitFor({ state: 'visible', timeout: 5000 });
     await contactBtn.click({ force: true });
+    await contactBtn.dispatchEvent('click');
     await page.waitForTimeout(1000);
 
     // 反応が【友好的】になっていることを確認
     const resultBox = page.locator('.reaction-result-box');
+    await resultBox.waitFor({ state: 'visible', timeout: 5000 });
     await expect(resultBox).toContainText('【友好的】');
 
     // 武器交換
     const tradeBtn = page.locator('button:has-text("交換を申し出る")').first();
-    await expect(tradeBtn).toBeVisible({ timeout: 5000 });
+    await tradeBtn.waitFor({ state: 'visible', timeout: 5000 });
     await tradeBtn.click({ force: true });
-    await page.waitForTimeout(500);
+    await tradeBtn.dispatchEvent('click');
+    await page.waitForTimeout(1000);
 
     // 古竜の肋骨剣が手に入ったことを確認
+    await openAdventureSheet(page);
     const advSheet = page.locator('.adventure-sheet');
     await expect(advSheet).toContainText('古竜の肋骨剣');
+    await closeAdventureSheet(page);
 
     // 次の部屋の十の位を「1」に指定（これにより自動的にイベント解決に遷移します）
     const roomAdviceBtn = page.locator('button:has-text("1の部屋へ")');

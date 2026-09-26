@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { disableAnimations, setupMockRandom, handlePendingDefense } from './helpers/test-utils';
+import { disableAnimations, setupMockRandom, handlePendingDefense, selectScenarioInUI, openAdventureSheet, closeAdventureSheet, rollD66AndSkipPerception, transitionToMelee, proceedToNextRoom, clickButtonByText } from './helpers/test-utils';
 
 test.describe('太刀持ち従者の武器持ち替え省略＆リセット判定テスト', () => {
   
@@ -13,8 +13,7 @@ test.describe('太刀持ち従者の武器持ち替え省略＆リセット判�
   test('太刀持ち従者あり：射撃後の接近戦武器への持ち替えラウンドが省略されること', async ({ page }) => {
 
     // 1. シナリオ選択
-    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
-    await page.waitForTimeout(500);
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト太刀持ちあり');
@@ -31,32 +30,28 @@ test.describe('太刀持ち従者の武器持ち替え省略＆リセット判�
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
-    // Set mock random just before d66 roll
-    await setupMockRandom(page, 11, 6);
+    // Set mock random just before d66 roll (4: hit without critical)
+    await setupMockRandom(page, 11, [4, 4]);
 
-    // 4. ダンジョン探索：d66を振る
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    
-    // 察知せずに部屋に入るを待ってクリック
-    const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
-    await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await skipPerceptionBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    // 4. ダンジョン探索：d66を振る（察知スキップ）
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
 
     // 直接射撃攻撃を行う
     await expect(page.locator('.combat-header')).toBeVisible();
     
     // 装備武器が「弓と十分な矢」であることを確認
+    await openAdventureSheet(page);
     const equippedWeaponText = await page.locator('.equipped-slot:has-text("右手/武器:")').textContent();
     expect(equippedWeaponText).toContain('弓と十分な矢');
+    await closeAdventureSheet(page);
 
     // 第0ラウンドで通常攻撃（射撃）を実行
-    await page.locator('button:has-text("射撃攻撃")').click({ force: true });
+    await clickButtonByText(page, '射撃攻撃', 1000);
     await page.waitForTimeout(1000);
 
-    // 接近戦へ移行するをクリック
-    await page.locator('button:has-text("接近戦へ移行する")').click({ force: true });
-    await page.waitForTimeout(1000);
+    // 敵の反撃を防ぐ
+    await handlePendingDefense(page);
 
     // 太刀持ちがいるため、第1ラウンドの移行時に自動で「軽い武器 (短剣等)」へ持ち替えられており、持ち替え中（isSwitchingWeapons）の表示がないことを確認
     const combatBoxText = await page.locator('.combat-card').textContent();
@@ -64,8 +59,10 @@ test.describe('太刀持ち従者の武器持ち替え省略＆リセット判�
     expect(combatBoxText).not.toContain('武器を持ち替える');
 
     // 武器が軽い武器になっていることを確認
+    await openAdventureSheet(page);
     const weaponAfterTransition = await page.locator('.equipped-slot:has-text("右手/武器:")').textContent();
     expect(weaponAfterTransition).toContain('軽い武器 (短剣等)');
+    await closeAdventureSheet(page);
 
     // 接近戦通常攻撃ボタンがすぐに活性化していることを確認
     const attackBtn = page.locator('button:has-text("通常攻撃")').first();
@@ -78,8 +75,7 @@ test.describe('太刀持ち従者の武器持ち替え省略＆リセット判�
     await disableAnimations(page);
 
     // 1. シナリオ選択
-    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
-    await page.waitForTimeout(500);
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト太刀持ちなし');
@@ -91,25 +87,18 @@ test.describe('太刀持ち従者の武器持ち替え省略＆リセット判�
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
-    // Set mock random just before d66 roll
-    await setupMockRandom(page, 11, 6);
+    // Set mock random just before d66 roll (4: hit without critical)
+    await setupMockRandom(page, 11, [4, 4]);
 
-    // 4. ダンジョン探索：d66を振る
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    
-    // 察知せずに部屋に入るを待ってクリック
-    const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
-    await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await skipPerceptionBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    // 4. ダンジョン探索：d66を振る（察知スキップ）
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
 
     // 直接射撃攻撃を行う
-    await page.locator('button:has-text("射撃攻撃")').click({ force: true });
-    await page.waitForTimeout(1000);
+    await clickButtonByText(page, '射撃攻撃', 1000);
 
-    // 接近戦へ移行するをクリック
-    await page.locator('button:has-text("接近戦へ移行する")').click({ force: true });
-    await page.waitForTimeout(1000);
+    // 敵の反撃を防ぐ
+    await handlePendingDefense(page);
 
     // 太刀持ちがいないため、第1ラウンドで「武器の持ち替え中」の表示が出ること
     const combatBoxText = await page.locator('.combat-card').textContent();
@@ -119,14 +108,20 @@ test.describe('太刀持ち従者の武器持ち替え省略＆リセット判�
     await expect(switchWeaponBtn).toBeVisible();
 
     // 武器を持ち替えるボタンをクリックして1ラウンド消費
-    await switchWeaponBtn.click({ force: true });
+    await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('武器を持ち替える'));
+      if (btn) btn.click();
+    });
+    await page.waitForTimeout(500);
     
     // 持ち替えラウンド消費に伴う敵の攻撃を防ぐ
     await handlePendingDefense(page);
 
     // 持ち替え完了後、武器が軽い武器になり通常攻撃が押せるようになることを確認
+    await openAdventureSheet(page);
     const weaponAfterSwitch = await page.locator('.equipped-slot:has-text("右手/武器:")').textContent();
     expect(weaponAfterSwitch).toContain('軽い武器 (短剣等)');
+    await closeAdventureSheet(page);
 
     const attackBtn = page.locator('button:has-text("通常攻撃")').first();
     await expect(attackBtn).toBeVisible();
@@ -137,7 +132,7 @@ test.describe('太刀持ち従者の武器持ち替え省略＆リセット判�
     await disableAnimations(page);
 
     // 1. シナリオ選択
-    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
     await page.waitForTimeout(500);
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
@@ -151,25 +146,22 @@ test.describe('太刀持ち従者の武器持ち替え省略＆リセット判�
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // Set mock random just before first d66 roll
-    await setupMockRandom(page, 11, 6);
+    await setupMockRandom(page, 11, [4, 6]);
 
-    // 4. 【1戦目の戦闘】 d66を振る
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    
-    // 察知せずに部屋に入るを待ってクリック
-    const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
-    await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await skipPerceptionBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    // 4. 【1戦目の戦闘】 d66を振る（察知スキップ）
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
 
-    // 射撃して接近戦へ
-    await page.locator('button:has-text("射撃攻撃")').click({ force: true });
-    await page.waitForTimeout(1000);
-    await page.locator('button:has-text("接近戦へ移行する")').click({ force: true });
-    await page.waitForTimeout(1000);
+    // 射撃して第1ラウンドへ
+    await clickButtonByText(page, '射撃攻撃', 1000);
+    await handlePendingDefense(page);
 
     // 武器を持ち替える
-    await page.locator('button:has-text("武器を持ち替える")').click({ force: true });
+    await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('武器を持ち替える'));
+      if (btn) btn.click();
+    });
+    await page.waitForTimeout(500);
     await handlePendingDefense(page);
 
     // 敵を倒す（出目6固定なので一撃）
@@ -187,24 +179,19 @@ test.describe('太刀持ち従者の武器持ち替え省略＆リセット判�
       await page.waitForTimeout(1500);
     }
 
-    // 戦闘終了
-    await page.locator('button:has-text("結果を承認")').click({ force: true });
-    await page.waitForTimeout(1000);
+    // 戦闘終了（「結果を承認して次の部屋へ進む」で探索画面へ戻る）
+    await clickButtonByText(page, '結果を承認', 1000);
 
     // Set mock random just before second d66 roll
-    await setupMockRandom(page, 11, 6);
+    await setupMockRandom(page, 11, [4, 6]);
 
-    // 5. 【2戦目の戦闘】
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    
-    // 察知せずに部屋に入るを待ってクリック
-    await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await skipPerceptionBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    // 5. 【2戦目の戦闘】（察知スキップ）
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
 
     // 2戦目の第0ラウンドでは射撃を行わずに「接近戦へ移行する」をクリック
-    await page.locator('button:has-text("接近戦へ移行する")').click({ force: true });
-    await page.waitForTimeout(1000);
+    await transitionToMelee(page);
+    await handlePendingDefense(page);
 
     // 1戦目の射撃フラグがリセットされていれば、2戦目で射撃していないため、持ち替え中にならずに即攻撃可能になるはず
     const combatBoxText = await page.locator('.combat-card').textContent();

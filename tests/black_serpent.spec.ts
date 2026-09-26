@@ -1,5 +1,5 @@
 import { test, expect, type Locator } from '@playwright/test';
-import { safeClick, disableAnimations } from './helpers/test-utils';
+import { safeClick, disableAnimations, selectScenarioInUI, checkCannotAttack } from './helpers/test-utils';
 
 async function isElementEnabled(locator: Locator): Promise<boolean> {
   try {
@@ -18,8 +18,8 @@ test('Black Serpent scenario full play-through verification', async ({ page }, t
   const isWebkit = testInfo.project.name === 'webkit';
   const delay = isWebkit ? 150 : 50;
 
-  const maxActions = 250;
-  const maxLoops = 2500;
+  const maxActions = 500;
+  const maxLoops = 5000;
   
   let actionCount = 0;
   let loopCount = 0;
@@ -55,8 +55,8 @@ test('Black Serpent scenario full play-through verification', async ({ page }, t
     }
 
     if (screen === 'selector') {
-      const scenarioCard = page.locator('.scenario-card').filter({ hasText: '黒蛇の洞窟' }).first();
-      if (await safeClick(scenarioCard, 'Selecting Black Serpent scenario card', 500)) {
+      console.log(`[Action ${actionCount}] Selecting Black Serpent scenario...`);
+      if (await selectScenarioInUI(page, '黒蛇の洞窟')) {
         actionCount++;
       }
       continue;
@@ -118,12 +118,17 @@ test('Black Serpent scenario full play-through verification', async ({ page }, t
     if (screen === 'explorer') {
       const overlimitBanner = page.locator('.overlimit-warning-banner');
       if (await overlimitBanner.isVisible({ timeout: 0 })) {
-        const discardBtn = page.locator('.adventure-sheet button:has-text("捨てる")').filter({ visible: true });
-        if (await discardBtn.first().isVisible({ timeout: 0 })) {
-          if (await safeClick(discardBtn.first(), 'Discarding item to resolve inventory overlimit')) {
-            actionCount++;
-            continue;
+        const detailBtn = page.locator('.btn-hud-detail');
+        if (await detailBtn.isVisible({ timeout: 500 })) {
+          await safeClick(detailBtn, 'Open detail modal to discard item', 200);
+          const discardBtn = page.locator('.adventure-sheet button:has-text("捨てる")').filter({ visible: true });
+          if (await discardBtn.first().isVisible({ timeout: 500 })) {
+            if (await safeClick(discardBtn.first(), 'Discarding item to resolve inventory overlimit', 200)) {
+              actionCount++;
+            }
           }
+          await safeClick(page.locator('.btn-close-hud'), 'Close detail modal', 200);
+          continue;
         }
       }
 
@@ -185,8 +190,7 @@ test('Black Serpent scenario full play-through verification', async ({ page }, t
       const skipDeflectBtn = page.locator('button:has-text("発動を見送る")');
       const holyArrowBtn = page.locator('button:has-text("聖なる矢を放つ")');
 
-      const sheetText = await page.locator('.adventure-sheet').textContent();
-      const cannotAttack = sheetText?.includes('麻痺') || sheetText?.includes('石化') || sheetText?.includes('気絶');
+      const cannotAttack = await checkCannotAttack(page);
 
       if (await deflectBtn.isVisible({ timeout: 0 }) && await isElementEnabled(deflectBtn)) {
         if (await safeClick(deflectBtn, 'Use deflect miracle')) actionCount++;

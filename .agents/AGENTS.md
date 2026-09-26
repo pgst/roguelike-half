@@ -8,3 +8,6 @@ This file defines project-specific rules and constraints for the AI agent (Antig
 ## TypeScript & Build Compilation Rule
 - **Prevent Compilation Failures**: Verify that all modified or newly introduced TypeScript/Vue files do not contain compile-time type errors (TS compiler checks). Do not raw-reference Node.js globals like `process` directly inside browser-side components or composables without proper typing or fallback checks (such as `(globalThis as any).process` or `import.meta.env`).
 
+## UI Changes & E2E Test Maintenance Rule
+- **Maintain E2E Test Alignment on UI Changes**: Whenever UI layouts, locators, or user interaction flows are changed (such as transitioning from single-click to master-detail selection, adding modals, or modifying navigation steps), the corresponding Playwright test scripts (`tests/*.spec.ts` and `tests/helpers/test-utils.ts`) MUST be reviewed and updated to reflect the new interaction flow. This prevents CI hangs and timeouts.
+

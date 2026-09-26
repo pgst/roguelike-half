@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { disableAnimations, setupMockRandom } from './helpers/test-utils';
+import { disableAnimations, setupMockRandom, selectScenarioInUI, openAdventureSheet, closeAdventureSheet, rollD66AndSkipPerception, proceedToNextRoom, clickButtonByText, transitionToMelee, handlePendingDefense } from './helpers/test-utils';
 
 test.describe('状態異常システム (Status Effect Rules) 検証テスト', () => {
 
@@ -13,8 +13,7 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
   test('麻痺状態：トラップ失敗で麻痺になり、戦闘中に攻撃不能になること', async ({ page }) => {
 
     // 1. シナリオ選択
-    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
-    await page.waitForTimeout(500);
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト麻痺');
@@ -29,89 +28,54 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
     // d66 = 32 (毒矢トラップ). Trap roll fails (fumble = 1)
     await setupMockRandom(page, 32, [1]);
 
-    // d66を振って次の部屋を探索
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    await page.waitForTimeout(500);
-
-    // 察知選択肢：察知せずに部屋に入る
-    const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
-    await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 10000 });
-    await skipPerceptionBtn.click({ force: true });
+    // d66を振って次の部屋を探索（察知スキップ）
+    await rollD66AndSkipPerception(page);
     await page.waitForTimeout(500);
 
     // 罠を回避する判定を試みる
-    const trapCheckBtn = page.locator('button:has-text("で挑戦"), button:has-text("判定ロールに挑戦する")').first();
-    await trapCheckBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await trapCheckBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await clickButtonByText(page, '挑戦', 1000);
 
     // 冒険手帳に麻痺が表示されていることを確認
+    await openAdventureSheet(page);
     const advSheetText = await page.locator('.adventure-sheet').textContent();
     expect(advSheetText).toContain('麻痺');
+    await closeAdventureSheet(page);
 
     // 通路を進む
-    const proceedBtn = page.locator('button:has-text("次の小部屋へ進む")');
-    await proceedBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await proceedBtn.click({ force: true });
-    await page.waitForTimeout(500);
+    await proceedToNextRoom(page);
 
     // d66 = 11 (ゴブリン戦闘). Roll 3 for reaction (causes hostile outcome since hero is alone)
     await setupMockRandom(page, 11, [3]);
 
-    // d66を振って次の部屋を探索
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
+    // d66を振って次の部屋を探索（察知スキップ）
+    await rollD66AndSkipPerception(page);
     await page.waitForTimeout(500);
 
-    // 察知せずに部屋に入る
-    const skipPerceptionBtnCombat = page.locator('button:has-text("察知せずに部屋に入る")');
-    await skipPerceptionBtnCombat.waitFor({ state: 'visible', timeout: 10000 });
-    await skipPerceptionBtnCombat.click({ force: true });
-    await page.waitForTimeout(1000);
-
     // 反応チェックを行う
-    const reactionBtn = page.locator('button:has-text("反応チェックを行う")');
-    await reactionBtn.waitFor({ state: 'visible', timeout: 10000 });
-    await reactionBtn.click({ force: true });
-    // Debug: log all button texts containing "戦闘"
-    const btnTexts = await page.locator('button').allTextContents();
-    console.log('DEBUG_BUTTON_TEXTS:', btnTexts.filter(t => t.includes('戦闘')));
-    await page.waitForTimeout(1000);
+    await clickButtonByText(page, '反応チェックを行う', 1000);
 
     // 戦闘開始をクリック
     const combatStartBtn = page.locator('button:has-text("戦闘開始")');
     if (await combatStartBtn.count() > 0) {
-      await combatStartBtn.waitFor({ state: 'visible', timeout: 10000 });
-      await combatStartBtn.click({ force: true });
+      await clickButtonByText(page, '戦闘開始', 1000);
     } else {
       const escapeBtn = page.locator('button:has-text("戦闘から逃走する")');
-      await escapeBtn.waitFor({ state: 'visible', timeout: 10000 });
-      console.log('DEBUG: 戦闘開始ボタンが無い → 逃走ボタンをクリック');
-      await escapeBtn.click({ force: true });
-      return; // Skip further combat steps as escape occurred
+      if (await escapeBtn.isVisible({ timeout: 2000 })) {
+        await escapeBtn.click({ force: true });
+        return; // Skip further combat steps as escape occurred
+      }
     }
     await page.waitForTimeout(1000);
 
-    // 敵の先制攻撃の3回の防御判定を実行
-    const defendBtn = page.locator('button:has-text("主人公が防御する")');
-    await defendBtn.waitFor({ state: 'visible', timeout: 10000 });
-    await defendBtn.click({ force: true });
-    await page.waitForTimeout(500);
-    await defendBtn.click({ force: true });
-    await page.waitForTimeout(500);
-    await defendBtn.click({ force: true });
-    await page.waitForTimeout(500);
+    // 敵の先制攻撃の防御判定を実行
+    await handlePendingDefense(page);
 
     // 接近戦へ移行する
-    const transitionBtn = page.locator('button:has-text("接近戦へ移行する")');
-    await transitionBtn.waitFor({ state: 'visible', timeout: 10000 });
-    await transitionBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await transitionToMelee(page);
+    await handlePendingDefense(page);
 
     // 通常攻撃ボタンをクリック
-    const attackBtn = page.locator('button:has-text("通常攻撃")').first();
-    await attackBtn.waitFor({ state: 'visible', timeout: 10000 });
-    await attackBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await clickButtonByText(page, '通常攻撃', 1000);
 
     // ログに麻痺で攻撃できなかったことが記載されているか確認
     const logsText = await page.locator('.logbook-entries').textContent();
@@ -123,8 +87,7 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
     await disableAnimations(page);
 
     // 1. シナリオ選択
-    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
-    await page.waitForTimeout(500);
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト呪い');
@@ -139,51 +102,32 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
     // d66 = 66 (デーモンの石像 - 呪いトラップ). Trap roll fails (fumble = 1)
     await setupMockRandom(page, 66, [1]);
 
-    // d66を振って探索
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    await page.waitForTimeout(500);
-
-    // 察知選択肢：察知せずに部屋に入る
-    const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
-    await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 10000 });
-    await skipPerceptionBtn.click({ force: true });
+    // d66を振って探索（察知スキップ）
+    await rollD66AndSkipPerception(page);
     await page.waitForTimeout(500);
 
     // 罠回避（LUCK）
-    const trapCheckBtn = page.locator('button:has-text("で挑戦"), button:has-text("判定ロールに挑戦する")').first();
-    await trapCheckBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await trapCheckBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await clickButtonByText(page, '挑戦', 1000);
 
     // 冒険手帳に呪いがあることを確認
+    await openAdventureSheet(page);
     let advSheetText = await page.locator('.adventure-sheet').textContent();
     expect(advSheetText).toContain('呪い');
+    await closeAdventureSheet(page);
 
     // 通路を進む
-    const proceedBtn = page.locator('button:has-text("次の小部屋へ進む")');
-    await proceedBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await proceedBtn.click({ force: true });
-    await page.waitForTimeout(500);
+    await proceedToNextRoom(page);
 
     // d66 = 12 (崩落する天井トラップ). Trap roll: player rolls 4. Stat = 3. Modifier = -2 (darkness) -1 (curse).
     // Total = 4 + 3 - 3 = 4. Target = 4. It should succeed!
     await setupMockRandom(page, 12, [4]);
 
-    // d66を振って探索
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    await page.waitForTimeout(500);
-
-    // 察知選択肢：察知せずに部屋に入る
-    const skipPerceptionBtn2 = page.locator('button:has-text("察知せずに部屋に入る")');
-    await skipPerceptionBtn2.waitFor({ state: 'visible', timeout: 5000 });
-    await skipPerceptionBtn2.click({ force: true });
+    // d66を振って探索（察知スキップ）
+    await rollD66AndSkipPerception(page);
     await page.waitForTimeout(500);
 
     // 罠回避
-    const dexCheckBtn = page.locator('button:has-text("で挑戦"), button:has-text("判定ロールに挑戦する")').first();
-    await dexCheckBtn.waitFor({ state: 'visible', timeout: 10000 });
-    await dexCheckBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await clickButtonByText(page, '挑戦', 1000);
 
     // ログを確認
     const logsText = await page.locator('.logbook-entries').textContent();
@@ -195,7 +139,7 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
     await disableAnimations(page);
 
     // 1. シナリオ選択
-    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
     await page.waitForTimeout(500);
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）

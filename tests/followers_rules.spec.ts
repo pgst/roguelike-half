@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { disableAnimations, setupMockRandom, handlePendingDefense } from './helpers/test-utils';
+import { disableAnimations, setupMockRandom, handlePendingDefense, selectScenarioInUI, openAdventureSheet, closeAdventureSheet, rollD66AndSkipPerception, transitionToMelee, clickButtonByText } from './helpers/test-utils';
 
 test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行使テスト', () => {
 
@@ -13,10 +13,7 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
 
   test('魔術師従者：氷槍を習得して雇用し、戦闘で氷槍（2点ダメージ）を唱えること', async ({ page }) => {
     // 1. シナリオ選択
-    const scenarioCard = page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first();
-    await scenarioCard.waitFor({ state: 'visible', timeout: 5000 });
-    await scenarioCard.click({ force: true });
-    await page.waitForTimeout(300);
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト魔術師氷槍');
@@ -43,9 +40,11 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     await page.waitForTimeout(300);
 
     // アベンジャーシートの表示を確認
+    await openAdventureSheet(page);
     const advSheetText = await page.locator('.adventure-sheet').textContent();
     expect(advSheetText).toContain('属性: 斬撃');
     expect(advSheetText).toContain('習得: 氷槍');
+    await closeAdventureSheet(page);
 
     // 冒険開始
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
@@ -54,29 +53,18 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     // d66 = 11 (Goblin Fight). Mage rolls 6 (critical)
     await setupMockRandom(page, 11, 6);
 
-    // ダンジョン探索：d66を振る
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    
-    // 察知せずに部屋に入る
-    const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
-    await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await skipPerceptionBtn.click({ force: true });
+    // ダンジョン探索：d66を振る（察知スキップ）
+    await rollD66AndSkipPerception(page);
     await page.waitForTimeout(500);
 
     // 接近戦へ移行する
-    const closeMeleeBtn = page.locator('button:has-text("接近戦へ移行する")');
-    await closeMeleeBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await closeMeleeBtn.click({ force: true });
-    await page.waitForTimeout(500);
+    await transitionToMelee(page);
 
     // 敵の反撃キューがあれば防御ロールを自動解決
     await handlePendingDefense(page);
 
     // 従者魔術師の呪文詠唱ボタンをクリックして氷槍を唱える
-    const followerSpellBtn = page.locator('button:has-text("の呪文 [氷槍]")').first();
-    await followerSpellBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await followerSpellBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await clickButtonByText(page, '氷槍', 1000);
 
     // ログに氷槍のキャストとダメージが記録されていることを確認
     const logbook = page.locator('.logbook-entries');
@@ -86,10 +74,7 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
 
   test('魔術師従者：気絶を習得して雇用し、弱い敵に対して気絶を唱えること', async ({ page }) => {
     // 1. シナリオ選択
-    const scenarioCard = page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first();
-    await scenarioCard.waitFor({ state: 'visible', timeout: 5000 });
-    await scenarioCard.click({ force: true });
-    await page.waitForTimeout(300);
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト魔術師気絶');
@@ -110,9 +95,11 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     await page.waitForTimeout(300);
 
     // アベンジャーシートの表示を確認
+    await openAdventureSheet(page);
     const advSheetText = await page.locator('.adventure-sheet').textContent();
     expect(advSheetText).toContain('属性: 打撃');
     expect(advSheetText).toContain('習得: 気絶');
+    await closeAdventureSheet(page);
 
     // 冒険開始
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
@@ -121,28 +108,18 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     // d66 = 11 (Goblin Fight). Mage rolls 6 (critical)
     await setupMockRandom(page, 11, 6);
 
-    // ダンジョン探索：d66を振る
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    
-    // 察知せずに部屋に入る
-    const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
-    await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await skipPerceptionBtn.click({ force: true });
+    // ダンジョン探索：d66を振る（察知スキップ）
+    await rollD66AndSkipPerception(page);
     await page.waitForTimeout(500);
 
     // 接近戦へ移行する
-    const closeMeleeBtn = page.locator('button:has-text("接近戦へ移行する")');
-    await closeMeleeBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await closeMeleeBtn.click({ force: true });
-    await page.waitForTimeout(500);
+    await transitionToMelee(page);
 
     // 敵の反撃キューがあれば防御ロールを自動解決
     await handlePendingDefense(page);
 
     // 従者魔術師の呪文詠唱ボタンをクリックして気絶を唱える
-    const followerSpellBtn = page.locator('button:has-text("の呪文 [気絶]")').first();
-    await followerSpellBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await followerSpellBtn.click({ force: true });
+    await clickButtonByText(page, '気絶', 1000);
     await page.waitForTimeout(1000);
 
     // ログに気絶成功と眠りに落ちたログが記録されていることを確認
@@ -153,10 +130,7 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
 
   test('魔術師従者：炎球を習得して雇用し、戦闘で炎球（地形範囲攻撃）を唱えること', async ({ page }) => {
     // 1. シナリオ選択
-    const scenarioCard = page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first();
-    await scenarioCard.waitFor({ state: 'visible', timeout: 5000 });
-    await scenarioCard.click({ force: true });
-    await page.waitForTimeout(300);
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト魔術師炎球');
@@ -177,29 +151,18 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     // d66 = 11 (Goblin Fight). Mock d66 to 11, and mock all subsequent rolls to 2 (spaceRoll=2 (narrow), spellRoll=2 (hit))
     await setupMockRandom(page, 11, 2);
 
-    // ダンジョン探索：d66を振る
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    
-    // 察知せずに部屋に入る
-    const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
-    await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await skipPerceptionBtn.click({ force: true });
+    // ダンジョン探索：d66を振る（察知スキップ）
+    await rollD66AndSkipPerception(page);
     await page.waitForTimeout(500);
 
     // 接近戦へ移行する
-    const closeMeleeBtn = page.locator('button:has-text("接近戦へ移行する")');
-    await closeMeleeBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await closeMeleeBtn.click({ force: true });
-    await page.waitForTimeout(500);
+    await transitionToMelee(page);
 
     // 敵の反撃キューがあれば防御ロールを自動解決
     await handlePendingDefense(page);
 
     // 従者魔術師の呪文詠唱ボタンをクリックして炎球を唱える
-    const followerSpellBtn = page.locator('button:has-text("の呪文 [炎球]")').first();
-    await followerSpellBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await followerSpellBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await clickButtonByText(page, '炎球', 1000);
 
     // ログに炎球のキャストとダメージが記録されていることを確認
     const logbook = page.locator('.logbook-entries');
@@ -210,10 +173,7 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
 
   test('従者：罠の判定失敗時に従者を身代わりにしてダメージを回避すること', async ({ page }) => {
     // 1. シナリオ選択
-    const scenarioCard = page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first();
-    await scenarioCard.waitFor({ state: 'visible', timeout: 5000 });
-    await scenarioCard.click({ force: true });
-    await page.waitForTimeout(300);
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
 
     // 2. キャラクター作成（器用/Dexterity アーキタイプを選択）
     await page.fill('#char-name', 'テスト罠身代わり');
@@ -233,34 +193,23 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     // d66 = 12 (崩落する天井トラップ). 判定ロール結果を 1 (ファンブル) にモック
     await setupMockRandom(page, 12, 1);
 
-    // ダンジョン探索：d66を振る
-    await page.locator('button:has-text("d66を振って次の部屋を探索する")').click({ force: true });
-    
-    // 察知せずに部屋に入る
-    const skipPerceptionBtn = page.locator('button:has-text("察知せずに部屋に入る")');
-    await skipPerceptionBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await skipPerceptionBtn.click({ force: true });
+    // ダンジョン探索：d66を振る（察知スキップ）
+    await rollD66AndSkipPerception(page);
     await page.waitForTimeout(500);
 
     // 判定ロールに挑戦する
-    const trapCheckBtn = page.locator('button:has-text("判定ロールに挑戦する"), button:has-text("で挑戦")').first();
-    await trapCheckBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await trapCheckBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await clickButtonByText(page, '挑戦', 1000);
 
     // ダメージ対象選択パネルが表示されていることを確認
     const selectionPanel = page.locator('.trap-damage-target-select');
     await expect(selectionPanel).toBeVisible({ timeout: 5000 });
 
     // 従者のボタンをクリックして身代わりにする
-    const followerShieldBtn = selectionPanel.locator('button:has-text("身代わりになってもらう")').first();
-    await followerShieldBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await followerShieldBtn.click({ force: true });
-    await page.waitForTimeout(1000);
+    await clickButtonByText(page, '身代わりになってもらう', 1000);
 
     // ログに従者が身代わりとなって死亡したことが記録されていることを確認
-    const logbook = page.locator('.logbook-entries');
-    await expect(logbook).toContainText('身代わりとなって死亡しました', { timeout: 5000 });
+    const logbook2 = page.locator('.logbook-entries');
+    await expect(logbook2).toContainText('身代わりとなって死亡しました', { timeout: 5000 });
   });
 
 });
