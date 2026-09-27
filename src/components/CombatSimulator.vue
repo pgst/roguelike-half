@@ -8,7 +8,6 @@ const {
   followers,
   combatState,
   addLog,
-  logs,
   dungeonDepth,
   totalRoomsToClear,
   isSwitchingWeapons,
@@ -24,11 +23,6 @@ const showShireenClueAction = computed(() => {
   const clueSpent = (combatState as any).shireenClueSpent;
   const hasClue = character.value.items.some((i: any) => i.type === 'clue');
   return hasShireen && !clueSpent && hasClue;
-});
-
-const isLogExpanded = ref(false);
-const recentCombatLogs = computed(() => {
-  return logs.value.slice(-3).reverse();
 });
 
 const {
@@ -197,25 +191,6 @@ function closeRangedRound() {
       </div>
     </div>
 
-    <!-- Recent Combat Log (Enhanced 3-events Box) -->
-    <div v-if="logs.length > 0" class="recent-event-box enhanced-log-box">
-      <div class="log-box-header" @click="isLogExpanded = !isLogExpanded">
-        <span>⚔️ <b>戦況報告</b> <small>(直近 {{ Math.min(3, logs.length) }} 件)</small></span>
-        <button class="btn-toggle-log" type="button">{{ isLogExpanded ? '▲ 最小化' : '▼ 全体を見る' }}</button>
-      </div>
-      <div v-if="!isLogExpanded" class="recent-logs-list">
-        <div v-for="(l, idx) in recentCombatLogs" :key="l.id || idx" class="recent-log-row" :class="l.type">
-          <span class="log-mark">▸</span>
-          <span class="log-msg">{{ l.text }}</span>
-        </div>
-      </div>
-      <div v-else class="expanded-logs-list">
-        <div v-for="l in logs.slice(-10).reverse()" :key="l.id" class="recent-log-row" :class="l.type">
-          <span class="log-mark">▸</span>
-          <span class="log-msg">{{ l.text }}</span>
-        </div>
-      </div>
-    </div>
 
     <!-- Active Enemies Row -->
     <div class="enemies-section">
@@ -1095,72 +1070,6 @@ function closeRangedRound() {
   box-shadow: 2px 2px 0 #c62828 !important;
 }
 
-/* Enhanced Combat Log Box */
-.enhanced-log-box {
-  background: rgba(255, 255, 255, 0.7) !important;
-  border: 1.5px dashed var(--ink-light) !important;
-  border-radius: 6px !important;
-  padding: 8px 12px !important;
-  margin-bottom: 20px !important;
-  text-align: left !important;
-}
-
-.log-box-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  user-select: none;
-}
-
-.log-box-header small {
-  color: var(--ink-light);
-}
-
-.btn-toggle-log {
-  background: none;
-  border: 1px solid var(--ink-light);
-  border-radius: 3px;
-  font-size: 0.75rem;
-  color: var(--ink-dark);
-  padding: 2px 6px;
-  cursor: pointer;
-}
-
-.recent-logs-list, .expanded-logs-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 6px;
-}
-
-.recent-log-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  font-size: 0.85rem;
-  line-height: 1.4;
-  padding: 2px 4px;
-  border-radius: 3px;
-}
-
-.recent-log-row.damage {
-  background: rgba(198, 40, 40, 0.06);
-  color: #c62828;
-}
-
-.recent-log-row.success {
-  background: rgba(46, 125, 50, 0.06);
-  color: #2e7d32;
-}
-
-.log-mark {
-  color: var(--ink-light);
-  font-size: 0.75rem;
-  margin-top: 2px;
-}
 
 /* Enemy HP Bar Container */
 .enemy-hp-container {

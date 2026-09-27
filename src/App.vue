@@ -377,6 +377,9 @@ function startAdventure() {
 <template>
   <MiniStatusHud v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" />
   <div class="tabletop-container">
+    <!-- ドラクエ風メッセージ承認ウィンドウ（画面上部） -->
+    <MessageWindow v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" />
+
     <div class="desktop-layout">
       
       <!-- LEFT COLUMN: Main Opened Gamebook -->
@@ -716,9 +719,6 @@ function startAdventure() {
       </div>
 
     </div>
-
-    <!-- ドラクエ風メッセージ承認ウィンドウ -->
-    <MessageWindow v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" />
 
     <!-- 運命のダイス（自動フェード オーバーレイモーダル） -->
     <DiceRoller />

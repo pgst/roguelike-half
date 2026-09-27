@@ -137,7 +137,7 @@ function handleWindowClick(e: MouseEvent) {
 
 <style scoped>
 .dq-message-window {
-  margin: 8px auto;
+  margin: 0 auto 10px auto;
   max-width: 960px;
   width: 100%;
   background: #0d0f14;
