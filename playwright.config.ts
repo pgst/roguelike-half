@@ -81,18 +81,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { 
-        /**
-         * 【TypeScript】 スプレッド構文（`...`）を使用して、`devices['Desktop Chrome']` オブジェクトを展開し、プロパティをマージしています。
-         * 【Playwright】 Google Chrome や Chromium ブラウザのデフォルト設定（画面サイズ、ユーザーエージェント等）を適用します。
-         */
-        ...devices['Desktop Chrome'],
-        /**
-         * テストを実行するブラウザのチャンネルを指定します。
-         * 【Playwright】 ここではオープンソース版の `chromium` を使用するように指定しています。
-         */
-        channel: 'chromium'
-      },
+      use: { ...devices['Desktop Chrome'] },
     },
 
     {
