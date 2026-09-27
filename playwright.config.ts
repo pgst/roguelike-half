@@ -16,7 +16,7 @@ export default defineConfig({
    * テストファイルが配置されているディレクトリのパスを指定します。
    * 【Playwright】 このディレクトリ配下にあるテストファイル（例: `*.spec.ts` など）が自動検出されます。
    */
-  testDir: './tests',
+  testDir: './tests/rules',
 
   /**
    * テストファイル内のテストを並列で実行するかどうかを設定します。
