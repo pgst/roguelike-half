@@ -186,15 +186,17 @@ function handleWindowClick(e: MouseEvent) {
 }
 
 .window-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 48px;
+  min-height: 54px;
 }
 
 .msg-content {
-  flex: 1;
+  width: 100%;
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -202,6 +204,7 @@ function handleWindowClick(e: MouseEvent) {
   line-height: 1.6;
   letter-spacing: 0.04em;
   word-break: break-word;
+  padding-bottom: 28px; /* 右下の固定ボタンと文字が重ならない防御パディング */
 }
 
 .msg-bullet {
@@ -240,12 +243,16 @@ function handleWindowClick(e: MouseEvent) {
   50% { opacity: 0; transform: translateY(2px); }
 }
 
-/* 操作系ボタン */
+/* 操作系ボタン（右下固定ツールバー） */
 .msg-controls {
+  position: absolute;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  z-index: 5;
 }
 
 .unread-badge {
@@ -306,13 +313,13 @@ function handleWindowClick(e: MouseEvent) {
 }
 
 @media (max-width: 600px) {
-  .window-inner {
-    flex-direction: column;
-    align-items: flex-start;
+  .btn-msg-ctrl {
+    font-size: 0.7rem;
+    padding: 2px 6px;
   }
-  .msg-controls {
-    align-self: flex-end;
-    margin-top: 4px;
+  .unread-badge {
+    font-size: 0.7rem;
+    padding: 1px 5px;
   }
 }
 </style>
