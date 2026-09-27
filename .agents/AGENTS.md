@@ -11,3 +11,6 @@ This file defines project-specific rules and constraints for the AI agent (Antig
 ## UI Changes & E2E Test Maintenance Rule
 - **Maintain E2E Test Alignment on UI Changes**: Whenever UI layouts, locators, or user interaction flows are changed (such as transitioning from single-click to master-detail selection, adding modals, or modifying navigation steps), the corresponding Playwright test scripts (`tests/*.spec.ts` and `tests/helpers/test-utils.ts`) MUST be reviewed and updated to reflect the new interaction flow. This prevents CI hangs and timeouts.
 
+## Automated Commit & Push Rule
+- **Auto Commit & Push on Test Success**: Whenever requested code modifications are completed and verified to pass all automated test suites (`npm run build` and `npx playwright test tests/rules/`), the AI agent is authorized and expected to automatically commit the changes with a concise Japanese commit message and push them to `origin/main`.
+
