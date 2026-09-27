@@ -67,53 +67,53 @@ src/
 ```mermaid
 graph TD
     %% Views / App
-    App[App.vue] --> MSH[MiniStatusHud.vue]
-    App --> DR[DiceRoller.vue]
-    App --> SS[ScenarioSelector.vue]
-    App --> CC[CharacterCreator.vue]
-    App --> DE[DungeonExplorer.vue]
-    App --> CS[CombatSimulator.vue]
+    App["App.vue"] --> MSH["MiniStatusHud.vue"]
+    App --> DR["DiceRoller.vue"]
+    App --> SS["ScenarioSelector.vue"]
+    App --> CC["CharacterCreator.vue"]
+    App --> DE["DungeonExplorer.vue"]
+    App --> CS["CombatSimulator.vue"]
     
     %% MiniStatusHud Modals
-    MSH --> AS[AdventureSheet.vue (Modal)]
-    MSH --> SM[SettingsModal.vue]
+    MSH --> AS["AdventureSheet.vue (Modal)"]
+    MSH --> SM["SettingsModal.vue"]
     
     %% ScenarioSelector Modals
-    SS --> CSM[CloudSyncModal.vue]
-    SS --> HFM[HallOfFameModal.vue]
-    SS --> SE[ScenarioEditor.vue]
+    SS --> CSM["CloudSyncModal.vue"]
+    SS --> HFM["HallOfFameModal.vue"]
+    SS --> SE["ScenarioEditor.vue"]
     SS --> SM
 
     %% Composables Layer
-    App --> UGS[useGameState.ts]
-    DE --> UD[useDungeon.ts]
-    CS --> UC[useCombat.ts]
+    App --> UGS["useGameState.ts"]
+    DE --> UD["useDungeon.ts"]
+    CS --> UC["useCombat.ts"]
     DR --> UGS
-    DR --> USET[useSettings.ts]
+    DR --> USET["useSettings.ts"]
     SM --> USET
     
     UD --> UGS
     UC --> UGS
     
-    CSM --> UA[useAuth.ts]
-    CSM --> UCS[useCloudSync.ts]
-    HFM --> UHF[useHallOfFame.ts]
-    SE --> UCSC[useCustomScenarios.ts]
+    CSM --> UA["useAuth.ts"]
+    CSM --> UCS["useCloudSync.ts"]
+    HFM --> UHF["useHallOfFame.ts"]
+    SE --> UCSC["useCustomScenarios.ts"]
     
     UCS --> UA
     UCSC --> UA
     UHF --> UA
 
     %% Domain Layer
-    UGS --> DOM[domain/index.ts (GameSession / PlayerCharacter)]
+    UGS --> DOM["domain/index.ts (GameSession / PlayerCharacter)"]
     UD --> DOM
     UC --> DOM
     UCS --> DOM
 
     %% Scenario Plugins
-    UD --> SP[scenarioPlugins/index.ts]
+    UD --> SP["scenarioPlugins/index.ts"]
     UC --> SP
-    SP --> PP[pyramidPlugin.ts]
+    SP --> PP["pyramidPlugin.ts"]
     PP --> UGS
 ```
 
