@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue';
+import { computed, ref } from 'vue';
 import { generateId } from './domain/random';
 import { useGameState } from './composables/useGameState';
 import { DEFAULT_ITEMS, DEFAULT_WEAPONS, DEFAULT_SHIELDS, DEFAULT_ARMORS } from './composables/useGameState';
@@ -11,6 +11,7 @@ import DiceRoller from './components/DiceRoller.vue';
 import DungeonExplorer from './components/DungeonExplorer.vue';
 import CombatSimulator from './components/CombatSimulator.vue';
 import MiniStatusHud from './components/MiniStatusHud.vue';
+import MessageWindow from './components/MessageWindow.vue';
 
 const {
   currentScreen,
@@ -18,7 +19,6 @@ const {
   followers,
   dungeonDepth,
   totalRoomsToClear,
-  logs,
   spendExpForStat,
   refundExpForStat,
   checkpointSkillMax,
@@ -372,35 +372,11 @@ function startAdventure() {
   runScenarioHook(activeScenario.value?.id, 'onAdventureStart', context);
 }
 
-const logbookRef = ref<HTMLElement | null>(null);
-watch(() => logs.value.length, async () => {
-  await nextTick();
-  if (logbookRef.value) {
-    logbookRef.value.scrollTop = logbookRef.value.scrollHeight;
-  }
-});
 </script>
 
 <template>
   <MiniStatusHud v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" />
   <div class="tabletop-container">
-    <!-- TOP ROW: Calligraphic Logbook -->
-    <div v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" class="narrative-logbook-container" style="margin-bottom: 5px;">
-      <div class="logbook-header">📜 冒険の足跡</div>
-      <div class="logbook-entries" ref="logbookRef">
-        <div 
-          v-for="log in logs" 
-          :key="log.id" 
-          class="log-entry" 
-          :class="log.type"
-        >
-          <span class="log-bullet">■</span>
-          <span class="log-text">{{ log.text }}</span>
-        </div>
-        <div v-if="logs.length === 0" class="empty-logs">迷宮の扉が開かれました。あなたの歩みがここに記されます...</div>
-      </div>
-    </div>
-
     <div class="desktop-layout">
       
       <!-- LEFT COLUMN: Main Opened Gamebook -->
@@ -740,6 +716,9 @@ watch(() => logs.value.length, async () => {
       </div>
 
     </div>
+
+    <!-- ドラクエ風メッセージ承認ウィンドウ -->
+    <MessageWindow v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" />
 
     <!-- 運命のダイス（自動フェード オーバーレイモーダル） -->
     <DiceRoller />

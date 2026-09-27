@@ -4,13 +4,15 @@ import { useGameState } from '../composables/useGameState';
 import AdventureSheet from './AdventureSheet.vue';
 import SettingsModal from './SettingsModal.vue';
 import HelpModal from './HelpModal.vue';
+import LogbookModal from './LogbookModal.vue';
 
 const {
   character,
   followers,
   dungeonDepth,
   totalRoomsToClear,
-  currentScreen
+  currentScreen,
+  showLogbookModal
 } = useGameState();
 
 const showDetailModal = ref(false);
@@ -94,10 +96,13 @@ const subStatIcon = computed(() => {
         </div>
       </div>
 
-      <!-- Right: Detailed Sheet Toggle Button, Settings & Help -->
+      <!-- Right: Detailed Sheet Toggle Button, Logbook, Settings & Help -->
       <div class="hud-right">
         <button @click="showDetailModal = true" class="btn-hud-detail" title="冒険者シートの詳細を表示">
           📜 <span class="btn-text">ステータス詳細</span>
+        </button>
+        <button @click="showLogbookModal = true" class="btn-hud-logbook" title="冒険の足跡（全記録）を表示">
+          📖 <span class="btn-text">冒険の足跡</span>
         </button>
         <button @click="showSettingsModal = true" class="btn-hud-settings" title="環境設定">
           ⚙️ <span class="btn-text">設定</span>
@@ -122,6 +127,9 @@ const subStatIcon = computed(() => {
         </div>
       </div>
     </Teleport>
+
+    <!-- 冒険の足跡モーダル（E2Eテスト互換性のためv-showで常時DOM保持） -->
+    <LogbookModal v-show="showLogbookModal" @close="showLogbookModal = false" />
 
     <!-- 環境設定モーダル -->
     <SettingsModal v-if="showSettingsModal" @close="showSettingsModal = false" />
@@ -260,7 +268,7 @@ const subStatIcon = computed(() => {
   gap: 8px;
 }
 
-.btn-hud-detail, .btn-hud-settings, .btn-hud-help {
+.btn-hud-detail, .btn-hud-logbook, .btn-hud-settings, .btn-hud-help {
   background: var(--paper-bg);
   border: 1.5px solid var(--ink-dark);
   color: var(--ink-dark);
@@ -277,13 +285,13 @@ const subStatIcon = computed(() => {
   gap: 4px;
 }
 
-.btn-hud-detail:hover, .btn-hud-settings:hover, .btn-hud-help:hover {
+.btn-hud-detail:hover, .btn-hud-logbook:hover, .btn-hud-settings:hover, .btn-hud-help:hover {
   transform: translate(-1px, -1px);
   box-shadow: 3px 3px 0 var(--ink-dark);
   background: #fff;
 }
 
-.btn-hud-detail:active, .btn-hud-settings:active, .btn-hud-help:active {
+.btn-hud-detail:active, .btn-hud-logbook:active, .btn-hud-settings:active, .btn-hud-help:active {
   transform: translate(1px, 1px);
   box-shadow: 1px 1px 0 var(--ink-dark);
 }

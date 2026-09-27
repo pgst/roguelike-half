@@ -168,3 +168,12 @@ export interface Scenario {
   hasSkeletonEvent?: boolean;
 }
 
+export type LogType = 'info' | 'roll' | 'combat' | 'error' | 'success' | 'damage';
+
+export interface LogEntry {
+  id: string;
+  text: string;
+  type: LogType;
+  timestamp?: number;
+}
+

@@ -170,6 +170,9 @@ export async function rollD66AndSkipPerception(page: any): Promise<void> {
  * 全てのアニメーションとトランジションを無効化します。
  */
 export async function disableAnimations(page: any) {
+  await page.evaluate(() => {
+    (window as any).__FAST_FORWARD_LOGS__ = true;
+  });
   await page.addStyleTag({
     content: `
       *, *::before, *::after {

@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue';
-import type { Character, Follower, Enemy, Weapon, Armor, Shield, GeneralItem, DungeonEvent, Scenario, StatusEffectRule } from '../types';
+import type { Character, Follower, Enemy, Weapon, Armor, Shield, GeneralItem, DungeonEvent, Scenario, StatusEffectRule, LogEntry, LogType } from '../types';
 import { GameSession, PlayerCharacter } from '../domain';
 import { generateId, setGlobalSeed, randomInt } from '../domain/random';
 import { useCloudSync } from './useCloudSync';
@@ -428,17 +428,87 @@ function restorePyramidBossSnapshot(rewindAmount: number) {
 }
 
 
-// Logs Manager
-function addLog(text: string, type: 'info' | 'roll' | 'combat' | 'error' | 'success' | 'damage' = 'info') {
-  logs.value.push({
+// Logs & Message Queue Manager
+const pendingMessages = ref<LogEntry[]>([]);
+const currentMessage = ref<LogEntry | null>(null);
+const isAutoAdvance = ref(false);
+const autoAdvanceSpeed = ref(900);
+const showLogbookModal = ref(false);
+let autoTimer: any = null;
+
+const isMessageWaiting = computed(() => currentMessage.value !== null || pendingMessages.value.length > 0);
+
+function advanceMessage() {
+  if (pendingMessages.value.length > 0) {
+    currentMessage.value = pendingMessages.value.shift() || null;
+  } else {
+    currentMessage.value = null;
+  }
+}
+
+function skipAllMessages() {
+  pendingMessages.value = [];
+  currentMessage.value = null;
+  if (autoTimer) {
+    clearTimeout(autoTimer);
+    autoTimer = null;
+  }
+}
+
+function toggleAutoAdvance() {
+  isAutoAdvance.value = !isAutoAdvance.value;
+  if (isAutoAdvance.value && currentMessage.value) {
+    scheduleAutoAdvance();
+  }
+}
+
+function scheduleAutoAdvance() {
+  if (autoTimer) clearTimeout(autoTimer);
+  if (!isAutoAdvance.value || !currentMessage.value) return;
+  autoTimer = setTimeout(() => {
+    advanceMessage();
+  }, autoAdvanceSpeed.value);
+}
+
+watch(currentMessage, (newMsg) => {
+  if (newMsg && isAutoAdvance.value) {
+    scheduleAutoAdvance();
+  } else if (!newMsg && autoTimer) {
+    clearTimeout(autoTimer);
+    autoTimer = null;
+  }
+});
+
+function isFastForwardMode(): boolean {
+  return (globalThis as any).__FAST_FORWARD_LOGS__ === true ||
+    (typeof (globalThis as any).process !== 'undefined' && (globalThis as any).process.env?.NODE_ENV === 'test');
+}
+
+function addLog(text: string, type: LogType = 'info') {
+  const entry: LogEntry = {
     id: generateId(),
     text,
     type,
-  });
+    timestamp: Date.now()
+  };
+  logs.value.push(entry);
+
+  if (isFastForwardMode()) {
+    currentMessage.value = null;
+    pendingMessages.value = [];
+    return;
+  }
+
+  if (currentMessage.value === null) {
+    currentMessage.value = entry;
+  } else {
+    pendingMessages.value.push(entry);
+  }
 }
 
 function clearLogs() {
   logs.value = createDefaultLogs();
+  skipAllMessages();
 }
 
 // 1d6 Rolling with visual delays
@@ -1331,6 +1401,7 @@ function transitionTo(screen: 'scenario_select' | 'creator' | 'explore' | 'comba
 }
 
 function triggerGameOver() {
+  skipAllMessages();
   transitionTo('gameover');
 }
 
@@ -1347,6 +1418,7 @@ function transitionToCombat() {
 }
 
 function transitionToSuccess() {
+  skipAllMessages();
   transitionTo('success');
   try {
     if (activeScenario.value) {
@@ -1437,9 +1509,17 @@ export function useGameState() {
     getStatusEffectRule,
     playerActiveStatusEffectRules,
 
-    // Utility functions
+    // Utility functions & Message Queue
     addLog,
     clearLogs,
+    pendingMessages,
+    currentMessage,
+    isMessageWaiting,
+    isAutoAdvance,
+    advanceMessage,
+    skipAllMessages,
+    toggleAutoAdvance,
+    showLogbookModal,
     rollD6,
     rollD3,
     rollD66,
