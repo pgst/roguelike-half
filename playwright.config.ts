@@ -111,16 +111,21 @@ export default defineConfig({
    */
   webServer: {
     /**
-     * 開発用サーバーを起動するためのコマンドを指定します。
-     * 【Playwright】 `npm run dev` を実行して、ローカルの開発サーバーを起動します。
+     * 開発用・テスト用サーバーを起動するためのコマンドを指定します。
+     * 【Playwright】 CI環境ではビルド済み静的アセットを `vite preview` で高速配信し、ローカルでは `npm run dev` を使用します。
      */
-    command: 'npm run dev',
+    command: process.env.CI ? 'npm run build && npm run preview -- --port 5173 --host 127.0.0.1' : 'npm run dev',
 
     /**
      * サーバーの起動完了を検知するために Playwright が監視するURLです。
      * 【Playwright】 このURLへの接続が成功した段階で、開発サーバーが起動したと判断してテストを開始します。
      */
     url: 'http://127.0.0.1:5173',
+
+    /**
+     * サーバー起動待機のタイムアウト（ミリ秒）。CIでのビルド完了時間を考慮して120秒に設定。
+     */
+    timeout: 120000,
 
     /**
      * すでにサーバーが起動している場合に、そのサーバーを再利用するかどうかを指定します。

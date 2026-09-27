@@ -36,25 +36,22 @@ export async function clickButtonByText(page: any, text: string, postWaitMs = 50
 /**
  * マスター・ディテールUIに対応したシナリオ選択ヘルパー。
  * 左リストでシナリオカードを選択し、右詳細パネルの「このシナリオに挑む」をクリックして画面遷移させます。
+ * サイレント失敗を防ぎ、キャラクター作成画面への遷移を確実に待機します。
  */
 export async function selectScenarioInUI(page: any, scenarioTitle: string): Promise<boolean> {
-  try {
-    const scenarioCard = page.locator('.scenario-card').filter({ hasText: scenarioTitle }).first();
-    if (await scenarioCard.isVisible({ timeout: 5000 })) {
-      await scenarioCard.click({ force: true });
-      await page.waitForTimeout(300);
+  const scenarioCard = page.locator('.scenario-card').filter({ hasText: scenarioTitle }).first();
+  await scenarioCard.waitFor({ state: 'visible', timeout: 10000 });
+  await scenarioCard.click({ force: true });
+  await page.waitForTimeout(300);
 
-      const startBtn = page.locator('.scenario-detail-panel button:has-text("このシナリオに挑む")');
-      if (await startBtn.isVisible({ timeout: 5000 })) {
-        await startBtn.click({ force: true });
-        await page.waitForTimeout(500);
-        return true;
-      }
-    }
-  } catch (e: any) {
-    console.log(`[selectScenarioInUI Error] Failed to select scenario "${scenarioTitle}": ${e.message}`);
-  }
-  return false;
+  const startBtn = page.locator('.scenario-detail-panel button:has-text("このシナリオに挑む")');
+  await startBtn.waitFor({ state: 'visible', timeout: 5000 });
+  await startBtn.click({ force: true });
+
+  // キャラクター作成画面の表示を確実に待機
+  await page.waitForSelector('#char-name, .character-creator', { state: 'visible', timeout: 10000 });
+  await page.waitForTimeout(300);
+  return true;
 }
 
 /**
