@@ -434,6 +434,7 @@ const currentMessage = ref<LogEntry | null>(null);
 const isAutoAdvance = ref(false);
 const autoAdvanceSpeed = ref(900);
 const showLogbookModal = ref(false);
+const showDetailModal = ref(false);
 let autoTimer: any = null;
 
 const isMessageWaiting = computed(() => currentMessage.value !== null || pendingMessages.value.length > 0);
@@ -1520,6 +1521,7 @@ export function useGameState() {
     skipAllMessages,
     toggleAutoAdvance,
     showLogbookModal,
+    showDetailModal,
     rollD6,
     rollD3,
     rollD66,

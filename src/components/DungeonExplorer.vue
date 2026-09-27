@@ -36,7 +36,8 @@ const {
   triggerGameOver,
   savePyramidBossSnapshot,
   restorePyramidBossSnapshot,
-  isMessageWaiting
+  isMessageWaiting,
+  showDetailModal
 } = useGameState();
 
 const { 
@@ -883,8 +884,11 @@ function resolveSkeletonEvent() {
           {{ (activeEvent as any).resolutionText }}
         </p>
         <div v-if="isBackpackOverLimit" class="overlimit-warning-banner" style="background: rgba(140, 28, 28, 0.1); border: 1px solid #8c1c1c; padding: 12px; border-radius: 4px; color: #8c1c1c; font-size: 0.9rem; margin-top: 10px; margin-bottom: 10px; text-align: left;">
-          ⚠️ <b>背負い袋の容量制限を超過しています！</b><br/>
-          右側の「キャラクター記録紙」から、不要な武器・道具を「捨てる」か、装備を変更して空きスロットを作ってください。（整理が完了するまで次の部屋に進めません）
+          <div style="font-weight: bold; margin-bottom: 4px;">⚠️ 背負い袋の容量制限を超過しています！</div>
+          <div style="margin-bottom: 8px;">画面上部の［📜 ステータス詳細］、または下の［📜 荷物を整理する］ボタンから、不要な武器・道具を「捨てる」か、装備を変更して空きを作ってください。（整理が完了するまで次の部屋に進めません）</div>
+          <button @click="showDetailModal = true" class="btn-ink btn-mini" style="background: #8c1c1c; color: #fff; border-color: #5c1212;">
+            📜 荷物を整理する
+          </button>
         </div>
         <button @click="confirmEventResolution" class="btn-ink btn-large btn-primary-ink" :disabled="isBackpackOverLimit" style="margin-top: 15px; width: 100%;">
           🚪 次の小部屋へ進む
@@ -1242,8 +1246,11 @@ function resolveSkeletonEvent() {
         <!-- Fallback explore room clear -->
         <div v-else>
           <div v-if="isBackpackOverLimit" class="overlimit-warning-banner" style="background: rgba(140, 28, 28, 0.1); border: 1px solid #8c1c1c; padding: 12px; border-radius: 4px; color: #8c1c1c; font-size: 0.9rem; margin-bottom: 10px; text-align: left;">
-            ⚠️ <b>背負い袋の容量制限を超過しています！</b><br/>
-            右側の「キャラクター記録紙」から、不要な武器・道具を「捨てる」か、装備を変更して空きスロットを作ってください。（整理が完了するまで次の部屋に進めません）
+            <div style="font-weight: bold; margin-bottom: 4px;">⚠️ 背負い袋の容量制限を超過しています！</div>
+            <div style="margin-bottom: 8px;">画面上部の［📜 ステータス詳細］、または下の［📜 荷物を整理する］ボタンから、不要な武器・道具を「捨てる」か、装備を変更して空きを作ってください。（整理が完了するまで次の部屋に進めません）</div>
+            <button @click="showDetailModal = true" class="btn-ink btn-mini" style="background: #8c1c1c; color: #fff; border-color: #5c1212;">
+              📜 荷物を整理する
+            </button>
           </div>
           <button @click="confirmEventResolution" class="btn-ink" :disabled="isBackpackOverLimit">次の小部屋へ進む</button>
         </div>
@@ -1383,6 +1390,9 @@ function resolveSkeletonEvent() {
 
           <!-- 2. イベント解決済み時（次の部屋へ進む） -->
           <div v-else-if="activeEvent && ((activeEvent as any).isResolved || (activeEvent as any).choices?.length === 0)" class="cmd-single-action">
+            <button v-if="isBackpackOverLimit" @click="showDetailModal = true" class="btn-ink btn-mini" style="width: 100%; margin-bottom: 6px; background: rgba(140, 28, 28, 0.15); color: #8c1c1c; border-color: #8c1c1c;">
+              📜 荷物を整理する (超過中)
+            </button>
             <button @click="confirmEventResolution" class="btn-ink btn-large btn-primary-ink" style="width: 100%;" :disabled="isBackpackOverLimit">
               🚪 次の小部屋へ進む
             </button>
@@ -1393,8 +1403,8 @@ function resolveSkeletonEvent() {
             <span style="font-size: 0.85rem; color: var(--ink-dark); text-align: center; display: block; font-weight: bold; margin-bottom: 6px;">
               📜 部屋のできごとに対応してください
             </span>
-            <button v-if="isBackpackOverLimit" @click="confirmEventResolution" class="btn-ink btn-mini" :disabled="true" style="width: 100%;">
-              ⚠️ 荷物整理が必要です
+            <button v-if="isBackpackOverLimit" @click="showDetailModal = true" class="btn-ink btn-mini" style="width: 100%; background: rgba(140, 28, 28, 0.15); color: #8c1c1c; border-color: #8c1c1c;">
+              📜 荷物を整理する (超過中)
             </button>
           </div>
 

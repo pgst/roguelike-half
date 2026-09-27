@@ -12,10 +12,10 @@ const {
   dungeonDepth,
   totalRoomsToClear,
   currentScreen,
-  showLogbookModal
+  showLogbookModal,
+  showDetailModal
 } = useGameState();
 
-const showDetailModal = ref(false);
 const showSettingsModal = ref(false);
 const showHelpModal = ref(false);
 
