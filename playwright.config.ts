@@ -11,7 +11,7 @@ import { defineConfig, devices } from '@playwright/test';
  *   型チェック（TypeScriptの型定義 `PlaywrightTestConfig`）が有効になります。
  */
 export default defineConfig({
-  timeout: 60000,
+  timeout: 15000,
   /**
    * テストファイルが配置されているディレクトリのパスを指定します。
    * 【Playwright】 このディレクトリ配下にあるテストファイル（例: `*.spec.ts` など）が自動検出されます。
@@ -49,10 +49,11 @@ export default defineConfig({
 
   /**
    * テスト結果の出力レポート形式を指定します。
-   * 【Playwright】 `'html'` を指定すると、テスト完了後に詳細な結果を確認できるHTML形式のレポートが生成されます。
+   * 【Playwright】 CI環境ではGitHub Actionsのアノテーション用レポーター（github）も合わせて有効化します。
    */
   reporter: [
     ['list'],
+    ...(process.env.CI ? [['github'] as const] : []),
     ['html', { host: '0.0.0.0', port: 9323, open: 'never' }]
   ],
 
