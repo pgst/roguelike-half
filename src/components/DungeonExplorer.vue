@@ -6,6 +6,7 @@ import { useDungeon } from '../composables/useDungeon';
 import { useCombat } from '../composables/useCombat';
 import { DEFAULT_ITEMS, DEFAULT_WEAPONS, DEFAULT_SHIELDS, DEFAULT_ARMORS } from '../composables/useGameState';
 import type { Weapon, Armor, Shield, GeneralItem } from '../types';
+import MessageWindow from './MessageWindow.vue';
 import { runScenarioHook, type ScenarioPluginContext } from '../composables/scenarioPlugins';
 
 const {
@@ -16,7 +17,6 @@ const {
   totalRoomsToClear,
   addLog,
   currentScreen,
-  logs,
   combatState,
   clearDiceTray,
   diceTray,
@@ -35,7 +35,8 @@ const {
   transitionToExplore,
   triggerGameOver,
   savePyramidBossSnapshot,
-  restorePyramidBossSnapshot
+  restorePyramidBossSnapshot,
+  isMessageWaiting
 } = useGameState();
 
 const { 
@@ -868,11 +869,6 @@ function resolveSkeletonEvent() {
       </div>
     </div>
 
-    <!-- Recent Event Log -->
-    <div v-if="logs.length > 0" class="recent-event-box" style="margin: 0 0 20px 0; padding: 10px; border: 1px dashed var(--ink-light); background: rgba(255,255,255,0.5); border-radius: 4px; font-family: 'Noto Serif JP', serif; font-size: 0.9rem;">
-      📖 <b>直近の出来事:</b> <span :class="logs[logs.length - 1]?.type">{{ logs[logs.length - 1]?.text }}</span>
-    </div>
-
     <!-- Active Event Panel -->
     <div v-if="activeEvent" class="event-panel">
       <!-- Resolved screen for player acknowledgment -->
@@ -1257,36 +1253,14 @@ function resolveSkeletonEvent() {
 
     <!-- Perception Choice Panel -->
     <div v-else-if="combatState.pendingPerception" class="exploration-deck paper-sheet" style="border: 2px dashed var(--ink-dark); padding: 20px; background: rgba(92, 75, 61, 0.05); border-radius: 6px; text-align: center; margin-top: 15px;">
-      <div class="adventure-text" style="margin-bottom: 15px;">
+      <div class="adventure-text">
         <h3 style="font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0 0 10px 0;">🧭 危険を察知しました！</h3>
         <p style="font-size: 0.95rem; margin: 0;">
           発見した小部屋: <b>{{ combatState.pendingPerception.event.title }}</b> (d66出目: {{ combatState.pendingPerception.rollValue }})
         </p>
         <p style="font-size: 0.85rem; color: var(--ink-light); margin-top: 5px; font-style: italic;">
-          ※「察知」を試みて成功（目標値4）すれば、この部屋を避けてd66を振り直すことができます。
+          ※ 下部のコマンドウィンドウから対応を選択してください。
         </p>
-      </div>
-
-      <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-        <button 
-          v-if="combatState.pendingPerception.hasScout"
-          @click="executePerceptionScout" 
-          class="btn-ink btn-large btn-spell"
-          style="justify-content: center;"
-        >
-          🧭 従者の斥候に【察知】を依頼する (器用点消費なし)
-        </button>
-        <button 
-          v-if="combatState.pendingPerception.hasHero && character.subStatCurrent >= 1"
-          @click="executePerceptionHero" 
-          class="btn-ink btn-large btn-strength"
-          style="justify-content: center;"
-        >
-          🧭 主人公が【察知】を行う (器用点1消費, 残り: {{ character.subStatCurrent }})
-        </button>
-        <button @click="confirmPerceptionSkip" class="btn-ink btn-large btn-primary-ink" style="background: var(--ink-dark); color: white; justify-content: center;">
-          🚪 察知せずに部屋に入る
-        </button>
       </div>
     </div>
 
@@ -1363,18 +1337,108 @@ function resolveSkeletonEvent() {
         </div>
       </template>
 
-      <!-- 通常の探索開始ダイスボタン -->
+      <!-- 通常の探索通路の情景 -->
       <template v-else>
-        <div class="adventure-text">
-          <p>d66ダイスを振ってその「できごと」を確認してください。</p>
+        <div class="adventure-text corridor-view" style="text-align: center; padding: 20px 10px;">
+          <p style="font-size: 1.05rem; font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0 0 10px 0;">
+            🏰 暗い石造りの迷宮通路が奥へと続いています。
+          </p>
+          <p style="font-size: 0.85rem; color: var(--ink-light); margin: 0; font-style: italic;">
+            下部のコマンドウィンドウから「d66を振って次の部屋を探索する」を選択してください。
+          </p>
         </div>
-
-        <button @click="exploreNextRoom" class="btn-ink btn-large btn-explore">
-          🎲 d66を振って次の部屋を探索する
-        </button>
       </template>
     </div>
-  </div>
+  
+    <!-- DRAGON QUEST III CONSOLE DOCK (Left: Command Window, Right: Message Window) -->
+    <div class="dq3-console-dock">
+      <!-- LEFT: Command Window -->
+      <div class="dq3-command-window paper-sheet" :class="{ 'waiting-overlay': isMessageWaiting }">
+        <div class="cmd-window-header">
+          <span>🧭 コマンド</span>
+          <span class="depth-badge-mini">B{{ dungeonDepth }}F</span>
+        </div>
+
+        <div class="cmd-window-body">
+          <!-- 1. 危険察知時 -->
+          <div v-if="combatState.pendingPerception" class="cmd-single-action" style="display: flex; flex-direction: column; gap: 6px;">
+            <button 
+              v-if="combatState.pendingPerception.hasScout"
+              @click="executePerceptionScout" 
+              class="btn-ink cmd-btn btn-spell"
+            >
+              🧭 従者の斥候に【察知】を依頼
+            </button>
+            <button 
+              v-if="combatState.pendingPerception.hasHero && character.subStatCurrent >= 1"
+              @click="executePerceptionHero" 
+              class="btn-ink cmd-btn btn-strength"
+            >
+              🧭 主人公が【察知】を行う
+            </button>
+            <button @click="confirmPerceptionSkip" class="btn-ink cmd-btn btn-primary-ink" style="background: var(--ink-dark); color: white;">
+              🚪 察知せずに部屋に入る
+            </button>
+          </div>
+
+          <!-- 2. イベント解決済み時（次の部屋へ進む） -->
+          <div v-else-if="activeEvent && ((activeEvent as any).isResolved || (activeEvent as any).choices?.length === 0)" class="cmd-single-action">
+            <button @click="confirmEventResolution" class="btn-ink btn-large btn-primary-ink" style="width: 100%;" :disabled="isBackpackOverLimit">
+              🚪 次の小部屋へ進む
+            </button>
+          </div>
+
+          <!-- 3. イベント進行中時 -->
+          <div v-else-if="activeEvent" class="cmd-single-action">
+            <span style="font-size: 0.85rem; color: var(--ink-dark); text-align: center; display: block; font-weight: bold; margin-bottom: 6px;">
+              📜 部屋のできごとに対応してください
+            </span>
+            <button v-if="isBackpackOverLimit" @click="confirmEventResolution" class="btn-ink btn-mini" :disabled="true" style="width: 100%;">
+              ⚠️ 荷物整理が必要です
+            </button>
+          </div>
+
+          <!-- 4. 通常の探索通路（部屋探索ダイス） -->
+          <div v-else class="cmd-single-action">
+            <!-- 初期出自選択時 -->
+            <template v-if="activeScenario?.customSetup && !(character as any).customSetupChosen">
+              <span style="font-size: 0.85rem; color: var(--ink-dark); display: block; text-align: center; font-weight: bold; margin-bottom: 4px;">
+                📜 出自を選択してください
+              </span>
+            </template>
+            <!-- 準備フェーズ時 -->
+            <template v-else-if="activeScenario?.hasPrepPhase && (character as any).prepRunCompleted !== pyramidRunCount">
+              <button @click="startScenarioPrep" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
+                📜 状況確認・支給品受領
+              </button>
+            </template>
+            <!-- 加工ショップ時 -->
+            <template v-else-if="activeScenario?.sliderShop && !(character as any).sliderShopDone">
+              <button @click="finishSliderShop" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
+                🚪 探索を開始する
+              </button>
+            </template>
+            <!-- 通常探索時 -->
+            <template v-else>
+              <button @click="exploreNextRoom" class="btn-ink btn-large btn-primary-ink btn-explore" style="width: 100%;">
+                🎲 d66を振って次の部屋を探索する
+              </button>
+            </template>
+          </div>
+
+          <!-- メッセージ待ちウェイト表示マスク -->
+          <div v-if="isMessageWaiting" class="cmd-wait-mask" title="メッセージ確認中">
+            <span>▼ メッセージを読み進めてください</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Message Window -->
+      <div class="dq3-message-slot">
+        <MessageWindow :embedded="true" />
+      </div>
+    </div>
+</div>
 </template>
 
 <style scoped>
@@ -1682,4 +1746,112 @@ function resolveSkeletonEvent() {
     width: 100%;
   }
 }
+
+/* DRAGON QUEST III CONSOLE DOCK */
+.dq3-console-dock {
+  display: flex;
+  gap: 15px;
+  margin-top: 25px;
+  align-items: stretch;
+  min-height: 220px;
+}
+
+.dq3-command-window {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  border: 3px double var(--ink-dark);
+  background: #fffcf5;
+  border-radius: 6px;
+  padding: 12px;
+  position: relative;
+  box-shadow: 3px 3px 0 rgba(27, 22, 18, 0.2);
+}
+
+.cmd-window-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Noto Serif JP', serif;
+  font-weight: bold;
+  font-size: 0.95rem;
+  color: var(--ink-dark);
+  border-bottom: 2px solid var(--ink-dark);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.depth-badge-mini {
+  font-size: 0.75rem;
+  background: var(--ink-dark);
+  color: var(--paper-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.cmd-window-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+.cmd-btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.cmd-btn {
+  font-size: 0.85rem;
+  padding: 8px 6px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+}
+
+.cmd-wait-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 252, 245, 0.85);
+  backdrop-filter: blur(1px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  z-index: 5;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--ink-dark);
+  animation: pulse-mask 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-mask {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.55; }
+}
+
+.dq3-message-slot {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .dq3-console-dock {
+    flex-direction: column;
+  }
+  .dq3-command-window {
+    flex: none;
+    width: 100%;
+  }
+}
+
 </style>

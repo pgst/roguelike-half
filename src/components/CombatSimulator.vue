@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { useGameState } from '../composables/useGameState';
 import { useCombat } from '../composables/useCombat';
+import MessageWindow from './MessageWindow.vue';
 
 const {
   character,
@@ -11,10 +12,21 @@ const {
   dungeonDepth,
   totalRoomsToClear,
   isSwitchingWeapons,
-  diceTray
+  diceTray,
+  isMessageWaiting
 } = useGameState();
 
 const showSummonSelector = ref(false);
+
+const selectedEnemyId = ref<string>('');
+const targetEnemy = computed(() => {
+  if (selectedEnemyId.value) {
+    const found = combatState.enemies.find(e => e.id === selectedEnemyId.value);
+    if (found) return found;
+  }
+  return combatState.enemies[0] || null;
+});
+const showMagicSubmenu = ref(false);
 
 const isBossRoom = computed(() => dungeonDepth.value >= totalRoomsToClear.value);
 
@@ -196,9 +208,19 @@ function closeRangedRound() {
     <div class="enemies-section">
       <h3 class="section-title">👾 出現したクリーチャー</h3>
       <div class="enemies-grid">
-        <div v-for="enemy in combatState.enemies" :key="enemy.id" class="enemy-card">
+        <div 
+          v-for="enemy in combatState.enemies" 
+          :key="enemy.id" 
+          class="enemy-card"
+          :class="{ 'is-selected-target': (targetEnemy && targetEnemy.id === enemy.id) }"
+          @click="selectedEnemyId = enemy.id"
+          title="クリックで攻撃目標に指定"
+        >
           <div class="enemy-header">
-            <span class="enemy-name">{{ enemy.name }}</span>
+            <span class="enemy-name">
+              <span v-if="targetEnemy && targetEnemy.id === enemy.id" class="target-indicator">👉 </span>
+              {{ enemy.name }}
+            </span>
             <span class="enemy-level">Lv.{{ enemy.level }}</span>
           </div>
           <div class="enemy-stats">
@@ -221,182 +243,42 @@ function closeRangedRound() {
               {{ tag === 'undead' ? '💀 アンデッド' : tag === 'golem' ? '🤖 ゴーレム' : tag === 'weak' ? '雑魚' : '強敵' }}
             </span>
           </div>
-
-          <!-- 聖水使用ボタン -->
-          <div v-if="isHolyWaterAvailable" class="combat-actions" style="margin-top: 10px; width: 100%;">
-            <button 
-              v-if="enemy.tags.includes('weak') || enemy.tags.includes('undead')"
-              @click="useHolyWater(enemy.id)"
-              class="btn-ink btn-mini"
-              style="width: 100%; text-align: center; font-weight: bold; background: #e0f2f1; border-color: #4db6ac; color: #00796b;"
-              :disabled="diceTray.isRolling"
-            >
-              🧪 聖水を使用 (対象: {{ enemy.name }})
-            </button>
-            <span v-else style="font-size: 0.8rem; color: var(--ink-light); font-style: italic; width: 100%; display: block; text-align: center; padding: 5px;">
-              （アンデッドではない強敵のため聖水無効）
-            </span>
-          </div>
-
-          <!-- 招天フェーズ時の攻撃ボタン -->
-          <div v-if="combatState.pendingHolyArrow > 0" class="combat-actions" style="margin-top: 10px; width: 100%;">
-            <button 
-              v-if="enemy.tags.includes('undead')"
-              @click="fireHolyArrow(enemy.id)"
-              class="btn-ink btn-mini btn-miracle"
-              style="width: 100%; text-align: center; font-weight: bold; background: #fffcf0; border-color: #ffd54f; color: #b78103;"
-            >
-              ⚡ 聖なる矢を放つ (残: {{ combatState.pendingHolyArrow }}本)
-            </button>
-            <span v-else style="font-size: 0.8rem; color: var(--ink-light); font-style: italic; width: 100%; display: block; text-align: center; padding: 5px;">
-              （アンデッドではないため対象外）
-            </span>
-          </div>
-
-          <!-- Melee Attack Controls -->
-          <div v-if="combatState.round > 0 && activeAttacks.length === 0 && combatState.pendingHolyArrow === 0" class="combat-actions">
-            <template v-if="isSwitchingWeapons">
-              <span class="badge-switching" style="font-size: 0.85rem; color: #8c1c1c; font-weight: bold; background: rgba(140, 28, 28, 0.05); padding: 5px 10px; border-radius: 4px; border: 1px dashed #f5c6cb; width: 100%; display: block; text-align: center;">
-                ⚔️ 武器の持ち替え中...
-              </span>
-            </template>
-            <template v-else>
-              <button 
-                @click="playerAttack(enemy.id)" 
-                class="btn-ink btn-mini"
-                :disabled="character.equippedWeapon?.type === 'ranged'"
-              >
-                {{ character.equippedWeapon?.type === 'ranged' ? '❌ 飛び道具接近戦使用不可' : '⚔️ 通常攻撃' }}
-              </button>
-              <button 
-                v-if="character.subStatType === 'strength' && character.subStatCurrent > 0"
-                @click="playerAttack(enemy.id, true)" 
-                class="btn-ink btn-mini btn-strength"
-                :disabled="character.equippedWeapon?.type === 'ranged'"
-              >
-                💪 全力攻撃 (筋力1)
-              </button>
-            </template>
-            
-            <!-- Target-specific Spells -->
-            <div v-if="!isSwitchingWeapons && character.subStatType === 'magic' && character.subStatCurrent > 0" class="spell-targets">
-              <button 
-                v-if="character.spells.includes('気絶') && enemy.tags.includes('weak')"
-                @click="castSpell('気絶', enemy.id)" 
-                class="btn-ink btn-mini btn-spell"
-              >
-                🔮 気絶
-              </button>
-              <button 
-                v-if="character.spells.includes('氷槍')"
-                @click="castSpell('氷槍', enemy.id)" 
-                class="btn-ink btn-mini btn-spell"
-              >
-                🔮 氷槍
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
 
-    <!-- DEFENSE ASSIGNMENT PANEL (High Priority overlay/warning) -->
+    <!-- DEFENSE ASSIGNMENT PANEL (Stage Alert Banner) -->
     <div v-if="activeAttacks.length > 0 && !combatState.isOver" class="defense-overlay">
       <div class="defense-box">
-        <!-- 【そらし】の割り込み画面 -->
         <template v-if="combatState.pendingDeflect">
           <h3 class="alert-title">✨ 奇跡【そらし】発動の好機！</h3>
           <p class="alert-desc">
-            👾 <b>{{ combatState.pendingDeflect.enemy.name }}</b> からの飛び道具攻撃（目標値: <b>{{ combatState.pendingDeflect.enemy.level }}</b>）が
-            <b>{{ combatState.pendingDeflect.defenderId === 'hero' ? '主人公' : '従者' }}</b> に直撃しようとしています！
+            👾 <b>{{ combatState.pendingDeflect.enemy.name }}</b> からの攻撃が
+            <b>{{ combatState.pendingDeflect.defenderId === 'hero' ? '主人公' : '従者' }}</b> に直撃しようとしています！<br/>
+            <small style="color: var(--ink-light);">※ 下部コマンドウィンドウから【そらし】の発動を選択してください。</small>
           </p>
-
-          <div class="active-attack-row" style="flex-direction: column; align-items: stretch; gap: 15px; width: 100%;">
-            <p style="font-size: 0.85rem; color: var(--ink-light); text-align: center; margin: 0; font-style: italic;">
-              ※ 奇跡【そらし】を発動すると、幸運点1点を消費して、この被弾ダメージを完全に無効化します。(残り幸運点: <b>{{ character.subStatCurrent }}</b>)
-            </p>
-
-            <div class="assign-buttons" style="display: flex; flex-direction: column; width: 100%; gap: 10px;">
-              <button @click="executeDeflect" class="btn-ink btn-large btn-miracle" style="width: 100%; justify-content: center;">
-                ✨ そらしを発動する (幸運1消費)
-              </button>
-              <button @click="skipDeflect" class="btn-ink btn-large btn-secondary" style="width: 100%; justify-content: center; background: rgba(0,0,0,0.05);">
-                😢 発動を見送る (通常被弾を解決)
-              </button>
-            </div>
-          </div>
         </template>
 
         <template v-else-if="combatState.pendingCover">
           <h3 class="alert-title">🛡️ 従者をかばう！</h3>
           <p class="alert-desc">
-            従者 <b>{{ combatState.pendingCover.followerName }}</b> が被弾しました！主人公は「かばう」を使用できます。
+            従者 <b>{{ combatState.pendingCover.followerName }}</b> が被弾しました！<br/>
+            <small style="color: var(--ink-light);">※ 下部コマンドウィンドウから「かばう」の実行を選択してください。</small>
           </p>
-
-          <div class="active-attack-row" style="flex-direction: column; align-items: stretch; gap: 15px;">
-            <div class="attacker-desc" style="text-align: center; border-bottom: 1px dashed rgba(92,75,61,0.2); padding-bottom: 10px; margin-bottom: 5px;">
-              👾 <b>{{ combatState.pendingCover.enemyName }}</b> の攻撃 (防御目標値: <b>{{ combatState.pendingCover.enemyLevel }}</b>)
-            </div>
-            
-            <p style="font-size: 0.85rem; color: var(--ink-light); text-align: center; margin: 0; font-style: italic;">
-              ※「かばう」と、主人公が代わりに防御判定を行います。成否に関わらず筋力点を1点消費します。(残り筋力点: <b>{{ character.subStatCurrent }}</b>)
-            </p>
-
-            <div class="assign-buttons" style="display: flex; flex-direction: column; width: 100%; gap: 10px;">
-              <button @click="executeCover(false)" class="btn-ink btn-large btn-def" style="width: 100%; justify-content: center;">
-                🛡️ 技量点 (値: {{ character.skillCurrent }}) を基準にしてかばう
-              </button>
-              <button v-if="character.subStatCurrent >= 1" @click="executeCover(true)" class="btn-ink btn-large btn-def btn-strength" style="width: 100%; justify-content: center;">
-                💪 筋力点 (値: {{ character.subStatCurrent }}) を基準にしてかばう
-              </button>
-              <button @click="cancelCover" class="btn-ink btn-large btn-secondary" style="width: 100%; justify-content: center; background: rgba(0,0,0,0.05);">
-                😢 かばうのを見送る (従者は死亡)
-              </button>
-            </div>
-          </div>
         </template>
 
         <template v-else>
           <h3 class="alert-title">🚨 クリーチャーの猛攻を防御しろ！</h3>
-          <p class="alert-desc">未適用の攻撃回数: <b>{{ activeAttacks.length }}</b> 回。味方を選択してダイスを振り、防御ロールを解決してください。</p>
-          
-          <div class="active-attack-row">
-            <div class="attacker-desc">
-              👾 <b>{{ activeAttacks[0].source.name }}</b> の攻撃 
-              (防御目標値: <b>{{ activeAttacks[0].source.level }}</b>)
-            </div>
-
-            <div class="assign-buttons">
-              <!-- Hero Defends -->
-              <div class="assign-group">
-                <button @click="resolveDefense(activeAttacks[0].id, 'hero')" class="btn-ink btn-def">
-                  🛡️ 主人公が防御する (技量: {{ character.skillCurrent }})
-                </button>
-                <button 
-                  v-if="character.subStatType === 'strength' && character.subStatCurrent > 0"
-                  @click="resolveDefense(activeAttacks[0].id, 'hero', true)" 
-                  class="btn-ink btn-def btn-strength"
-                >
-                  💪 全力防御 (筋力1消費)
-                </button>
-              </div>
-
-              <!-- Followers Defend -->
-              <button 
-                v-for="fol in activeCombatFollowers" 
-                :key="fol.id"
-                @click="resolveDefense(activeAttacks[0].id, fol.id)" 
-                class="btn-ink btn-def btn-secondary"
-              >
-                👤 従者 [{{ fol.name }}] が受ける (技量: {{ fol.skill }})
-              </button>
-            </div>
-          </div>
+          <p class="alert-desc">
+            未適用の攻撃回数: <b>{{ activeAttacks.length }}</b> 回。<br/>
+            👾 <b>{{ activeAttacks[0].source.name }}</b> の攻撃 (防御目標値: <b>{{ activeAttacks[0].source.level }}</b>)<br/>
+            <small style="color: var(--ink-light);">※ 下部コマンドウィンドウから防御を行う味方を選択してください。</small>
+          </p>
         </template>
       </div>
     </div>
 
-    <!-- COMBAT RESULT RESOLUTION LEDGER (High priority overlay when combat is over) -->
+    <!-- COMBAT RESULT RESOLUTION LEDGER (Stage Resolution Notice) -->
     <div v-else-if="combatState.isOver" class="combat-result-overlay" style="border: 2px solid rgba(27, 22, 18, 0.4); background: rgba(225, 218, 205, 0.4); padding: 25px; border-radius: 6px; box-shadow: var(--card-shadow); text-align: center; margin-top: 20px; margin-bottom: 20px;">
       <div class="clear-stamp-container" style="margin-bottom: 12px;">
         <span v-if="combatState.resultType === 'victory'" class="clear-stamp success">勝利 VICTORY</span>
@@ -409,321 +291,340 @@ function closeRangedRound() {
       
       <!-- Victory Screen -->
       <div v-if="combatState.resultType === 'victory'">
-        <!-- Loot rolling block -->
         <div v-if="combatState.getLootAfterVictory && !combatState.lootRolled" style="margin-bottom: 15px;">
-          <p style="font-size: 1rem; color: var(--ink-dark); margin-bottom: 15px;">
-            敵の遺品や宝箱から戦利品を獲得できます。ダイスを振って宝物表をロールしましょう。
+          <p style="font-size: 1rem; color: var(--ink-dark); margin-bottom: 5px;">
+            敵の遺品や宝箱から戦利品を獲得できます。<br/>
+            <small style="color: var(--ink-light);">※ 下部コマンドウィンドウの「宝箱を開ける」を押してください。</small>
           </p>
-          <button @click="resolveLoot" class="btn-ink btn-large btn-primary-ink">
-            💎 宝箱を開ける (ダイスを振る)
-          </button>
         </div>
-        
-        <!-- Loot confirmed block -->
         <div v-else>
-          <p v-if="combatState.lootText" class="event-description resolved-desc" style="white-space: pre-line; background: rgba(255,255,255,0.4); padding: 15px; border-radius: 4px; border: 1px dashed rgba(92, 75, 61, 0.4); font-size: 0.95rem; color: var(--ink-light); line-height: 1.6; text-align: left; margin-bottom: 20px;">
+          <p v-if="combatState.lootText" class="event-description resolved-desc" style="white-space: pre-line; background: rgba(255,255,255,0.4); padding: 15px; border-radius: 4px; border: 1px dashed rgba(92, 75, 61, 0.4); font-size: 0.95rem; color: var(--ink-light); line-height: 1.6; text-align: left; margin-bottom: 15px;">
             🎁 獲得した戦利品: {{ combatState.lootText }}
           </p>
           <p v-else style="font-size: 0.95rem; color: var(--ink-light); margin-bottom: 15px; opacity: 0.8;">
             この戦闘での追加の戦利品はありません。
           </p>
-          
-          <button @click="confirmCombatResult" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
-            🚪 結果を承認して次の部屋へ進む
-          </button>
         </div>
       </div>
 
       <!-- Escape Screen -->
       <div v-else-if="combatState.resultType === 'escaped'">
-        <p class="event-description resolved-desc" style="white-space: pre-line; background: rgba(255,255,255,0.4); padding: 15px; border-radius: 4px; border: 1px dashed rgba(92, 75, 61, 0.4); font-size: 0.95rem; color: var(--ink-light); line-height: 1.6; text-align: left; margin-bottom: 20px;">
+        <p class="event-description resolved-desc" style="white-space: pre-line; background: rgba(255,255,255,0.4); padding: 15px; border-radius: 4px; border: 1px dashed rgba(92, 75, 61, 0.4); font-size: 0.95rem; color: var(--ink-light); line-height: 1.6; text-align: left; margin-bottom: 15px;">
           敵の追撃を受け流し、無事安全な場所まで退却しました。
         </p>
-        <button @click="confirmCombatResult" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
-          🚪 結果を承認して1つ前の部屋に戻る
-        </button>
       </div>
 
       <!-- Peaceful Screen -->
       <div v-else-if="combatState.resultType === 'peaceful'">
-        <p class="event-description resolved-desc" style="white-space: pre-line; background: rgba(255,255,255,0.4); padding: 15px; border-radius: 4px; border: 1px dashed rgba(92, 75, 61, 0.4); font-size: 0.95rem; color: var(--ink-light); line-height: 1.6; text-align: left; margin-bottom: 20px;">
+        <p class="event-description resolved-desc" style="white-space: pre-line; background: rgba(255,255,255,0.4); padding: 15px; border-radius: 4px; border: 1px dashed rgba(92, 75, 61, 0.4); font-size: 0.95rem; color: var(--ink-light); line-height: 1.6; text-align: left; margin-bottom: 15px;">
           {{ combatState.peacefulText || '敵と争うことなく、穏便に交渉（中立/歓待/ワイロ）するか、敵の撤退に成功しました。' }}
         </p>
-        <button @click="confirmCombatResult" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
-          🚪 結果を承認して次の部屋へ進む
-        </button>
       </div>
     </div>
 
-    <!-- Normal Actions Panel (Only visible when no pending enemy attacks and combat is not over) -->
-    <div v-else class="actions-panel">
-      <!-- Shireen Clue spend action -->
-      <div v-if="showShireenClueAction" style="margin-bottom: 15px; padding: 10px; background: #f0f7f4; border: 1px solid #c2e0d1; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;">
-        <span style="font-size: 0.85rem; color: #1e5a38; line-height: 1.4;">🔍 シーリーンは未来を予知してすべての通常攻撃を回避します。「手がかり」を1個消費して彼女の未来視を見破り、通常武器でも攻撃を命中させられるようにしますか？</span>
-        <button @click="spendShireenClue" class="btn-ink btn-mini" style="background: #e1f5fe; border-color: #29b6f6; color: #0288d1; font-weight: bold; flex-shrink: 0; padding: 5px 10px;">
-          🔍 手がかりを消費
-        </button>
-      </div>
-      <!-- Round 0 (Ranged/Magic only) -->
-      <div v-if="combatState.round === 0" class="ranged-phase">
-        <h3 class="section-title">🏹 第0ラウンド行動 (遠距離攻撃 & 先制呪文)</h3>
-        
-        <!-- Reaction Check Result Panel -->
-        <div v-if="combatState.reactionResult" class="reaction-result-panel paper-sheet" style="margin-bottom: 20px; border: 2px solid var(--ink-dark); padding: 20px; border-radius: 6px; background: #fffcf5; box-shadow: var(--card-shadow); text-align: center;">
-          <div style="font-size: 1.1rem; font-weight: bold; font-family: 'Noto Serif JP', serif; color: var(--ink-dark); border-bottom: 1px dashed var(--ink-dark); padding-bottom: 8px; margin-bottom: 15px;">
-            🎲 反応チェックの結果
-          </div>
-          <div style="font-size: 1rem; margin-bottom: 15px; color: var(--ink-dark);">
-            判定ダイスの出目: <span style="font-weight: 900; font-size: 1.4rem; color: #8c1c1c;">🎲 {{ combatState.reactionResult.roll }}</span>
-          </div>
-
-          <!-- Friendship (友情) Adjust Buttons -->
-          <div 
-            v-if="character.subStatType === 'magic' && character.spells.includes('友情') && character.subStatCurrent >= 1" 
-            class="friendship-adjust-group" 
-            style="margin-bottom: 15px; border-bottom: 1px dashed rgba(92,75,61,0.2); padding-bottom: 15px;"
-          >
-            <p style="font-size: 0.85rem; color: var(--ink-light); margin: 0 0 10px 0; font-style: italic;">
-              🔮 魔法【友情】（魔術点1消費）で反応出目を調整できます：
-            </p>
-            <div style="display: flex; gap: 8px;">
-              <button @click="applyFriendshipReaction(1)" class="btn-ink btn-mini btn-spell" style="flex: 1;" :disabled="combatState.reactionResult.roll >= 6">
-                出目+1 (上限6)
-              </button>
-              <button @click="applyFriendshipReaction(-1)" class="btn-ink btn-mini btn-spell" style="flex: 1;" :disabled="combatState.reactionResult.roll <= 1">
-                出目-1 (下限1)
-              </button>
-            </div>
-          </div>
-
-          <p style="font-size: 1rem; line-height: 1.6; color: #8c1c1c; font-weight: bold; background: rgba(0,0,0,0.03); padding: 12px; border-radius: 4px; border: 1px dashed #c2b09a; margin-bottom: 20px; text-align: left;">
-            {{ combatState.reactionResult.text }}
-          </p>
-          
-          <div v-if="combatState.reactionResult.actionType === 'bribe'" class="bribe-choice-group" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-            <div style="display: flex; gap: 10px; width: 100%;">
-              <button @click="payBribe(false)" class="btn-ink btn-large" style="flex: 1;" :disabled="character.gold < 5">
-                🪙 ワイロを支払う (金貨5枚)
-              </button>
-              <button 
-                v-if="character.subStatType === 'magic' && character.spells.includes('友情') && character.subStatCurrent >= 1"
-                @click="payBribe(true)" 
-                class="btn-ink btn-large btn-spell" 
-                style="flex: 1;" 
-                :disabled="character.gold < 1"
-              >
-                🔮 友情で支払う (金貨1枚, 魔術1)
-              </button>
-            </div>
-            <button @click="refuseBribeAndFight" class="btn-ink btn-large btn-danger-ink" style="width: 100%; background: #8c1c1c; color: white; border-color: #8c1c1c;">
-              ⚔️ 拒否して戦闘する (敵先制)
-            </button>
-          </div>
-          <button v-else @click="confirmReactionResult" class="btn-ink btn-large" style="width: 100%;">
-            結果を承認して進む
-          </button>
+    <!-- DRAGON QUEST III CONSOLE DOCK (Left: Command Window, Right: Message Window) -->
+    <div class="dq3-console-dock">
+      <!-- LEFT: Command Window -->
+      <div class="dq3-command-window paper-sheet" :class="{ 'waiting-overlay': isMessageWaiting }">
+        <div class="cmd-window-header">
+          <span>⚔️ コマンド</span>
+          <span v-if="targetEnemy && !combatState.isOver" class="target-badge">🎯 {{ targetEnemy.name }}</span>
         </div>
 
-        <template v-else>
-          <!-- 招天発動中のパネル表示 -->
-          <div v-if="combatState.pendingHolyArrow > 0" class="holy-arrow-panel" style="border: 2px dashed #ffd54f; padding: 15px; background: #fffdf5; border-radius: 6px; text-align: center; margin-bottom: 15px; width: 100%;">
-            <p style="font-size: 1rem; font-weight: bold; color: #b78103; margin-bottom: 5px; font-family: 'Noto Serif JP', serif;">
-              ⚡ 奇跡【招天】を発動中！
-            </p>
-            <p style="font-size: 0.85rem; color: var(--ink-dark); margin: 0 0 10px 0;">
-              残り矢数: <b>{{ combatState.pendingHolyArrow }}</b> 本。<br>
-              上の出現クリーチャー一覧から、アンデッドの敵を選択して「聖なる矢を放つ」ボタンを押してください。
-            </p>
+        <div class="cmd-window-body">
+          <!-- 1. 戦闘終了時 -->
+          <div v-if="combatState.isOver" class="cmd-single-action">
+            <div v-if="combatState.resultType === 'victory' && combatState.getLootAfterVictory && !combatState.lootRolled">
+              <button @click="resolveLoot" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
+                💎 宝箱を開ける (ダイスを振る)
+              </button>
+            </div>
+            <div v-else-if="combatState.resultType === 'escaped'">
+              <button @click="confirmCombatResult" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
+                🚪 結果を承認して1つ前の部屋に戻る
+              </button>
+            </div>
+            <div v-else>
+              <button @click="confirmCombatResult" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
+                🚪 結果を承認して次の部屋へ進む
+              </button>
+            </div>
           </div>
 
-          <template v-else>
-            <!-- Reaction Check (Roll prior to combat starting) -->
-          <div v-if="isBossRoom" class="boss-disallow-panel" style="font-size: 0.9rem; font-weight: bold; color: #8c1c1c; background: rgba(140, 28, 28, 0.05); border: 1px dashed #f5c6cb; padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; text-align: center;">
-            ⚠️ ボス戦のため、反応チェックやワイロによる交渉は行えません。
-          </div>
-          <div v-else class="reaction-bribe-group">
-            <button @click="rollReactionCheck" class="btn-ink" :disabled="combatState.hasReactionChecked || combatState.hasRangedFired">🎲 反応チェックを行う</button>
-            <button @click="payBribe(false)" class="btn-ink btn-secondary" :disabled="!combatState.isBribeAllowed || character.gold < 5">🪙 ワイロで済ませる (金貨5枚)</button>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button 
-              @click="playerAttack(combatState.enemies[0]?.id)" 
-              class="btn-ink" 
-              style="flex: 1; min-width: 150px;"
-              :disabled="!isRangedAvailable || combatState.hasRangedFired"
-            >
-              🎯 弓・スリングで射撃攻撃
-            </button>
-            <button 
-              v-if="character.subStatType === 'dexterity' && character.subStatCurrent > 0"
-              @click="playerAttack(combatState.enemies[0]?.id, true)" 
-              class="btn-ink btn-strength" 
-              style="flex: 1; min-width: 150px;"
-              :disabled="!isRangedAvailable || combatState.hasRangedFired"
-            >
-              🎯 全力射撃 (器用1消費)
-            </button>
-            <button @click="closeRangedRound" class="btn-ink btn-secondary" style="flex: 1; min-width: 150px;">
-              ⚔️ 接近戦へ移行する
-            </button>
-          </div>
-        </template>
-      </template>
-    </div>
-
-      <!-- Round >= 1 Melee Phase Actions (e.g. Weapon Switch) -->
-      <div v-else-if="isSwitchingWeapons" class="weapon-switch-box" style="border: 2px dashed #8c1c1c; padding: 20px; background: rgba(140, 28, 28, 0.05); border-radius: 6px; text-align: center; margin-bottom: 20px;">
-        <p style="font-size: 1rem; font-weight: bold; color: #8c1c1c; margin-bottom: 15px; font-family: 'Noto Serif JP', serif;">
-          🏹 遠距離武器を使用したため、接近戦武器への持ち替えに1ラウンド必要です。<br>
-          <span style="font-size: 0.85rem; opacity: 0.9; font-weight: normal;">※「太刀持ち従者」がいれば、この持ち替え時間を省略できます。</span>
-        </p>
-        <button @click="resolveWeaponSwitch" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
-          ⚔️ 武器を持ち替える (1ラウンド消費して手番終了)
-        </button>
-      </div>
-
-      <!-- Spells & Miracles (Magic / Luck archetypes) & Flee Section -->
-      <template v-if="!isSwitchingWeapons">
-        <div v-if="['magic', 'luck'].includes(character.subStatType) && character.subStatCurrent > 0 && activeAttacks.length === 0 && combatState.pendingHolyArrow === 0" class="magic-phase">
-          <h3 class="section-title">🔮 魔法・奇跡の詠唱 (残り魔力/幸運: {{ character.subStatCurrent }})</h3>
-          
-          <div class="spell-buttons">
-            <!-- Magic spells -->
-            <template v-if="character.subStatType === 'magic'">
-              <button 
-                v-if="character.spells.includes('炎球')"
-                @click="castSpell('炎球')" 
-                class="btn-ink btn-spell"
-                :disabled="isRound0SpellDisabled"
-              >
-                🔮 炎球 (全体攻撃)
+          <!-- 2. 防御・かばう割り当て発生時 -->
+          <div v-else-if="activeAttacks.length > 0" class="cmd-def-action">
+            <!-- そらし待機時 -->
+            <div v-if="combatState.pendingDeflect" class="cmd-btn-grid" style="grid-template-columns: 1fr;">
+              <button @click="executeDeflect" class="btn-ink cmd-btn btn-miracle">
+                ✨ そらしを発動する (幸運1消費)
+              </button>
+              <button @click="skipDeflect" class="btn-ink cmd-btn btn-secondary">
+                見送る (通常被弾を解決)
+              </button>
+            </div>
+            <!-- かばう待機時 -->
+            <div v-else-if="combatState.pendingCover" class="cmd-btn-grid" style="grid-template-columns: 1fr;">
+              <button @click="executeCover(false)" class="btn-ink cmd-btn btn-def">
+                🛡️ 技量点でかばう (値: {{ character.skillCurrent }})
+              </button>
+              <button v-if="character.subStatCurrent >= 1" @click="executeCover(true)" class="btn-ink cmd-btn btn-def btn-strength">
+                💪 筋力点でかばう (値: {{ character.subStatCurrent }})
+              </button>
+              <button @click="cancelCover" class="btn-ink cmd-btn btn-secondary">
+                😢 見送る (従者は死亡)
+              </button>
+            </div>
+            <!-- 通常の防御選択時 -->
+            <div v-else class="cmd-btn-grid" style="grid-template-columns: 1fr;">
+              <button @click="resolveDefense(activeAttacks[0].id, 'hero')" class="btn-ink cmd-btn btn-def" :disabled="diceTray.isRolling">
+                🛡️ 主人公が防御する
               </button>
               <button 
-                v-if="character.spells.includes('武具創造')"
-                @click="showSummonSelector = !showSummonSelector" 
-                class="btn-ink btn-spell"
-                :disabled="isRound0SpellDisabled || combatState.hasWeaponCreatedThisRound"
+                v-if="character.subStatType === 'strength' && character.subStatCurrent > 0"
+                @click="resolveDefense(activeAttacks[0].id, 'hero', true)" 
+                class="btn-ink cmd-btn btn-def btn-strength"
+                :disabled="diceTray.isRolling"
               >
-                🔮 武具創造 (装備品の創造)
+                💪 全力防御 (筋力1消費)
               </button>
               <button 
-                v-if="character.spells.includes('速撃')"
-                @click="castSpell('速撃')" 
-                class="btn-ink btn-spell"
-                :disabled="isQuickStrikeDisabled"
+                v-for="fol in activeCombatFollowers" 
+                :key="fol.id"
+                @click="resolveDefense(activeAttacks[0].id, fol.id)" 
+                class="btn-ink cmd-btn btn-def btn-secondary"
+                :disabled="diceTray.isRolling"
               >
-                🔮 速撃 (先制攻撃)
+                👤 従者 [{{ fol.name }}] が受ける (技量: {{ fol.skill }})
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. 武器持ち替え中 -->
+          <div v-else-if="isSwitchingWeapons" class="cmd-single-action">
+            <button @click="resolveWeaponSwitch" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
+              ⚔️ 武器を持ち替える
+            </button>
+          </div>
+
+          <!-- 4. 聖なる矢フェーズ -->
+          <div v-else-if="combatState.pendingHolyArrow > 0" class="cmd-single-action">
+            <button 
+              @click="fireHolyArrow(targetEnemy?.id)" 
+              class="btn-ink cmd-btn btn-miracle" 
+              style="width: 100%;"
+              :disabled="!targetEnemy?.tags.includes('undead')"
+            >
+              ⚡ 聖なる矢を放つ (残: {{ combatState.pendingHolyArrow }}本)
+            </button>
+          </div>
+
+          <!-- 5. 魔法サブメニュー展開中 -->
+          <div v-else-if="showMagicSubmenu" class="cmd-magic-menu">
+            <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; color: var(--ink-dark); display: flex; justify-content: space-between; align-items: center;">
+              <span>🔮 詠唱する呪文・奇跡</span>
+              <button @click="showMagicSubmenu = false" class="btn-mini btn-ink" style="font-size: 0.7rem; padding: 2px 6px;">✕ 戻る</button>
+            </div>
+            <div class="cmd-btn-grid">
+              <template v-if="character.subStatType === 'magic'">
+                <button v-if="character.spells.includes('炎球')" @click="castSpell('炎球'); showMagicSubmenu = false" class="btn-ink cmd-btn btn-spell" :disabled="isRound0SpellDisabled">
+                  🔮 炎球
+                </button>
+                <button v-if="character.spells.includes('速撃')" @click="castSpell('速撃'); showMagicSubmenu = false" class="btn-ink cmd-btn btn-spell" :disabled="isQuickStrikeDisabled">
+                  🔮 速撃
+                </button>
+                <button v-if="character.spells.includes('氷槍')" @click="castSpell('氷槍', targetEnemy?.id); showMagicSubmenu = false" class="btn-ink cmd-btn btn-spell">
+                  🔮 氷槍
+                </button>
+                <button v-if="character.spells.includes('気絶') && targetEnemy?.tags.includes('weak')" @click="castSpell('気絶', targetEnemy?.id); showMagicSubmenu = false" class="btn-ink cmd-btn btn-spell">
+                  🔮 気絶
+                </button>
+                <button v-if="character.spells.includes('武具創造')" @click="showSummonSelector = !showSummonSelector; showMagicSubmenu = false" class="btn-ink cmd-btn btn-spell" :disabled="isRound0SpellDisabled">
+                  🔮 武具創造
+                </button>
+              </template>
+              <template v-if="character.subStatType === 'luck'">
+                <button v-if="character.miracles.includes('防衛')" @click="castMiracle('防衛'); showMagicSubmenu = false" class="btn-ink cmd-btn btn-miracle" :disabled="isRound0SpellDisabled">
+                  ✨ 防衛
+                </button>
+                <button v-if="character.miracles.includes('祝福')" @click="castMiracle('祝福'); showMagicSubmenu = false" class="btn-ink cmd-btn btn-miracle">
+                  ✨ 祝福
+                </button>
+                <button v-if="character.miracles.includes('招天')" @click="castMiracle('招天'); showMagicSubmenu = false" class="btn-ink cmd-btn btn-miracle" :disabled="isRound0SpellDisabled">
+                  ✨ 招天
+                </button>
+                <button v-if="character.miracles.includes('聖洗脳') && combatState.enemies.length === 1" @click="castMiracle('聖洗脳'); showMagicSubmenu = false" class="btn-ink cmd-btn btn-miracle" :disabled="isRound0SpellDisabled">
+                  ✨ 聖洗脳
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <!-- 武具創造サブメニュー展開中 -->
+          <div v-else-if="showSummonSelector" class="cmd-magic-menu">
+            <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; color: var(--ink-dark); display: flex; justify-content: space-between; align-items: center;">
+              <span>🪄 武具創造 (魔術点1消費)</span>
+              <button @click="showSummonSelector = false" class="btn-mini btn-ink" style="font-size: 0.7rem; padding: 2px 6px;">✕ 戻る</button>
+            </div>
+            <div class="cmd-btn-grid" style="grid-template-columns: repeat(3, 1fr); gap: 4px;">
+              <button @click="resolveCreateWeaponSpell('weapon', 'light'); showSummonSelector = false" class="btn-ink cmd-btn" style="font-size: 0.75rem;">軽い武器</button>
+              <button @click="resolveCreateWeaponSpell('weapon', 'oneHanded'); showSummonSelector = false" class="btn-ink cmd-btn" style="font-size: 0.75rem;">片手武器</button>
+              <button @click="resolveCreateWeaponSpell('weapon', 'twoHanded'); showSummonSelector = false" class="btn-ink cmd-btn" style="font-size: 0.75rem;">両手武器</button>
+              <button @click="resolveCreateWeaponSpell('armor', 'leather'); showSummonSelector = false" class="btn-ink cmd-btn" style="font-size: 0.75rem;">革鎧</button>
+              <button @click="resolveCreateWeaponSpell('shield', 'wood'); showSummonSelector = false" class="btn-ink cmd-btn" style="font-size: 0.75rem;">木盾</button>
+              <button @click="resolveCreateWeaponSpell('shield', 'round'); showSummonSelector = false" class="btn-ink cmd-btn" style="font-size: 0.75rem;">丸盾</button>
+            </div>
+          </div>
+
+          <!-- 6. 第0ラウンド（遠距離戦・反応チェック） -->
+          <div v-else-if="combatState.round === 0" class="cmd-action-group">
+            <template v-if="combatState.reactionResult">
+              <div v-if="combatState.reactionResult.actionType === 'bribe'" style="display: flex; flex-direction: column; gap: 6px;">
+                <button @click="payBribe(false)" class="btn-ink btn-mini" :disabled="character.gold < 5">
+                  🪙 ワイロを支払う (金貨5枚)
+                </button>
+                <button @click="refuseBribeAndFight" class="btn-ink btn-mini btn-danger-ink" style="background: #8c1c1c; color: white;">
+                  ⚔️ 拒否して戦闘する
+                </button>
+              </div>
+              <div v-else style="display: flex; flex-direction: column; gap: 6px;">
+                <!-- 魔法【友情】での出目調整 -->
+                <div v-if="character.subStatType === 'magic' && character.spells.includes('友情') && character.subStatCurrent >= 1" style="display: flex; gap: 6px;">
+                  <button @click="applyFriendshipReaction(1)" class="btn-ink btn-mini btn-spell" style="flex: 1;" :disabled="combatState.reactionResult.roll >= 6">
+                    出目+1 (上限6)
+                  </button>
+                  <button @click="applyFriendshipReaction(-1)" class="btn-ink btn-mini btn-spell" style="flex: 1;" :disabled="combatState.reactionResult.roll <= 1">
+                    出目-1 (下限1)
+                  </button>
+                </div>
+                <button @click="confirmReactionResult" class="btn-ink btn-mini" style="width: 100%;">
+                  結果を承認して進む
+                </button>
+              </div>
+            </template>
+            <template v-else>
+              <div class="cmd-btn-grid">
+                <button 
+                  @click="playerAttack(targetEnemy?.id)" 
+                  class="btn-ink cmd-btn" 
+                  :disabled="!isRangedAvailable || combatState.hasRangedFired"
+                >
+                  🎯 弓・スリングで射撃攻撃
+                </button>
+                <button 
+                  v-if="character.subStatType === 'dexterity' && character.subStatCurrent > 0"
+                  @click="playerAttack(targetEnemy?.id, true)" 
+                  class="btn-ink cmd-btn btn-strength" 
+                  :disabled="!isRangedAvailable || combatState.hasRangedFired"
+                >
+                  🎯 全力射撃
+                </button>
+                <button 
+                  @click="rollReactionCheck" 
+                  class="btn-ink cmd-btn" 
+                  :disabled="combatState.hasReactionChecked || combatState.hasRangedFired || isBossRoom"
+                >
+                  🎲 反応表を振る
+                </button>
+                <button 
+                  @click="payBribe(false)" 
+                  class="btn-ink cmd-btn btn-secondary" 
+                  :disabled="!combatState.isBribeAllowed || character.gold < 5"
+                >
+                  🪙 ワイロ
+                </button>
+                <button 
+                  v-if="['magic', 'luck'].includes(character.subStatType) && character.subStatCurrent > 0"
+                  @click="showMagicSubmenu = true"
+                  class="btn-ink cmd-btn btn-spell"
+                  :disabled="isRound0SpellDisabled"
+                >
+                  🔮 じゅもん
+                </button>
+              </div>
+              <button @click="closeRangedRound" class="btn-ink btn-mini btn-melee-shift" style="width: 100%; margin-top: 6px;">
+                ⚔️ 接近戦へ移行する
               </button>
             </template>
-
-            <!-- Luck miracles -->
-            <template v-if="character.subStatType === 'luck'">
-              <button 
-                v-if="character.miracles.includes('防衛')"
-                @click="castMiracle('防衛')" 
-                class="btn-ink btn-miracle"
-                :disabled="isRound0SpellDisabled"
-              >
-                ✨ 防衛 (+1防御バフ)
-              </button>
-              <button 
-                v-if="character.miracles.includes('祝福')"
-                @click="castMiracle('祝福')" 
-                class="btn-ink btn-miracle"
-                :disabled="activeAttacks.length > 0"
-              >
-                ✨ 祝福 (状態異常治療)
-              </button>
-              <button 
-                v-if="character.miracles.includes('聖洗脳') && combatState.enemies.length === 1"
-                @click="castMiracle('聖洗脳')" 
-                class="btn-ink btn-miracle"
-                :disabled="isRound0SpellDisabled"
-              >
-                ✨ 聖洗脳 (従者にする)
-              </button>
-              <button 
-                v-if="character.miracles.includes('招天')"
-                @click="castMiracle('招天')" 
-                class="btn-ink btn-miracle"
-                :disabled="isRound0SpellDisabled"
-              >
-                ✨ 招天 (アンデッド光矢)
-              </button>
-            </template>
           </div>
 
-          <!-- Weapon Creation Submenu (武具創造) -->
-          <div v-if="showSummonSelector" class="summon-selector paper-sheet" style="margin-top: 15px; padding: 15px; border: 1px dashed var(--ink-light); background: rgba(255,255,255,0.7); border-radius: 4px; width: 100%;">
-            <p style="font-size: 0.85rem; color: var(--ink-light); margin: 0 0 10px 0; font-style: italic; font-weight: bold;">
-              🪄 創造する武具（武器・防具・盾）を1つ選択してください（魔術点1消費）：
-            </p>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-              <!-- Weapons Category -->
-              <div>
-                <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-bottom: 5px;">⚔️ 武器を創造:</div>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                  <button @click="resolveCreateWeaponSpell('weapon', 'light'); showSummonSelector = false" class="btn-ink btn-mini">軽い武器</button>
-                  <button @click="resolveCreateWeaponSpell('weapon', 'oneHanded'); showSummonSelector = false" class="btn-ink btn-mini">片手武器</button>
-                  <button @click="resolveCreateWeaponSpell('weapon', 'twoHanded'); showSummonSelector = false" class="btn-ink btn-mini">両手武器</button>
-                  <button @click="resolveCreateWeaponSpell('weapon', 'sling'); showSummonSelector = false" class="btn-ink btn-mini">スリング</button>
-                  <button @click="resolveCreateWeaponSpell('weapon', 'bow'); showSummonSelector = false" class="btn-ink btn-mini">弓矢</button>
-                </div>
-              </div>
-              <!-- Armor Category -->
-              <div>
-                <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-bottom: 5px;">🛡️ 防具を創造:</div>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                  <button @click="resolveCreateWeaponSpell('armor', 'cloth'); showSummonSelector = false" class="btn-ink btn-mini">布鎧</button>
-                  <button @click="resolveCreateWeaponSpell('armor', 'leather'); showSummonSelector = false" class="btn-ink btn-mini">革鎧</button>
-                  <button @click="resolveCreateWeaponSpell('armor', 'chain'); showSummonSelector = false" class="btn-ink btn-mini">鎖鎧</button>
-                  <button @click="resolveCreateWeaponSpell('armor', 'plate'); showSummonSelector = false" class="btn-ink btn-mini">板金鎧</button>
-                </div>
-              </div>
-              <!-- Shield Category -->
-              <div>
-                <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-bottom: 5px;">🛡️ 盾を創造:</div>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                  <button @click="resolveCreateWeaponSpell('shield', 'wood'); showSummonSelector = false" class="btn-ink btn-mini">木盾</button>
-                  <button @click="resolveCreateWeaponSpell('shield', 'round'); showSummonSelector = false" class="btn-ink btn-mini">丸盾</button>
-                </div>
-              </div>
-              <button @click="showSummonSelector = false" class="btn-ink btn-mini btn-secondary" style="margin-top: 5px; align-self: flex-end;">キャンセル</button>
+          <!-- 7. 近接戦（Round >= 1） -->
+          <div v-else class="cmd-action-group">
+            <div v-if="showShireenClueAction" style="margin-bottom: 6px;">
+              <button @click="spendShireenClue" class="btn-ink btn-mini" style="width: 100%; background: #e1f5fe; border-color: #29b6f6; color: #0288d1; font-weight: bold;">
+                🔍 手がかりを消費して未来視を見破る
+              </button>
+            </div>
+
+            <div class="cmd-btn-grid">
+              <button 
+                @click="playerAttack(targetEnemy?.id)" 
+                class="btn-ink cmd-btn btn-main-attack"
+                :disabled="character.equippedWeapon?.type === 'ranged'"
+              >
+                ⚔️ 通常攻撃
+              </button>
+
+              <button 
+                v-if="character.subStatType === 'strength' && character.subStatCurrent > 0"
+                @click="playerAttack(targetEnemy?.id, true)" 
+                class="btn-ink cmd-btn btn-strength"
+                :disabled="character.equippedWeapon?.type === 'ranged'"
+              >
+                💪 全力攻撃
+              </button>
+
+              <button 
+                v-if="['magic', 'luck'].includes(character.subStatType) && character.subStatCurrent > 0"
+                @click="showMagicSubmenu = true"
+                class="btn-ink cmd-btn btn-spell"
+              >
+                🔮 じゅもん
+              </button>
+
+              <button 
+                @click="escapeCombat" 
+                class="btn-ink cmd-btn btn-flee"
+              >
+                🏃 戦闘から逃走する
+              </button>
+            </div>
+
+            <!-- 聖水が使える場合 -->
+            <div v-if="isHolyWaterAvailable && (targetEnemy?.tags.includes('weak') || targetEnemy?.tags.includes('undead'))" style="margin-top: 6px;">
+              <button 
+                @click="useHolyWater(targetEnemy?.id)" 
+                class="btn-ink btn-mini" 
+                style="width: 100%; background: #e0f2f1; border-color: #4db6ac; color: #00796b;"
+              >
+                🧪 聖水を使用 (対象: {{ targetEnemy?.name }})
+              </button>
+            </div>
+
+            <!-- 従者魔術師呪文 -->
+            <div v-if="magesWithMagic.length > 0" style="margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap;">
+              <button 
+                v-for="mage in magesWithMagic" 
+                :key="mage.id"
+                @click="castFollowerSpell(mage.id)"
+                class="btn-ink btn-mini btn-spell"
+                style="flex: 1;"
+              >
+                🔮 {{ mage.name }} [{{ mage.magicList && mage.magicList[0] ? mage.magicList[0] : '炎球' }}]
+              </button>
             </div>
           </div>
-        </div>
 
-        <!-- Follower Wizard Spells -->
-        <div v-if="magesWithMagic.length > 0 && activeAttacks.length === 0 && combatState.pendingHolyArrow === 0" class="follower-magic-phase" style="margin-top: 15px; padding: 15px; border: 1px dashed #705844; border-radius: 6px; background: rgba(112, 88, 68, 0.05); width: 100%;">
-          <h3 class="section-title" style="margin-top: 0; color: #705844; border-bottom: 1px dashed #705844; padding-bottom: 5px; margin-bottom: 10px;">👥 従者魔術師の呪文詠唱</h3>
-          <p style="font-size: 0.85rem; color: var(--ink-light); margin: 0 0 10px 0; font-style: italic; line-height: 1.4;">
-            従者魔術師に指示を出し、魔術点（MP）を消費して覚えている呪文を唱えさせます（各従者1戦闘につき1回限り）。
-          </p>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button 
-              v-for="mage in magesWithMagic" 
-              :key="mage.id"
-              @click="castFollowerSpell(mage.id)"
-              class="btn-ink btn-spell"
-              style="font-size: 0.9rem; padding: 6px 12px;"
-              :disabled="isRound0SpellDisabled"
-            >
-              🔮 {{ mage.name }} の呪文 [{{ mage.magicList && mage.magicList[0] ? mage.magicList[0] : '炎球' }}]
-            </button>
+          <!-- メッセージ待ちウェイト表示マスク -->
+          <div v-if="isMessageWaiting" class="cmd-wait-mask" title="メッセージ確認中">
+            <span>▼ メッセージを読み進めてください</span>
           </div>
         </div>
+      </div>
 
-        <div class="divider"></div>
-
-        <div class="flee-section">
-          <button @click="escapeCombat" class="btn-ink btn-flee">
-            🏃 戦闘から逃走する (無防備な一撃を受ける)
-          </button>
-        </div>
-      </template>
+      <!-- RIGHT: Message Window -->
+      <div class="dq3-message-slot">
+        <MessageWindow :embedded="true" />
+      </div>
     </div>
   </div>
 </template>
@@ -1126,4 +1027,135 @@ function closeRangedRound() {
     width: 100%;
   }
 }
+
+/* DRAGON QUEST III CONSOLE DOCK */
+.dq3-console-dock {
+  display: flex;
+  gap: 15px;
+  margin-top: 25px;
+  align-items: stretch;
+  min-height: 220px;
+}
+
+.dq3-command-window {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  border: 3px double var(--ink-dark);
+  background: #fffcf5;
+  border-radius: 6px;
+  padding: 12px;
+  position: relative;
+  box-shadow: 3px 3px 0 rgba(27, 22, 18, 0.2);
+}
+
+.cmd-window-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Noto Serif JP', serif;
+  font-weight: bold;
+  font-size: 0.95rem;
+  color: var(--ink-dark);
+  border-bottom: 2px solid var(--ink-dark);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.target-badge {
+  font-size: 0.75rem;
+  background: rgba(140, 28, 28, 0.1);
+  color: #8c1c1c;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(140, 28, 28, 0.3);
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmd-window-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+.cmd-btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.cmd-btn {
+  font-size: 0.85rem;
+  padding: 8px 6px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+}
+
+.cmd-wait-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 252, 245, 0.85);
+  backdrop-filter: blur(1px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  z-index: 5;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--ink-dark);
+  animation: pulse-mask 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-mask {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.55; }
+}
+
+.dq3-message-slot {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+.is-selected-target {
+  border-color: #8c1c1c !important;
+  box-shadow: 0 0 8px rgba(140, 28, 28, 0.4), inset 0 0 6px rgba(140, 28, 28, 0.1) !important;
+  transform: translateY(-2px);
+  background: #fffbfb !important;
+}
+
+.target-indicator {
+  color: #8c1c1c;
+  font-weight: bold;
+  animation: blink-target 1s infinite alternate;
+}
+
+@keyframes blink-target {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .dq3-console-dock {
+    flex-direction: column;
+  }
+  .dq3-command-window {
+    flex: none;
+    width: 100%;
+  }
+}
+
 </style>

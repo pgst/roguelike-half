@@ -14,6 +14,12 @@ const {
   showLogbookModal
 } = useGameState();
 
+const props = withDefaults(defineProps<{
+  embedded?: boolean;
+}>(), {
+  embedded: false
+});
+
 const emit = defineEmits<{
   (e: 'open-logbook'): void;
 }>();
@@ -82,7 +88,7 @@ function handleWindowClick(e: MouseEvent) {
 <template>
   <div 
     class="dq-message-window" 
-    :class="{ 'has-unread': isMessageWaiting }"
+    :class="{ 'has-unread': isMessageWaiting, 'is-embedded': embedded }"
     @click="handleWindowClick"
     title="クリックまたは [Space / Enter] で次のメッセージへ"
   >
@@ -158,6 +164,25 @@ function handleWindowClick(e: MouseEvent) {
   cursor: pointer;
   border-color: #ffd700;
   box-shadow: 0 4px 18px rgba(212, 175, 55, 0.25), inset 0 0 12px rgba(212, 175, 55, 0.15);
+}
+
+.dq-message-window.is-embedded {
+  margin: 0;
+  max-width: none;
+  height: 100%;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 2.5px double var(--ink-dark, #3e2723);
+  background: #11141a;
+  box-shadow: 2px 2px 0 var(--ink-dark, #3e2723);
+  border-radius: 4px;
+}
+
+.dq-message-window.is-embedded.has-unread {
+  border-color: #d4af37;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3), 2px 2px 0 var(--ink-dark, #3e2723);
 }
 
 .window-inner {

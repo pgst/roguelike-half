@@ -377,8 +377,8 @@ function startAdventure() {
 <template>
   <MiniStatusHud v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" />
   <div class="tabletop-container">
-    <!-- ドラクエ風メッセージ承認ウィンドウ（画面上部） -->
-    <MessageWindow v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" />
+    <!-- ドラクエ風メッセージ承認ウィンドウ（探索・戦闘以外での表示：レベルアップ、ゲームオーバー、クリア画面等） -->
+    <MessageWindow v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select' && currentScreen !== 'explore' && currentScreen !== 'combat'" />
 
     <div class="desktop-layout">
       
