@@ -10,7 +10,7 @@ test.describe('基本ルール ver.5.1: キャラクター作成・成長・チ�
 
   test.beforeEach(async ({ page }) => {
     page.on('dialog', dialog => dialog.accept());
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.evaluate(() => localStorage.clear());
     await disableAnimations(page);
   });
