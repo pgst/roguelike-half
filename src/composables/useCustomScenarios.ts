@@ -105,7 +105,7 @@ export function calculateRecommendedLevel(scenario: Partial<Scenario>): string {
 }
 
 export function useCustomScenarios() {
-  const { currentUser } = useAuth();
+  const { currentUser, isLoggedIn } = useAuth();
 
   // スキーマ検証 ＆ サニタイズ
   function validateScenario(data: any): { isValid: boolean; scenario?: Scenario; error?: string } {
@@ -246,7 +246,7 @@ export function useCustomScenarios() {
     persistToLocalStorage();
 
     // Firebase ログイン中なら Firestore にもバックアップ
-    if (db && currentUser.value) {
+    if (db && isLoggedIn.value && currentUser.value) {
       try {
         const scenarioDocRef = doc(db, 'users', currentUser.value.uid, 'custom_scenarios', cleanScenario.id);
         await setDoc(scenarioDocRef, {
@@ -268,7 +268,7 @@ export function useCustomScenarios() {
       customScenarios.value.splice(idx, 1);
       persistToLocalStorage();
 
-      if (db && currentUser.value) {
+      if (db && isLoggedIn.value && currentUser.value) {
         try {
           const scenarioDocRef = doc(db, 'users', currentUser.value.uid, 'custom_scenarios', scenarioId);
           await deleteDoc(scenarioDocRef);
@@ -436,7 +436,7 @@ export function useCustomScenarios() {
 
   // クラウド（Firestore）からの同期復元
   async function syncFromCloud(): Promise<number> {
-    if (!db || !currentUser.value) return 0;
+    if (!db || !isLoggedIn.value || !currentUser.value) return 0;
     try {
       const colRef = collection(db, 'users', currentUser.value.uid, 'custom_scenarios');
       const snap = await getDocs(colRef);

@@ -19,9 +19,10 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 const DEBOUNCE_INTERVAL_MS = 30000; // 30秒の最小同期間隔（課金防止）
 
 export function useCloudSync() {
-  const { currentUser } = useAuth();
+  const { currentUser, isLoggedIn } = useAuth();
 
-  const isCloudAvailable = computed(() => db !== null && currentUser.value !== null);
+  // Googleアカウントでログイン済みの場合のみクラウド利用可能
+  const isCloudAvailable = computed(() => db !== null && isLoggedIn.value && currentUser.value !== null);
 
   // Firestore 用にセーブデータを軽量化（過去全ログをカット）
   function sanitizeForCloud(session: GameSession): any {
@@ -48,6 +49,7 @@ export function useCloudSync() {
   // クラウドへの即時またはデバウンス保存
   async function saveToCloud(session: GameSession, immediate = false): Promise<boolean> {
     if (!isCloudAvailable.value || !currentUser.value) {
+      // 未ログイン（ゲスト）時は正常にローカルのみ維持
       return false;
     }
 
@@ -68,7 +70,7 @@ export function useCloudSync() {
   }
 
   async function executeSaveToCloud(session: GameSession): Promise<boolean> {
-    if (!db || !currentUser.value) return false;
+    if (!isCloudAvailable.value || !db || !currentUser.value) return false;
     syncStatus.value = 'syncing';
     syncError.value = null;
 
@@ -90,7 +92,10 @@ export function useCloudSync() {
 
   // クラウド上のセーブデータ情報を確認
   async function checkCloudSave(): Promise<boolean> {
-    if (!db || !currentUser.value) return false;
+    if (!isCloudAvailable.value || !db || !currentUser.value) {
+      cloudSaveMetadata.value = null;
+      return false;
+    }
 
     try {
       const userSaveRef = doc(db, 'users', currentUser.value.uid, 'saves', 'latest');
@@ -125,7 +130,7 @@ export function useCloudSync() {
 
   // クラウドからセーブデータを復元
   async function loadFromCloud(): Promise<GameSession | null> {
-    if (!db || !currentUser.value) return null;
+    if (!isCloudAvailable.value || !db || !currentUser.value) return null;
     syncStatus.value = 'syncing';
 
     try {

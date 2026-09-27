@@ -8,65 +8,63 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-const { isAnonymous, userDisplayName, isLinking, linkGoogleAccount, signInWithGoogle, logout } = useAuth();
+const { isAnonymous, isLoggedIn, userDisplayName, isLinking, signInWithGoogle, logout } = useAuth();
 const { syncStatus, syncError, cloudSaveMetadata, saveToCloud, checkCloudSave, loadFromCloud } = useCloudSync();
 const { activeSession, saveSession } = useGameState();
 
 const isCheckingCloud = ref(false);
 const isLoggingOut = ref(false);
-const isSigningInExisting = ref(false);
-const hasAccountConflict = ref(false);
+const hasConflict = ref(false);
 const message = ref<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
 onMounted(async () => {
-  isCheckingCloud.value = true;
-  await checkCloudSave();
-  isCheckingCloud.value = false;
+  if (isLoggedIn.value) {
+    isCheckingCloud.value = true;
+    await checkCloudSave();
+    isCheckingCloud.value = false;
+  }
 });
 
-async function handleLinkGoogle() {
+// Googleアカウントでログイン
+async function handleLoginGoogle() {
   message.value = null;
-  hasAccountConflict.value = false;
-  const res = await linkGoogleAccount();
+  hasConflict.value = false;
+  const res = await signInWithGoogle();
+
   if (res.success) {
-    message.value = { text: '✨ Googleアカウントと正常に連携しました！ データが永続化されます。', type: 'success' };
-    await handleBackupNow();
-  } else {
-    if (res.code === 'credential-already-in-use') {
-      hasAccountConflict.value = true;
-      message.value = { 
-        text: '⚠️ このGoogleアカウントは既に別の冒険者データとして登録されています。既存アカウントでログインすると、クラウド上の冒険データを読み込むことができます。', 
-        type: 'error' 
+    isCheckingCloud.value = true;
+    const hasExistingCloud = await checkCloudSave();
+    isCheckingCloud.value = false;
+
+    if (hasExistingCloud && cloudSaveMetadata.value) {
+      // クラウド側に既存セーブがある場合は競合解決を選択させる
+      hasConflict.value = true;
+      message.value = {
+        text: '⚠️ クラウド上に既存の冒険データが見つかりました。「クラウドから復元」するか「現在のローカルデータで上書き」するか選択してください。',
+        type: 'info'
       };
     } else {
-      message.value = { text: `⚠️ 連携に失敗しました: ${res.error || '不明なエラー'}`, type: 'error' };
+      // クラウド側にセーブがない場合はローカル進行データを初回自動アップロード
+      message.value = { text: '✨ Googleアカウントでログインしました！ ローカルデータをクラウドへ同期します。', type: 'success' };
+      await handleBackupNow();
+    }
+  } else {
+    if (res.cancelled) {
+      message.value = { text: 'ℹ️ ログインがキャンセルされました。', type: 'info' };
+    } else {
+      message.value = { text: `⚠️ ログインに失敗しました: ${res.error || '不明なエラー'}`, type: 'error' };
     }
   }
 }
 
-async function handleSignInExisting() {
-  if (!confirm('既存のGoogleアカウントに切り替えてログインしますか？\n\n※ログイン後、クラウドに保存されている冒険データを復元できるようになります。\n※現在のゲスト進行データで上書きしたい場合は、別のアカウントと連携してください。')) {
-    return;
-  }
-  isSigningInExisting.value = true;
-  message.value = null;
-  const res = await signInWithGoogle();
-  isSigningInExisting.value = false;
-  if (res.success) {
-    hasAccountConflict.value = false;
-    message.value = { text: '🔑 既存のGoogleアカウントでログインしました！ クラウドセーブデータを確認してください。', type: 'success' };
-    await checkCloudSave();
-  } else {
-    message.value = { text: `⚠️ ログインに失敗しました: ${res.error || '不明なエラー'}`, type: 'error' };
-  }
-}
-
+// ログアウト（ローカルデータは保持してゲストに戻る）
 async function handleLogout() {
-  if (!confirm('Googleアカウントからログアウトしますか？\n\n※現在のローカル冒険データは保持されたまま、ゲスト状態に戻ります。\n※最新のプレイ進行度をクラウドに残したい場合は、事前に［今すぐバックアップ］を行ってください。')) {
+  if (!confirm('Googleアカウントからログアウトしますか？\n\n※現在のローカル冒険データはそのまま保持され、ゲスト状態に戻ります。')) {
     return;
   }
   isLoggingOut.value = true;
   message.value = null;
+  hasConflict.value = false;
   const res = await logout();
   isLoggingOut.value = false;
   if (res.success) {
@@ -77,19 +75,22 @@ async function handleLogout() {
   }
 }
 
+// 現在のローカルデータをクラウドへ保存
 async function handleBackupNow() {
   message.value = null;
   const ok = await saveToCloud(activeSession.value, true);
   if (ok) {
+    hasConflict.value = false;
     message.value = { text: '☁️ クラウドへ最新データをバックアップしました！', type: 'success' };
     await checkCloudSave();
   } else {
-    message.value = { text: `⚠️ バックアップ失敗: ${syncError.value || '通信エラー'}`, type: 'error' };
+    message.value = { text: `⚠️ バックアップ失敗: ${syncError.value || '未ログインまたは通信エラー'}`, type: 'error' };
   }
 }
 
+// クラウドのデータでローカルを上書き復元
 async function handleRestoreFromCloud() {
-  if (!confirm('クラウドのセーブデータで現在のローカルデータを上書き復元しますか？（現在の未保存の進行度は失われます）')) {
+  if (!confirm('クラウドのセーブデータで現在のローカルデータを上書き復元しますか？（現在のローカルの進行度は失われます）')) {
     return;
   }
   message.value = null;
@@ -97,6 +98,7 @@ async function handleRestoreFromCloud() {
   if (restored) {
     activeSession.value = restored;
     saveSession();
+    hasConflict.value = false;
     message.value = { text: '🚪 クラウドから冒険データを正常に復元しました！', type: 'success' };
     setTimeout(() => {
       emit('close');
@@ -130,32 +132,21 @@ async function handleRestoreFromCloud() {
           </div>
 
           <p v-if="isAnonymous" class="guest-desc">
-            ※現在はゲスト（匿名）利用のため、ブラウザのキャッシュ消去や別端末への移行でデータが失われる可能性があります。<br/>
-            Googleアカウントと連携すると、同じキャラで別端末からでもプレイ可能になります。
+            ※現在はゲスト利用のため、データはこの端末のブラウザ内のみに保存されています。<br/>
+            Googleアカウントでログインすると、クラウドへ安全にバックアップされ、複数端末で続きをプレイ可能になります。
           </p>
           <p v-else class="linked-desc">
             Googleアカウントと連携済みです。データは安全にクラウドへ同期されます。
           </p>
 
-          <div v-if="isAnonymous" class="action-row" style="display: flex; flex-direction: column; gap: 8px;">
+          <div v-if="isAnonymous" class="action-row">
             <button 
-              @click="handleLinkGoogle" 
+              @click="handleLoginGoogle" 
               class="btn-ink btn-google" 
-              :disabled="isLinking || isSigningInExisting"
+              :disabled="isLinking"
             >
-              <span v-if="isLinking">連携処理中...</span>
-              <span v-else>🔗 Googleアカウントと連携してデータを保存</span>
-            </button>
-
-            <!-- 既存アカウント登録済みの場合のログイン切り替えボタン -->
-            <button 
-              v-if="hasAccountConflict"
-              @click="handleSignInExisting"
-              class="btn-ink btn-signin-existing animate-fade-in"
-              :disabled="isLinking || isSigningInExisting"
-            >
-              <span v-if="isSigningInExisting">ログイン中...</span>
-              <span v-else>🔑 既存のGoogleアカウントでログインする</span>
+              <span v-if="isLinking">ログイン中...</span>
+              <span v-else>🔗 Googleアカウントでログインしてクラウド同期</span>
             </button>
           </div>
           <div v-else class="action-row">
@@ -165,14 +156,42 @@ async function handleRestoreFromCloud() {
               :disabled="isLoggingOut"
             >
               <span v-if="isLoggingOut">ログアウト中...</span>
-              <span v-else>🚪 Googleアカウントからログアウト（ゲストに戻る）</span>
+              <span v-else>🚪 ログアウト（ゲストに戻る）</span>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Cloud Backup Status Section -->
-      <div class="sync-section">
+      <!-- Save Data Conflict Section (競合発生時に強調表示) -->
+      <div v-if="hasConflict && cloudSaveMetadata" class="sync-section conflict-section animate-fade-in">
+        <h3 class="section-title conflict-title">⚠️ セーブデータの選択</h3>
+        <div class="conflict-card">
+          <p class="conflict-desc">
+            クラウド上に既存の冒険データが保存されています。どちらのデータを使用するか選択してください：
+          </p>
+          <div class="conflict-choices">
+            <div class="choice-box cloud-choice">
+              <h4>☁️ クラウド側のデータ</h4>
+              <p><b>冒険者:</b> {{ cloudSaveMetadata.heroName }} (Lv.{{ cloudSaveMetadata.heroLevel }})</p>
+              <p><b>シナリオ:</b> {{ cloudSaveMetadata.scenarioTitle }} (第 {{ cloudSaveMetadata.depth }} 部屋)</p>
+              <button @click="handleRestoreFromCloud" class="btn-ink btn-choice btn-secondary">
+                📥 このクラウドデータを復元
+              </button>
+            </div>
+            <div class="choice-box local-choice">
+              <h4>💻 現在のローカルデータ</h4>
+              <p><b>冒険者:</b> {{ activeSession.character?.name || '無名' }} (Lv.{{ activeSession.character?.level || 1 }})</p>
+              <p><b>シナリオ:</b> {{ activeSession.activeScenario?.title || '未選択' }} (第 {{ activeSession.dungeonDepth || 1 }} 部屋)</p>
+              <button @click="handleBackupNow" class="btn-ink btn-choice">
+                📤 このローカルデータで上書き保存
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cloud Backup Status Section (ログイン中のみ操作可能) -->
+      <div v-if="isLoggedIn && !hasConflict" class="sync-section">
         <h3 class="section-title">💾 クラウドセーブデータ</h3>
         
         <div class="cloud-info-card">
@@ -232,8 +251,10 @@ async function handleRestoreFromCloud() {
 }
 
 .sync-modal {
-  max-width: 520px;
+  max-width: 540px;
   width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
   border: 3px double var(--ink-dark);
   border-radius: 8px;
   padding: 25px;
@@ -258,11 +279,37 @@ async function handleRestoreFromCloud() {
 }
 
 .btn-close {
-  background: transparent;
+  background: none;
   border: none;
   font-size: 1.2rem;
   cursor: pointer;
   color: var(--ink-dark);
+}
+
+.alert-box {
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.alert-box.success {
+  background: #e8f5e9;
+  border: 1px solid #4caf50;
+  color: #2e7d32;
+}
+
+.alert-box.error {
+  background: #ffebee;
+  border: 1px solid #ef5350;
+  color: #c62828;
+}
+
+.alert-box.info {
+  background: #e3f2fd;
+  border: 1px solid #42a5f5;
+  color: #1565c0;
 }
 
 .sync-section {
@@ -270,133 +317,166 @@ async function handleRestoreFromCloud() {
 }
 
 .section-title {
-  font-family: 'Noto Serif JP', serif;
-  font-size: 0.95rem;
-  font-weight: bold;
+  font-size: 1rem;
+  margin-bottom: 8px;
   color: var(--ink-dark);
-  border-bottom: 1px dashed #c2b09a;
-  margin-bottom: 10px;
-  padding-bottom: 3px;
+  border-bottom: 1px dashed var(--ink-light);
+  padding-bottom: 4px;
 }
 
-.status-card, .cloud-info-card {
+.status-card, .cloud-info-card, .conflict-card {
   background: rgba(255, 255, 255, 0.6);
-  border: 1px solid #c2b09a;
+  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 6px;
-  padding: 12px 15px;
+  padding: 12px 16px;
 }
 
 .user-row {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
   margin-bottom: 8px;
 }
 
 .user-name {
   font-size: 1.05rem;
-  color: var(--ink-dark);
 }
 
 .badge-guest {
+  background: #78909c;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 12px;
   font-size: 0.75rem;
-  background: #e8e0d4;
-  color: #705844;
-  padding: 2px 6px;
-  border-radius: 4px;
 }
 
 .badge-linked {
+  background: #2e7d32;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 12px;
   font-size: 0.75rem;
-  background: #e0f2f1;
-  color: #00796b;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: bold;
 }
 
 .guest-desc, .linked-desc {
-  font-size: 0.8rem;
-  color: #555;
-  line-height: 1.4;
-  margin: 0 0 10px 0;
+  font-size: 0.85rem;
+  color: var(--ink-light);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.btn-ink {
+  background: var(--paper-bg);
+  border: 2px solid var(--ink-dark);
+  color: var(--ink-dark);
+  padding: 8px 16px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-ink:hover:not(:disabled) {
+  background: var(--ink-dark);
+  color: var(--paper-bg);
+}
+
+.btn-ink:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-google {
   width: 100%;
-  background: #ffffff;
+  background: #fff;
   border-color: #4285f4;
-  color: #1a73e8;
-  font-weight: bold;
-  padding: 8px 12px;
+  color: #4285f4;
 }
 
-.alert-box {
-  padding: 10px 12px;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  margin-bottom: 15px;
-  line-height: 1.4;
-}
-
-.alert-box.success {
-  background: #e8f5e9;
-  border: 1px solid #a5d6a7;
-  color: #1b5e20;
-}
-
-.alert-box.error {
-  background: #ffebee;
-  border: 1px solid #ef9a9a;
-  color: #c62828;
-}
-
-.alert-box.info {
-  background: #e3f2fd;
-  border: 1px solid #90caf9;
-  color: #0d47a1;
+.btn-google:hover:not(:disabled) {
+  background: #4285f4;
+  color: #fff;
 }
 
 .btn-logout {
   width: 100%;
-  background: #faf8f5;
-  border-color: #c2b09a;
-  color: #705844;
-  font-weight: bold;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  background: #fdf2f2;
+  border-color: #c62828;
+  color: #c62828;
 }
 
 .btn-logout:hover:not(:disabled) {
-  background: #f4ede2;
-  border-color: #8c1c1c;
-  color: #8c1c1c;
+  background: #c62828;
+  color: #fff;
 }
 
-.btn-logout:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.btn-mini {
+  padding: 6px 12px;
+  font-size: 0.85rem;
 }
 
-.btn-signin-existing {
-  width: 100%;
-  background: #fdf5e6;
-  border: 1px solid #8c6d46;
-  color: #3b2c1a;
+.btn-secondary {
+  border-color: #5c4b3d;
+  color: #5c4b3d;
+}
+
+/* Conflict Styles */
+.conflict-section {
+  border: 2px solid #f57c00;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff8e1;
+}
+
+.conflict-title {
+  color: #e65100;
+  border-bottom-color: #ffe082;
+}
+
+.conflict-desc {
+  font-size: 0.85rem;
+  color: #e65100;
+  margin-bottom: 12px;
   font-weight: bold;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.btn-signin-existing:hover:not(:disabled) {
-  background: #f5e8d0;
-  border-color: #5c4327;
+.conflict-choices {
+  display: flex;
+  gap: 12px;
+  flex-direction: column;
 }
 
-.btn-signin-existing:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.choice-box {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.choice-box h4 {
+  margin: 0 0 6px 0;
+  font-size: 0.95rem;
+}
+
+.choice-box p {
+  margin: 3px 0;
+  font-size: 0.85rem;
+  color: var(--ink-light);
+}
+
+.btn-choice {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
