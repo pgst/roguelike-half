@@ -12,11 +12,12 @@ export default defineConfig({
   workers: 1, // 直列で確実に実行
   reporter: [
     ['list'],
-    ['html', { host: '0.0.0.0', port: 9324, open: 'never' }]
+    ...(process.env.CI ? [['github'] as const] : []),
+    ['html', { outputFolder: 'playwright-report-personas', host: '0.0.0.0', port: 9324, open: 'never' }]
   ],
   use: {
     baseURL: 'http://127.0.0.1:5173',
-    trace: 'on-first-retry',
+    trace: process.env.CI ? 'retain-on-failure' : 'on-first-retry',
   },
   projects: [
     {
