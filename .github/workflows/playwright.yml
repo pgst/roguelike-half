@@ -13,8 +13,8 @@ jobs:
       matrix:
         project: [chromium, firefox, webkit]
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    - uses: actions/checkout@v6
+    - uses: actions/setup-node@v7
       with:
         node-version: lts/*
     - name: Install dependencies
@@ -23,7 +23,7 @@ jobs:
       run: npx playwright install --with-deps ${{ matrix.project }}
     - name: Run Playwright tests
       run: npx playwright test --project=${{ matrix.project }}
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       if: always()
       with:
         name: playwright-report-${{ matrix.project }}
