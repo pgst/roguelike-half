@@ -368,6 +368,9 @@ function loadSession(): boolean {
       GameSession.clearLocalStorage();
       return false;
     }
+    if (saved.followers && Array.isArray(saved.followers)) {
+      saved.followers = saved.followers.filter(f => f.lifeCurrent > 0);
+    }
     activeSession.value = saved;
     return true;
   }
@@ -1424,6 +1427,9 @@ function triggerLevelUp() {
 }
 
 function transitionToExplore() {
+  if (followers.value && Array.isArray(followers.value)) {
+    followers.value = followers.value.filter(f => f.lifeCurrent > 0);
+  }
   transitionTo('explore');
 }
 

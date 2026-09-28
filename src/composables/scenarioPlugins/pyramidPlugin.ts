@@ -598,6 +598,7 @@ export const pyramidPlugin = {
                 count: 1
               });
               addLog(`👁️ 従者 ${f.name} は【邪視】に魅了され、敵に寝返って襲いかかってきました！`, 'error');
+              followers.value = followers.value.filter(fol => fol.id !== f.id);
             }
           }
         }
@@ -744,6 +745,7 @@ export const pyramidPlugin = {
           addLog(`🛡️ 従者 ${f.name} は寒冷ダメージを防ぎました。`, 'success');
         }
       }
+      followers.value = followers.value.filter(f => f.lifeCurrent > 0);
     }
 
     if (combatState.isCrocodileClamped) {

@@ -908,7 +908,7 @@ function resolveSkeletonEvent() {
       </div>
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
         <div 
-          v-for="fol in followers" 
+          v-for="fol in followers.filter(f => f.lifeCurrent > 0)" 
           :key="fol.id" 
           class="follower-roster-chip"
           @click="showDetailModal = true"

@@ -383,6 +383,7 @@ export function useDungeon() {
             f.lifeCurrent = 0;
             addLog(`💀 従者 ${f.name} は罠のダメージを受け、死亡しました...`, 'error');
           });
+          followers.value = followers.value.filter(f => f.lifeCurrent > 0);
         }
 
         if (activeEvent.value && (activeEvent.value as any).statusEffect) {
@@ -441,6 +442,7 @@ export function useDungeon() {
             targetName = follower.name;
             follower.lifeCurrent = 0;
             addLog(`💀 従者 ${follower.name} がランダム対象に選ばれ、ダメージを受けて死亡しました...`, 'error');
+            followers.value = followers.value.filter(f => f.lifeCurrent > 0);
           }
         }
 
@@ -497,6 +499,7 @@ export function useDungeon() {
             } else {
               addLog(`💀 従者 ${follower.name} が対象に選ばれ、死亡しました...`, 'error');
             }
+            followers.value = followers.value.filter(f => f.lifeCurrent > 0);
           }
         }
 
@@ -526,6 +529,7 @@ export function useDungeon() {
               f.lifeCurrent = 0;
               addLog(`💀 従者 ${f.name} は全員対象となり、死亡しました...`, 'error');
             });
+            followers.value = followers.value.filter(f => f.lifeCurrent > 0);
           }
 
           if (activeEvent.value && (activeEvent.value as any).statusEffect) {
@@ -713,6 +717,9 @@ export function useDungeon() {
         }
       }
     });
+
+    // 死亡した従者を一括でリストから除外 (Rule 33)
+    followers.value = followers.value.filter(f => f.lifeCurrent > 0);
 
     if (character.value.lifeCurrent <= 0) {
       triggerGameOver();

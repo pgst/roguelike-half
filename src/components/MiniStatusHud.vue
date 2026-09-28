@@ -39,6 +39,8 @@ const subStatIcon = computed(() => {
     default: return '副能力';
   }
 });
+
+const livingFollowers = computed(() => followers.value.filter(f => f.lifeCurrent > 0));
 </script>
 
 <template>
@@ -91,19 +93,19 @@ const subStatIcon = computed(() => {
 
         <!-- Followers Chip -->
         <div 
-          v-if="followers.length > 0" 
+          v-if="livingFollowers.length > 0" 
           class="vital-chip follower-chip" 
-          :title="`同行中の従者: ${followers.map(f => f.name).join('、')} (クリックで詳細)`"
+          :title="`同行中の従者: ${livingFollowers.map(f => f.name).join('、')} (クリックで詳細)`"
           @click="showDetailModal = true"
           style="cursor: pointer;"
         >
           <span class="vital-icon">👥</span>
           <span class="vital-val">
-            <template v-if="followers.length === 1">
-              <b>{{ followers[0].name }}</b>
+            <template v-if="livingFollowers.length === 1">
+              <b>{{ livingFollowers[0].name }}</b>
             </template>
             <template v-else>
-              <b>{{ followers.length }}</b>人
+              <b>{{ livingFollowers.length }}</b>人
             </template>
           </span>
         </div>

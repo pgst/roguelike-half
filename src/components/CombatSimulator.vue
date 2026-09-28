@@ -208,7 +208,7 @@ function closeRangedRound() {
     <div v-if="followers.length > 0" class="combat-party-roster" style="margin-bottom: 15px; background: rgba(92, 75, 61, 0.06); border: 1px dashed var(--ink-light); padding: 8px 12px; border-radius: 4px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
         <span style="font-size: 0.85rem; font-weight: bold; color: var(--ink-dark); font-family: 'Noto Serif JP', serif;">
-          🛡️ 同行中のパーティ・従者 ({{ followers.length }}人)
+          🛡️ 同行中のパーティ・従者 ({{ followers.filter(f => f.lifeCurrent > 0).length }}人)
         </span>
         <button @click="showDetailModal = true" class="btn-ink btn-mini" style="font-size: 0.75rem; padding: 2px 6px;">
           📜 従者管理
@@ -216,7 +216,7 @@ function closeRangedRound() {
       </div>
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
         <div 
-          v-for="fol in followers" 
+          v-for="fol in followers.filter(f => f.lifeCurrent > 0)" 
           :key="fol.id" 
           class="follower-roster-chip"
           @click="showDetailModal = true"
