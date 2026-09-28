@@ -6,10 +6,21 @@ import CloudSyncModal from './CloudSyncModal.vue';
 import HallOfFameModal from './HallOfFameModal.vue';
 import ScenarioEditor from './ScenarioEditor.vue';
 import SettingsHelpModal from './SettingsHelpModal.vue';
+import AdventureSheet from './AdventureSheet.vue';
 import { useCustomScenarios } from '../composables/useCustomScenarios';
 import type { Scenario } from '../types';
 
-const { availableScenarios, activeScenario, currentScreen, isCharacterCreated, hasSavedSession, loadSession, skipAllMessages } = useGameState();
+const { 
+  availableScenarios, 
+  activeScenario, 
+  currentScreen, 
+  character,
+  isCharacterCreated, 
+  hasSavedSession, 
+  loadSession, 
+  skipAllMessages,
+  resetSessionForNewCharacter
+} = useGameState();
 const { initAuth, userDisplayName } = useAuth();
 const { customScenarios, deleteCustomScenario, exportScenarioAsJson, importScenarioFromJson, syncFromCloud } = useCustomScenarios();
 
@@ -34,11 +45,33 @@ function handleSelectListItem(scenario: Scenario) {
 const showCloudModal = ref(false);
 const showHallModal = ref(false);
 const showSettingsHelpModal = ref(false);
+const showDetailModal = ref(false);
 const settingsHelpInitialTab = ref<'settings' | 'help'>('settings');
 
 function openSettingsHelpModal(tab: 'settings' | 'help' = 'settings') {
   settingsHelpInitialTab.value = tab;
   showSettingsHelpModal.value = true;
+}
+
+function getSubStatIcon(subType: string): string {
+  switch (subType) {
+    case 'strength': return '💪 筋力戦士';
+    case 'dexterity': return '🏹 器用射手';
+    case 'magic': return '🔮 魔術師';
+    case 'luck': return '✨ 幸運導師';
+    default: return '冒険者';
+  }
+}
+
+function handleStartNewCharacter() {
+  if (hasSaved.value) {
+    const ok = confirm(`⚠️ 進行中の冒険データ（${savedScenarioTitle.value}・第${savedDepth.value}部屋）があります。\n新しい冒険者を作成すると、現在のキャラクターおよび進行中の冒険データは破棄されます。\n本当に新しい冒険者を作成しますか？`);
+    if (!ok) return;
+  } else if (character.value.name) {
+    const ok = confirm(`現在の冒険者「${character.value.name} (Lv.${character.value.level})」をリセットし、新しい冒険者を作成しますか？`);
+    if (!ok) return;
+  }
+  resetSessionForNewCharacter();
 }
 
 const showEditor = ref(false);
@@ -193,6 +226,66 @@ async function handleFileSelected(event: Event) {
     <p class="subtitle">- 冒険の舞台を選択せよ -</p>
     
     <div class="divider"></div>
+
+    <!-- 👤 Current Character Card -->
+    <div class="current-character-card paper-sheet">
+      <div v-if="isCharacterCreated && character.name" class="character-info-box">
+        <div class="char-header-row">
+          <div class="char-identity">
+            <span class="char-name">👤 <b>{{ character.name }}</b></span>
+            <span class="badge-archetype">{{ getSubStatIcon(character.subStatType) }}</span>
+            <span class="badge-level">Lv.{{ character.level }}</span>
+          </div>
+          <div class="char-actions">
+            <button @click="showDetailModal = true" class="btn-ink btn-mini" title="冒険者シートの詳細を表示">
+              📜 ステータス詳細
+            </button>
+            <button @click="handleStartNewCharacter" class="btn-ink btn-mini btn-danger-ink" title="現在のキャラクターをリセットして新しく作り直す">
+              🔄 新規作成
+            </button>
+          </div>
+        </div>
+
+        <div class="char-vitals-row">
+          <span class="vital-tag">❤️ 生命力: <b>{{ character.lifeCurrent }}</b>/{{ character.lifeMax }}</span>
+          <span class="vital-tag">⚔️ 技量点: <b>{{ character.skillCurrent }}</b>/{{ character.skillMax }}</span>
+          <span class="vital-tag">⚡ 副能力: <b>{{ character.subStatCurrent }}</b>/{{ character.subStatMax }}</span>
+          <span class="vital-tag">💰 金貨: <b>{{ character.gold }}</b>g</span>
+          <span class="vital-tag">🍞 食料: <b>{{ character.food }}</b></span>
+        </div>
+
+        <div class="char-equip-row">
+          <span>🗡️ 武器: <b>{{ character.equippedWeapon?.name || '素手' }}</b></span>
+          <span class="equip-sep">|</span>
+          <span>🛡️ 鎧: <b>{{ character.equippedArmor?.name || '平服' }}</b></span>
+          <span v-if="character.equippedShield" class="equip-sep">|</span>
+          <span v-if="character.equippedShield">🛡️ 盾: <b>{{ character.equippedShield.name }}</b></span>
+        </div>
+      </div>
+
+      <div v-else class="character-empty-box">
+        <span class="empty-icon">👤</span>
+        <div class="empty-text">
+          <b>冒険者はまだ作成されていません</b>
+          <p>シナリオを選択して「このシナリオに挑む」を押すと、新しいキャラクターを作成できます。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 冒険者シート詳細モーダル -->
+    <Teleport to="body">
+      <div v-if="showDetailModal" class="hud-detail-overlay" @click.self="showDetailModal = false">
+        <div class="hud-detail-modal paper-sheet animate-fade-in">
+          <div class="modal-header">
+            <h3>📜 冒険者シート・詳細</h3>
+            <button @click="showDetailModal = false" class="btn-close-hud">✕ 閉じる</button>
+          </div>
+          <div class="modal-body custom-scrollbar">
+            <AdventureSheet />
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Resume Saved Adventure Banner -->
     <div v-if="hasSaved" class="saved-session-banner">
@@ -1211,5 +1304,130 @@ async function handleFileSelected(event: Event) {
   .btn-select {
     width: 100%;
   }
+}
+
+/* Current Character Card */
+.current-character-card {
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid var(--ink-dark);
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.character-info-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.char-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-bottom: 1px dashed rgba(92, 75, 61, 0.3);
+  padding-bottom: 8px;
+}
+
+.char-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.char-name {
+  font-size: 1.1rem;
+  color: var(--ink-dark);
+  font-family: 'Noto Serif JP', serif;
+}
+
+.badge-archetype {
+  font-size: 0.8rem;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: var(--ink-dark);
+  font-weight: bold;
+}
+
+.badge-level {
+  font-size: 0.8rem;
+  background: var(--gold-accent, #c5a059);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.char-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-danger-ink {
+  border-color: #8c1c1c;
+  color: #8c1c1c;
+}
+
+.btn-danger-ink:hover {
+  background: #8c1c1c;
+  color: #fff;
+}
+
+.char-vitals-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vital-tag {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid #dcd3c4;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 0.82rem;
+  color: var(--ink-dark);
+}
+
+.char-equip-row {
+  font-size: 0.85rem;
+  color: var(--ink-light);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.equip-sep {
+  opacity: 0.4;
+}
+
+.character-empty-box {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 6px 4px;
+  color: var(--ink-light);
+}
+
+.empty-icon {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+.empty-text b {
+  font-size: 0.95rem;
+  color: var(--ink-dark);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.empty-text p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 </style>

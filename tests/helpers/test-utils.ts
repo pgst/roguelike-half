@@ -41,8 +41,18 @@ export async function clickButtonByText(page: any, text: string, postWaitMs = 50
 export async function selectScenarioInUI(page: any, scenarioTitle: string): Promise<boolean> {
   const scenarioCard = page.locator('.scenario-card').filter({ hasText: scenarioTitle }).first();
   await scenarioCard.waitFor({ state: 'visible', timeout: 10000 });
+  await scenarioCard.scrollIntoViewIfNeeded();
   await scenarioCard.click({ force: true });
-  await page.waitForTimeout(300);
+  
+  // 詳細パネルが選択したシナリオを表示するまで確実に待機
+  const detailHeader = page.locator(`.scenario-detail-panel .detail-title:has-text("${scenarioTitle}")`);
+  try {
+    await detailHeader.waitFor({ state: 'visible', timeout: 3000 });
+  } catch {
+    // リトライクリック
+    await scenarioCard.click({ force: true });
+    await detailHeader.waitFor({ state: 'visible', timeout: 3000 });
+  }
 
   const startBtn = page.locator('.scenario-detail-panel button:has-text("このシナリオに挑む")');
   await startBtn.waitFor({ state: 'visible', timeout: 5000 });

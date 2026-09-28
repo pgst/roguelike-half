@@ -381,6 +381,14 @@ function clearSavedSession() {
   GameSession.clearLocalStorage();
 }
 
+function resetSessionForNewCharacter() {
+  clearSavedSession();
+  activeSession.value = new GameSession();
+  activeSession.value.currentScreen = 'creator';
+  activeSession.value.isCharacterCreated = false;
+  activeSession.value.character.name = '';
+}
+
 function hasSavedSession(): boolean {
   try {
     const jsonStr = localStorage.getItem('roguelike_half_saved_session');
@@ -1591,6 +1599,7 @@ export function useGameState() {
     saveSession,
     loadSession,
     clearSavedSession,
+    resetSessionForNewCharacter,
     hasSavedSession,
   };
 }
