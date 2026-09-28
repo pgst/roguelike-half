@@ -883,19 +883,6 @@ function resolveSkeletonEvent() {
       </div>
     </div>
 
-    <!-- Dynamic Inline Dice Banner Overlay -->
-    <div v-if="diceTray.isRolling || diceTray.d1 > 0" class="combat-dice-banner" :class="{ 'banner-crit': diceTray.isCritical, 'banner-fumble': diceTray.isFumble }">
-      <div v-if="diceTray.isRolling" class="dice-rolling-indicator">
-        <span class="rolling-dice-icon">🎲</span> <b>ダイス判定中...</b>
-      </div>
-      <div v-else class="dice-result-indicator">
-        <span class="dice-value-chip">
-          🎲 出目: <b>{{ diceTray.d1 }}</b><span v-if="diceTray.d2 > 0"> + <b>{{ diceTray.d2 }}</b></span>
-        </span>
-        <span class="dice-result-text">{{ diceTray.resultText }}</span>
-      </div>
-    </div>
-
     <!-- Party Roster (Followers Bar) -->
     <div v-if="followers.length > 0" class="party-roster-panel" style="margin-bottom: 15px; background: rgba(92, 75, 61, 0.06); border: 1px dashed var(--ink-light); padding: 8px 12px; border-radius: 4px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">

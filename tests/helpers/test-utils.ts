@@ -55,17 +55,22 @@ export async function selectScenarioInUI(page: any, scenarioTitle: string): Prom
 }
 
 /**
- * HUD上の「📜 ステータス詳細」ボタンをクリックして冒険者シートモーダルを開きます。
+ * HUD上の「📜 冒険記録 / ステータス詳細」ボタンをクリックして冒険者シートモーダルを開きます。
  */
 export async function openAdventureSheet(page: any): Promise<boolean> {
   try {
-    const detailBtn = page.locator('.btn-hud-detail');
+    const detailBtn = page.locator('.btn-hud-record, .btn-hud-detail').first();
     await detailBtn.waitFor({ state: 'visible', timeout: 5000 });
     await page.evaluate(() => {
-      const btn = document.querySelector('.btn-hud-detail') as HTMLElement | null;
+      const btn = (document.querySelector('.btn-hud-record') || document.querySelector('.btn-hud-detail')) as HTMLElement | null;
       if (btn) btn.click();
     });
     await page.locator('.hud-detail-modal').waitFor({ state: 'visible', timeout: 5000 });
+    // ステータスタブが選択されていることを確実にする
+    await page.evaluate(() => {
+      const statusTab = Array.from(document.querySelectorAll('.hud-tab-btn')).find(b => b.textContent?.includes('ステータス')) as HTMLElement | null;
+      if (statusTab) statusTab.click();
+    });
     await page.waitForTimeout(300);
     return true;
   } catch (e: any) {

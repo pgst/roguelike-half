@@ -17,6 +17,8 @@ const {
   showDetailModal
 } = useGameState();
 
+const isBattleResolved = computed(() => combatState.isOver && !isMessageWaiting.value);
+
 const showSummonSelector = ref(false);
 
 const selectedEnemyId = ref<string>('');
@@ -191,19 +193,6 @@ function closeRangedRound() {
       </div>
     </div>
 
-    <!-- Dynamic Inline Dice Banner Overlay -->
-    <div v-if="diceTray.isRolling || diceTray.d1 > 0" class="combat-dice-banner" :class="{ 'banner-crit': diceTray.isCritical, 'banner-fumble': diceTray.isFumble }">
-      <div v-if="diceTray.isRolling" class="dice-rolling-indicator">
-        <span class="rolling-dice-icon">🎲</span> <b>ダイス判定中...</b>
-      </div>
-      <div v-else class="dice-result-indicator">
-        <span class="dice-value-chip">
-          🎲 出目: <b>{{ diceTray.d1 }}</b><span v-if="diceTray.d2 > 0"> + <b>{{ diceTray.d2 }}</b></span>
-        </span>
-        <span class="dice-result-text">{{ diceTray.resultText }}</span>
-      </div>
-    </div>
-
     <!-- Party Roster (Followers in Combat) -->
     <div v-if="followers.length > 0" class="combat-party-roster" style="margin-bottom: 15px; background: rgba(92, 75, 61, 0.06); border: 1px dashed var(--ink-light); padding: 8px 12px; border-radius: 4px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -313,7 +302,7 @@ function closeRangedRound() {
     </div>
 
     <!-- COMBAT RESULT RESOLUTION LEDGER (Stage Resolution Notice) -->
-    <div v-else-if="combatState.isOver" class="combat-result-overlay" style="border: 2px solid rgba(27, 22, 18, 0.4); background: rgba(225, 218, 205, 0.4); padding: 25px; border-radius: 6px; box-shadow: var(--card-shadow); text-align: center; margin-top: 20px; margin-bottom: 20px;">
+    <div v-else-if="isBattleResolved" class="combat-result-overlay" style="border: 2px solid rgba(27, 22, 18, 0.4); background: rgba(225, 218, 205, 0.4); padding: 25px; border-radius: 6px; box-shadow: var(--card-shadow); text-align: center; margin-top: 20px; margin-bottom: 20px;">
       <div class="clear-stamp-container" style="margin-bottom: 12px;">
         <span v-if="combatState.resultType === 'victory'" class="clear-stamp success">勝利 VICTORY</span>
         <span v-else-if="combatState.resultType === 'escaped'" class="clear-stamp danger">撤退 RETREAT</span>
@@ -364,7 +353,7 @@ function closeRangedRound() {
     <!-- COMBAT ACTIONS PANEL (Integrated directly inside combat card) -->
     <div class="combat-actions-panel" :class="{ 'waiting-overlay': isMessageWaiting }" style="border-top: 1px dashed rgba(92, 75, 61, 0.4); padding-top: 15px; position: relative;">
         <!-- ヘッダー（行動タイトル & ターゲット情報） -->
-        <div v-if="targetEnemy && !combatState.isOver" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div v-if="targetEnemy && !isBattleResolved" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <span style="font-weight: bold; font-size: 0.9rem; color: var(--ink-dark); font-family: 'Noto Serif JP', serif;">
             ⚔️ 戦闘行動
           </span>
@@ -373,7 +362,7 @@ function closeRangedRound() {
 
         <div class="cmd-window-body">
           <!-- 1. 戦闘終了時 -->
-          <div v-if="combatState.isOver" class="cmd-single-action">
+          <div v-if="isBattleResolved" class="cmd-single-action">
             <div v-if="combatState.resultType === 'victory' && combatState.getLootAfterVictory && !combatState.lootRolled">
               <button @click="resolveLoot" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
                 💎 宝箱を開ける (ダイスを振る)

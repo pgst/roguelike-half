@@ -2,8 +2,7 @@
 import { ref, computed } from 'vue';
 import { useGameState } from '../composables/useGameState';
 import AdventureSheet from './AdventureSheet.vue';
-import SettingsModal from './SettingsModal.vue';
-import HelpModal from './HelpModal.vue';
+import SettingsHelpModal from './SettingsHelpModal.vue';
 import LogbookModal from './LogbookModal.vue';
 
 const {
@@ -12,12 +11,32 @@ const {
   dungeonDepth,
   totalRoomsToClear,
   currentScreen,
+  logs,
   showLogbookModal,
   showDetailModal
 } = useGameState();
 
-const showSettingsModal = ref(false);
-const showHelpModal = ref(false);
+const showRecordModal = ref(false);
+const activeRecordTab = ref<'status' | 'logbook'>('status');
+
+function openRecordModal(tab: 'status' | 'logbook' = 'status') {
+  activeRecordTab.value = tab;
+  showRecordModal.value = true;
+  showDetailModal.value = true;
+}
+
+function closeRecordModal() {
+  showRecordModal.value = false;
+  showDetailModal.value = false;
+}
+
+const showSettingsHelpModal = ref(false);
+const settingsHelpInitialTab = ref<'settings' | 'help'>('settings');
+
+function openSettingsHelpModal(tab: 'settings' | 'help' = 'settings') {
+  settingsHelpInitialTab.value = tab;
+  showSettingsHelpModal.value = true;
+}
 
 const hpRatio = computed(() => {
   if (!character.value.lifeMax) return 1;
@@ -113,31 +132,58 @@ const livingFollowers = computed(() => followers.value.filter(f => f.lifeCurrent
 
       <!-- Right: Detailed Sheet Toggle Button, Logbook, Settings & Help -->
       <div class="hud-right">
-        <button @click="showDetailModal = true" class="btn-hud-detail" title="冒険者シートの詳細を表示">
-          📜 <span class="btn-text">ステータス詳細</span>
+        <button @click="openRecordModal('status')" class="btn-hud-record btn-hud-detail" title="冒険記録（ステータス詳細・冒険の足跡）">
+          📜 <span class="btn-text">冒険記録</span>
         </button>
-        <button @click="showLogbookModal = true" class="btn-hud-logbook" title="冒険の足跡（全記録）を表示">
-          📖 <span class="btn-text">冒険の足跡</span>
-        </button>
-        <button @click="showSettingsModal = true" class="btn-hud-settings" title="環境設定">
-          ⚙️ <span class="btn-text">設定</span>
-        </button>
-        <button @click="showHelpModal = true" class="btn-hud-help" title="冒険の手引き・操作ガイド">
-          ❓ <span class="btn-text">ヘルプ</span>
+        <button @click="openSettingsHelpModal('settings')" class="btn-hud-settings-help btn-hud-settings" title="設定・ヘルプ">
+          ⚙️ <span class="btn-text">設定・ヘルプ</span>
         </button>
       </div>
     </div>
 
-    <!-- Mobile / Floating Detail Modal Drawer -->
+    <!-- 冒険記録モーダル（ステータス詳細 & 冒険の足跡 タブ統合） -->
     <Teleport to="body">
-      <div v-if="showDetailModal" class="hud-detail-overlay" @click.self="showDetailModal = false">
-        <div class="hud-detail-modal paper-sheet">
+      <div v-if="showDetailModal || showRecordModal" class="hud-detail-overlay" @click.self="closeRecordModal">
+        <div class="hud-detail-modal paper-sheet animate-fade-in">
           <div class="modal-header">
-            <h3>📜 冒険者シート・詳細</h3>
-            <button @click="showDetailModal = false" class="btn-close-hud">✕ 閉じる</button>
+            <div class="header-tab-group">
+              <button 
+                type="button"
+                class="hud-tab-btn" 
+                :class="{ active: activeRecordTab === 'status' }"
+                @click="activeRecordTab = 'status'"
+              >
+                📜 ステータス詳細
+              </button>
+              <button 
+                type="button"
+                class="hud-tab-btn" 
+                :class="{ active: activeRecordTab === 'logbook' }"
+                @click="activeRecordTab = 'logbook'"
+              >
+                📖 冒険の足跡 (全 {{ logs.length }} 件)
+              </button>
+            </div>
+            <button @click="closeRecordModal" class="btn-close-hud">✕ 閉じる</button>
           </div>
-          <div class="modal-body">
-            <AdventureSheet />
+          <div class="modal-body custom-scrollbar">
+            <AdventureSheet v-show="activeRecordTab === 'status'" />
+            <div v-if="activeRecordTab === 'logbook'" class="logbook-tab-view">
+              <div class="logbook-entries custom-scrollbar">
+                <div 
+                  v-for="log in logs" 
+                  :key="log.id" 
+                  class="log-entry" 
+                  :class="log.type"
+                >
+                  <span class="log-bullet">■</span>
+                  <span class="log-text">{{ log.text }}</span>
+                </div>
+                <div v-if="logs.length === 0" class="empty-logs">
+                  迷宮の扉が開かれました。あなたの歩みがここに記されます...
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -146,11 +192,12 @@ const livingFollowers = computed(() => followers.value.filter(f => f.lifeCurrent
     <!-- 冒険の足跡モーダル（E2Eテスト互換性のためv-showで常時DOM保持） -->
     <LogbookModal v-show="showLogbookModal" @close="showLogbookModal = false" />
 
-    <!-- 環境設定モーダル -->
-    <SettingsModal v-if="showSettingsModal" @close="showSettingsModal = false" />
-
-    <!-- 総合ヘルプモーダル -->
-    <HelpModal v-if="showHelpModal" @close="showHelpModal = false" />
+    <!-- 統合 設定・ヘルプモーダル -->
+    <SettingsHelpModal 
+      v-if="showSettingsHelpModal" 
+      :initialTab="settingsHelpInitialTab"
+      @close="showSettingsHelpModal = false" 
+    />
   </header>
 </template>
 
@@ -306,9 +353,31 @@ const livingFollowers = computed(() => followers.value.filter(f => f.lifeCurrent
   background: #fff;
 }
 
-.btn-hud-detail:active, .btn-hud-logbook:active, .btn-hud-settings:active, .btn-hud-help:active {
+.btn-hud-detail:active, .btn-hud-logbook:active, .btn-hud-settings:active, .btn-hud-help:active, .btn-hud-record:active, .btn-hud-settings-help:active {
   transform: translate(1px, 1px);
   box-shadow: 1px 1px 0 var(--ink-dark);
+}
+
+.btn-hud-record, .btn-hud-settings-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--ink-dark);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--ink-dark);
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--ink-dark);
+  transition: all 0.15s ease;
+}
+
+.btn-hud-record:hover, .btn-hud-settings-help:hover {
+  background: var(--ink-dark);
+  color: var(--paper-bg);
 }
 
 /* Detail Modal Overlay */
@@ -340,16 +409,34 @@ const livingFollowers = computed(() => followers.value.filter(f => f.lifeCurrent
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 18px;
+  padding: 10px 16px;
   border-bottom: 2px solid var(--ink-dark);
   background: rgba(0,0,0,0.03);
   flex-shrink: 0;
 }
 
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: var(--ink-dark);
+.header-tab-group {
+  display: flex;
+  gap: 6px;
+}
+
+.hud-tab-btn {
+  background: transparent;
+  border: 1px solid var(--ink-light);
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-family: 'Noto Serif JP', serif;
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: var(--ink-light);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hud-tab-btn.active {
+  background: var(--ink-dark);
+  color: var(--paper-bg);
+  border-color: var(--ink-dark);
 }
 
 .btn-close-hud {
@@ -370,9 +457,58 @@ const livingFollowers = computed(() => followers.value.filter(f => f.lifeCurrent
 }
 
 .modal-body {
-  padding: 18px 22px 24px;
+  padding: 16px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
+}
+
+/* Logbook Tab View inside modal */
+.logbook-tab-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 350px;
+  max-height: 60vh;
+}
+
+.logbook-entries {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px dashed rgba(92, 75, 61, 0.3);
+  border-radius: 4px;
+}
+
+.log-entry {
+  display: flex;
+  gap: 8px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--ink-dark);
+}
+
+.log-bullet {
+  font-size: 0.6rem;
+  color: var(--ink-light);
+  margin-top: 4px;
+}
+
+.log-entry.success .log-bullet { color: #2e7d32; }
+.log-entry.error .log-bullet { color: #c62828; }
+.log-entry.combat .log-bullet { color: #b71c1c; }
+.log-entry.info .log-bullet { color: #0277bd; }
+
+.empty-logs {
+  text-align: center;
+  color: var(--ink-light);
+  font-style: italic;
+  padding: 30px 10px;
 }
 
 /* Mobile Responsiveness */
@@ -394,7 +530,7 @@ const livingFollowers = computed(() => followers.value.filter(f => f.lifeCurrent
   .btn-text {
     display: none; /* Icon only on mobile */
   }
-  .btn-hud-detail, .btn-hud-settings, .btn-hud-help {
+  .btn-hud-detail, .btn-hud-settings, .btn-hud-help, .btn-hud-record, .btn-hud-settings-help {
     padding: 4px 8px;
   }
 }

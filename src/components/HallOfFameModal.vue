@@ -199,6 +199,7 @@ function getArchetypeIcon(subStat: string): string {
 
 .entries-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 5px;
   display: flex;
@@ -208,6 +209,8 @@ function getArchetypeIcon(subStat: string): string {
 
 .hall-card {
   display: flex;
+  flex-shrink: 0;
+  min-height: 84px;
   border: 1px solid var(--ink-dark);
   background: rgba(255, 255, 255, 0.5);
   border-radius: 4px;
@@ -230,6 +233,7 @@ function getArchetypeIcon(subStat: string): string {
 .card-body {
   padding: 10px 14px;
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
