@@ -173,27 +173,29 @@ function handleWindowClick(e: MouseEvent) {
 
 .dq-message-window.is-embedded {
   box-sizing: border-box;
-  margin: 0;
+  margin: 14px 0;
   max-width: 100%;
   width: 100%;
   height: auto;
-  min-height: 95px;
+  min-height: 75px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border: 2px dashed rgba(92, 75, 61, 0.5);
-  background: rgba(255, 253, 248, 0.85);
-  background-image: radial-gradient(rgba(0,0,0,0.02) 20%, transparent 20%),
-                    radial-gradient(rgba(0,0,0,0.02) 20%, transparent 20%);
-  background-size: 16px 16px;
-  background-position: 0 0, 8px 8px;
-  box-shadow: inset 0 0 8px rgba(92, 75, 61, 0.08);
-  border-radius: 4px;
+  border-top: 1px dashed rgba(92, 75, 61, 0.4);
+  border-bottom: 1px dashed rgba(92, 75, 61, 0.4);
+  border-left: none;
+  border-right: none;
+  background: rgba(92, 75, 61, 0.03);
+  box-shadow: none;
+  border-radius: 0;
+  padding: 10px 8px;
 }
 
 .dq-message-window.is-embedded.has-unread {
-  border: 2px solid #8c1c1c;
-  box-shadow: 0 0 8px rgba(140, 28, 28, 0.2), inset 0 0 6px rgba(140, 28, 28, 0.05);
+  border-top: 1px dashed #8c1c1c;
+  border-bottom: 1px dashed #8c1c1c;
+  background: rgba(140, 28, 28, 0.02);
+  box-shadow: none;
 }
 
 .window-inner {

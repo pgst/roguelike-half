@@ -930,6 +930,11 @@ function resolveSkeletonEvent() {
       </div>
     </div>
 
+    <!-- GM NARRATION DOCK (Full Width Integrated Message Window) -->
+    <div class="dungeon-message-dock" style="margin-top: 10px; margin-bottom: 10px;">
+      <MessageWindow :embedded="true" />
+    </div>
+
     <!-- Active Event Panel -->
     <div v-if="activeEvent" class="event-panel">
       <!-- Resolved screen for player acknowledgment -->
@@ -1351,7 +1356,7 @@ function resolveSkeletonEvent() {
     </div>
 
     <!-- Perception Choice Panel -->
-    <div v-else-if="combatState.pendingPerception" class="exploration-deck paper-sheet" style="border: 2px dashed var(--ink-dark); padding: 20px; background: rgba(92, 75, 61, 0.05); border-radius: 6px; text-align: center; margin-top: 15px;">
+    <div v-else-if="combatState.pendingPerception" class="exploration-deck" style="text-align: center; margin-top: 15px; padding-top: 5px;">
       <div class="adventure-text">
         <h3 style="font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0 0 10px 0;">🧭 危険を察知しました！</h3>
         <p style="font-size: 0.95rem; margin: 0 0 15px 0;">
@@ -1469,11 +1474,6 @@ function resolveSkeletonEvent() {
         </div>
       </template>
     </div>
-  
-    <!-- MESSAGE DOCK (Full Width Parchment Message Window) -->
-    <div class="dungeon-message-dock" style="margin-top: 20px;">
-      <MessageWindow :embedded="true" />
-    </div>
   </div>
 </template>
 
@@ -1512,11 +1512,8 @@ function resolveSkeletonEvent() {
 }
 
 .event-panel {
-  border: 2px solid var(--ink-dark);
-  background: #fbf8f3;
-  padding: 20px;
-  border-radius: 6px;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+  border-top: 1px dashed rgba(92, 75, 61, 0.4);
+  padding: 15px 0 0 0;
   margin-top: 15px;
 }
 
