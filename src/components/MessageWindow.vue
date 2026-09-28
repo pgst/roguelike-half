@@ -146,13 +146,17 @@ function handleWindowClick(e: MouseEvent) {
   margin: 0 auto 10px auto;
   max-width: 960px;
   width: 100%;
-  background: #0d0f14;
-  color: #f5f5f5;
-  border: 3px double #d4af37;
+  background: var(--paper-bg, #f6ebd2);
+  background-image: radial-gradient(rgba(0,0,0,0.02) 20%, transparent 20%),
+                    radial-gradient(rgba(0,0,0,0.02) 20%, transparent 20%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+  color: var(--ink-dark, #1b1612);
+  border: 3px double var(--ink-dark, #1b1612);
   border-radius: 6px;
   padding: 10px 14px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(0, 0, 0, 0.8);
-  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  box-shadow: var(--card-shadow, 0 4px 10px rgba(0, 0, 0, 0.4));
+  font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
   user-select: none;
   cursor: default;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -162,27 +166,31 @@ function handleWindowClick(e: MouseEvent) {
 
 .dq-message-window.has-unread {
   cursor: pointer;
-  border-color: #ffd700;
-  box-shadow: 0 4px 18px rgba(212, 175, 55, 0.25), inset 0 0 12px rgba(212, 175, 55, 0.15);
+  border-color: #8c1c1c;
+  box-shadow: 0 4px 14px rgba(140, 28, 28, 0.25), inset 0 0 10px rgba(140, 28, 28, 0.08);
 }
 
 .dq-message-window.is-embedded {
   margin: 0;
   max-width: none;
   height: 100%;
-  min-height: 140px;
+  min-height: 110px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border: 2.5px double var(--ink-dark, #3e2723);
-  background: #11141a;
-  box-shadow: 2px 2px 0 var(--ink-dark, #3e2723);
+  border: 2.5px double var(--ink-dark, #1b1612);
+  background: var(--paper-bg, #f6ebd2);
+  background-image: radial-gradient(rgba(0,0,0,0.02) 20%, transparent 20%),
+                    radial-gradient(rgba(0,0,0,0.02) 20%, transparent 20%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+  box-shadow: 2px 2px 0 var(--ink-dark, #1b1612);
   border-radius: 4px;
 }
 
 .dq-message-window.is-embedded.has-unread {
-  border-color: #d4af37;
-  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3), 2px 2px 0 var(--ink-dark, #3e2723);
+  border-color: #8c1c1c;
+  box-shadow: 0 0 8px rgba(140, 28, 28, 0.3), 2px 2px 0 var(--ink-dark, #1b1612);
 }
 
 .window-inner {
@@ -202,36 +210,37 @@ function handleWindowClick(e: MouseEvent) {
   gap: 8px;
   font-size: 1.05rem;
   line-height: 1.6;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   word-break: break-word;
   padding-bottom: 28px; /* 右下の固定ボタンと文字が重ならない防御パディング */
 }
 
 .msg-bullet {
   font-size: 0.75rem;
-  color: #888;
+  color: var(--ink-light, #5c4b3d);
 }
 
-.msg-bullet.roll { color: #5dade2; }
-.msg-bullet.combat { color: #ec7063; }
-.msg-bullet.damage { color: #e74c3c; }
-.msg-bullet.success { color: #58d68d; }
-.msg-bullet.error { color: #e74c3c; }
+.msg-bullet.roll { color: #0c5460; }
+.msg-bullet.combat { color: #8c1c1c; }
+.msg-bullet.damage { color: #a71d2a; }
+.msg-bullet.success { color: #155724; }
+.msg-bullet.error { color: #a71d2a; }
 
 .msg-text {
-  color: #f7f3e9;
+  color: var(--ink-dark, #1b1612);
+  font-weight: 500;
 }
 
-.msg-text.roll { color: #aed6f1; }
-.msg-text.combat { color: #f1948a; }
-.msg-text.damage { color: #ff6b6b; font-weight: bold; }
-.msg-text.success { color: #82e0aa; font-weight: bold; }
-.msg-text.error { color: #f5b7b1; font-weight: bold; }
+.msg-text.roll { color: #0c5460; font-weight: bold; }
+.msg-text.combat { color: #8c1c1c; font-weight: bold; }
+.msg-text.damage { color: #a71d2a; font-weight: bold; }
+.msg-text.success { color: #155724; font-weight: bold; }
+.msg-text.error { color: #a71d2a; font-weight: bold; }
 
 /* ドラクエ風 ▼ アニメーション */
 .dq-cursor {
   display: inline-block;
-  color: #ffd700;
+  color: #8c1c1c;
   font-size: 0.95rem;
   font-weight: bold;
   margin-left: 6px;
@@ -257,42 +266,44 @@ function handleWindowClick(e: MouseEvent) {
 
 .unread-badge {
   font-size: 0.75rem;
-  background: #8c1c1c;
-  color: #fff;
+  background: rgba(140, 28, 28, 0.12);
+  color: #8c1c1c;
+  border: 1px solid #8c1c1c;
   padding: 2px 7px;
   border-radius: 10px;
   font-weight: bold;
   letter-spacing: 0.02em;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 
 .btn-msg-ctrl {
-  background: rgba(40, 44, 52, 0.9);
-  border: 1px solid #665233;
-  color: #dfd7ca;
-  font-family: sans-serif;
+  background: rgba(92, 75, 61, 0.08);
+  border: 1px solid var(--ink-light, #5c4b3d);
+  color: var(--ink-dark, #1b1612);
+  font-family: 'Noto Serif JP', serif;
   font-size: 0.75rem;
-  padding: 4px 8px;
-  border-radius: 4px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 3px;
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  box-shadow: 1px 1px 0 var(--ink-dark, #1b1612);
 }
 
 .btn-msg-ctrl:hover {
-  background: #3a3f4b;
-  border-color: #d4af37;
-  color: #fff;
+  background: rgba(92, 75, 61, 0.18);
+  transform: translateY(-1px);
 }
 
 .btn-msg-ctrl:active {
   transform: translateY(1px);
+  box-shadow: none;
 }
 
 .btn-skip {
-  background: rgba(70, 30, 30, 0.8);
-  border-color: #933;
-  color: #ffcccc;
+  background: rgba(140, 28, 28, 0.1);
+  border-color: #8c1c1c;
+  color: #8c1c1c;
 }
 
 .btn-skip:hover {
@@ -301,15 +312,15 @@ function handleWindowClick(e: MouseEvent) {
 }
 
 .btn-auto.auto-active {
-  background: #1e5a2c;
-  border-color: #27ae60;
-  color: #a9dfbf;
+  background: #b8860b;
+  border-color: #8c6508;
+  color: #fff;
   animation: pulseAuto 1.5s infinite alternate;
 }
 
 @keyframes pulseAuto {
-  from { box-shadow: 0 0 2px #27ae60; }
-  to { box-shadow: 0 0 8px #2ecc71; }
+  from { box-shadow: 0 0 2px #b8860b; }
+  to { box-shadow: 0 0 6px #d4af37; }
 }
 
 @media (max-width: 600px) {

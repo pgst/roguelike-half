@@ -10,7 +10,7 @@ import HelpModal from './HelpModal.vue';
 import { useCustomScenarios } from '../composables/useCustomScenarios';
 import type { Scenario } from '../types';
 
-const { availableScenarios, activeScenario, currentScreen, isCharacterCreated, hasSavedSession, loadSession } = useGameState();
+const { availableScenarios, activeScenario, currentScreen, isCharacterCreated, hasSavedSession, loadSession, skipAllMessages } = useGameState();
 const { initAuth, userDisplayName } = useAuth();
 const { customScenarios, deleteCustomScenario, exportScenarioAsJson, importScenarioFromJson, syncFromCloud } = useCustomScenarios();
 
@@ -82,6 +82,7 @@ function resumeAdventure() {
 }
 
 function selectScenario(scenario: Scenario) {
+  skipAllMessages();
   activeScenario.value = scenario;
   
   // If the character has not been created yet, go to character creation.

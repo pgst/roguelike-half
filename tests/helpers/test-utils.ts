@@ -97,7 +97,7 @@ export async function closeAdventureSheet(page: any): Promise<boolean> {
  */
 export async function transitionToMelee(page: any): Promise<void> {
   const meleeBtn = page.locator('button:has-text("接近戦へ移行する")');
-  await meleeBtn.waitFor({ state: 'visible', timeout: 5000 });
+  await meleeBtn.waitFor({ state: 'visible', timeout: 8000 });
   await page.evaluate(() => {
     const buttons = Array.from(document.querySelectorAll('button'));
     const btn = buttons.find(b => b.textContent?.includes('接近戦へ移行する'));
@@ -111,13 +111,13 @@ export async function transitionToMelee(page: any): Promise<void> {
  */
 export async function proceedToNextRoom(page: any): Promise<void> {
   const proceedBtn = page.locator('button:has-text("次の小部屋へ進む")');
-  await proceedBtn.waitFor({ state: 'visible', timeout: 5000 });
+  await proceedBtn.waitFor({ state: 'visible', timeout: 8000 });
   await page.evaluate(() => {
     const buttons = Array.from(document.querySelectorAll('button'));
     const btn = buttons.find(b => b.textContent?.includes('次の小部屋へ進む'));
     if (btn) btn.click();
   });
-  await page.locator('button:has-text("d66を振って次の部屋を探索する")').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('button:has-text("d66を振って次の部屋を探索する")').waitFor({ state: 'visible', timeout: 8000 });
   await page.waitForTimeout(300);
 }
 

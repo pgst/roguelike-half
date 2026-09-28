@@ -480,6 +480,19 @@ watch(currentMessage, (newMsg) => {
   }
 });
 
+// 前シナリオの未読メッセージ引き継ぎ防止
+watch(activeScenario, (newScen, oldScen) => {
+  if (newScen?.id !== oldScen?.id) {
+    skipAllMessages();
+  }
+});
+
+watch(currentScreen, (newScreen) => {
+  if (newScreen === 'scenario_select') {
+    skipAllMessages();
+  }
+});
+
 function isFastForwardMode(): boolean {
   return (globalThis as any).__FAST_FORWARD_LOGS__ === true ||
     (typeof (globalThis as any).process !== 'undefined' && (globalThis as any).process.env?.NODE_ENV === 'test');
