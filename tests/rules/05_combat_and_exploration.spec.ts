@@ -15,8 +15,8 @@ test.describe('基本ルール ver.5.1: 遭遇・戦闘・逃走・察知・ダ�
 
   test.beforeEach(async ({ page }) => {
     page.on('dialog', dialog => dialog.accept());
+    await page.addInitScript(() => localStorage.clear());
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await page.evaluate(() => localStorage.clear());
     await disableAnimations(page);
   });
 

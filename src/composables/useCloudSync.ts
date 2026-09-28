@@ -4,16 +4,19 @@ import { db } from '../firebase/config';
 import { useAuth } from './useAuth';
 import { GameSession } from '../domain';
 
-const syncStatus = ref<'idle' | 'syncing' | 'saved' | 'error'>('idle');
-const lastSyncedAt = ref<Date | null>(null);
-const syncError = ref<string | null>(null);
-const cloudSaveMetadata = ref<{
+export interface CloudSaveMetadata {
   updatedAt: Date | null;
-  scenarioTitle: string;
+  scenarioTitle: string | null;
   depth: number;
   heroName: string;
   heroLevel: number;
-} | null>(null);
+  hasActiveAdventure: boolean;
+}
+
+const syncStatus = ref<'idle' | 'syncing' | 'saved' | 'error'>('idle');
+const lastSyncedAt = ref<Date | null>(null);
+const syncError = ref<string | null>(null);
+const cloudSaveMetadata = ref<CloudSaveMetadata | null>(null);
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 const DEBOUNCE_INTERVAL_MS = 30000; // 30秒の最小同期間隔（課金防止）
@@ -110,12 +113,20 @@ export function useCloudSync() {
           updatedDate = new Date(data.clientTimestamp);
         }
 
+        const hasActiveAdventure = Boolean(
+          data.activeScenario &&
+          data.activeScenario.title &&
+          data.currentScreen &&
+          data.currentScreen !== 'scenario_select'
+        );
+
         cloudSaveMetadata.value = {
           updatedAt: updatedDate,
-          scenarioTitle: data.activeScenario?.title || '不明なシナリオ',
+          scenarioTitle: hasActiveAdventure ? (data.activeScenario?.title || '不明なシナリオ') : null,
           depth: data.dungeonDepth || 1,
           heroName: data.character?.name || '無名の冒険者',
-          heroLevel: data.character?.level || 1
+          heroLevel: data.character?.level || 1,
+          hasActiveAdventure
         };
         return true;
       } else {
@@ -140,6 +151,9 @@ export function useCloudSync() {
       if (snap.exists()) {
         const data = snap.data();
         const restored = new GameSession(data);
+        if (restored.currentScreen !== 'scenario_select' && !restored.activeScenario) {
+          restored.currentScreen = 'scenario_select';
+        }
         syncStatus.value = 'saved';
         lastSyncedAt.value = new Date();
         return restored;

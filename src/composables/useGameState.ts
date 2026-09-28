@@ -386,7 +386,7 @@ function hasSavedSession(): boolean {
     const jsonStr = localStorage.getItem('roguelike_half_saved_session');
     if (jsonStr) {
       const data = JSON.parse(jsonStr);
-      if (!data.isCharacterCreated || !data.activeScenario) return false;
+      if (!data.isCharacterCreated || !data.activeScenario || data.currentScreen === 'scenario_select') return false;
       // 本番環境で「刻の悪魔のピラミッド」のセーブデータがある場合は再開バナーを出さない
       if (!import.meta.env.DEV && data.activeScenario.id === 'pyramid_of_chronodemon') {
         return false;

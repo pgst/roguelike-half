@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useAuth } from '../composables/useAuth';
 import { useCloudSync } from '../composables/useCloudSync';
 import { useGameState } from '../composables/useGameState';
@@ -16,6 +16,15 @@ const isCheckingCloud = ref(false);
 const isLoggingOut = ref(false);
 const hasConflict = ref(false);
 const message = ref<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+const hasLocalActiveAdventure = computed(() => {
+  return Boolean(
+    activeSession.value.activeScenario &&
+    activeSession.value.activeScenario.title &&
+    activeSession.value.currentScreen &&
+    activeSession.value.currentScreen !== 'scenario_select'
+  );
+});
 
 onMounted(async () => {
   if (isLoggedIn.value) {
@@ -173,7 +182,8 @@ async function handleRestoreFromCloud() {
             <div class="choice-box cloud-choice">
               <h4>☁️ クラウド側のデータ</h4>
               <p><b>冒険者:</b> {{ cloudSaveMetadata.heroName }} (Lv.{{ cloudSaveMetadata.heroLevel }})</p>
-              <p><b>シナリオ:</b> {{ cloudSaveMetadata.scenarioTitle }} (第 {{ cloudSaveMetadata.depth }} 部屋)</p>
+              <p v-if="cloudSaveMetadata.hasActiveAdventure"><b>シナリオ:</b> {{ cloudSaveMetadata.scenarioTitle }} (第 {{ cloudSaveMetadata.depth }} 部屋)</p>
+              <p v-else><b>シナリオ:</b> なし（拠点待機中）</p>
               <button @click="handleRestoreFromCloud" class="btn-ink btn-choice btn-secondary">
                 📥 このクラウドデータを復元
               </button>
@@ -181,7 +191,8 @@ async function handleRestoreFromCloud() {
             <div class="choice-box local-choice">
               <h4>💻 現在のローカルデータ</h4>
               <p><b>冒険者:</b> {{ activeSession.character?.name || '無名' }} (Lv.{{ activeSession.character?.level || 1 }})</p>
-              <p><b>シナリオ:</b> {{ activeSession.activeScenario?.title || '未選択' }} (第 {{ activeSession.dungeonDepth || 1 }} 部屋)</p>
+              <p v-if="hasLocalActiveAdventure"><b>シナリオ:</b> {{ activeSession.activeScenario?.title }} (第 {{ activeSession.dungeonDepth || 1 }} 部屋)</p>
+              <p v-else><b>シナリオ:</b> なし（拠点待機中）</p>
               <button @click="handleBackupNow" class="btn-ink btn-choice">
                 📤 このローカルデータで上書き保存
               </button>
@@ -197,7 +208,8 @@ async function handleRestoreFromCloud() {
         <div class="cloud-info-card">
           <div v-if="cloudSaveMetadata">
             <p><b>冒険者:</b> {{ cloudSaveMetadata.heroName }} (Lv.{{ cloudSaveMetadata.heroLevel }})</p>
-            <p><b>進行中シナリオ:</b> {{ cloudSaveMetadata.scenarioTitle }} (第 {{ cloudSaveMetadata.depth }} 部屋)</p>
+            <p v-if="cloudSaveMetadata.hasActiveAdventure"><b>進行中シナリオ:</b> {{ cloudSaveMetadata.scenarioTitle }} (第 {{ cloudSaveMetadata.depth }} 部屋)</p>
+            <p v-else><b>進行中シナリオ:</b> なし（拠点待機中）</p>
             <p style="font-size: 0.85rem; color: var(--ink-light);">
               最終更新: {{ cloudSaveMetadata.updatedAt ? cloudSaveMetadata.updatedAt.toLocaleString('ja-JP') : '不明' }}
             </p>
