@@ -175,18 +175,6 @@ const merchantGoods = {
   ] as Omit<GeneralItem, 'id'>[]
 };
 
-// Hireable followers list
-const hireableFollowers = [
-  { type: 'soldier', name: '兵士', cost: 0, desc: '戦闘要員。技量0、生命1。無料。' },
-  { type: 'swordsman', name: '剣士', cost: 7, desc: '戦闘要員。技量1、生命1。金貨7枚。' },
-  { type: 'archer', name: '弓兵', cost: 5, desc: '戦闘要員。第0R射撃。金貨5枚。' },
-  { type: 'mage', name: '魔術師', cost: 5, desc: '戦闘要員。魔術1。金貨5枚。' },
-  { type: 'scout', name: '斥候', cost: 5, desc: '非戦闘。察知可能。金貨5枚。' },
-  { type: 'lantern', name: 'ランタン持ち', cost: 0, desc: '非戦闘。明かり提供。無料。' },
-  { type: 'swordbearer', name: '太刀持ち', cost: 0, desc: '非戦闘。武器即時持替。無料。' },
-  { type: 'porter', name: '荷物持ち', cost: 0, desc: '非戦闘。バッグ拡張。無料。' },
-];
-
 function buyWeaponFromMerchant(w: Weapon) {
   if (isBackpackFull.value) {
     addLog('🎒 背負い袋が満杯のため、これ以上アイテムを購入できません！', 'error');
@@ -253,9 +241,47 @@ function buyItemFromMerchant(item: Omit<GeneralItem, 'id'>) {
   addLog(`行商人から [${item.name}] を購入しました。(金貨${item.goldCost}枚消費)`, 'success');
 }
 
-const { buyFollower } = useGameState();
-function hireFollower(type: any) {
-  buyFollower(type);
+// キノコ狩り職人の商品購入関数
+function buyMushroomFood() {
+  if (character.value.gold < 2) {
+    addLog('金貨が足りません！(キノコ1つにつき金貨2枚必要)', 'error');
+    return;
+  }
+  character.value.gold -= 2;
+  character.value.food += 1;
+  addLog('🍄 キノコ狩り職人から『地底キノコ』を購入し、食料を1つ補給しました。(金貨2枚消費)', 'success');
+}
+
+function buyMushroomPotion() {
+  if (isBackpackFull.value) {
+    addLog('🎒 背負い袋が満杯のため、これ以上アイテムを購入できません！', 'error');
+    return;
+  }
+  if (character.value.gold < 10) {
+    addLog('金貨が足りません！(特製キノコエキスは金貨10枚必要)', 'error');
+    return;
+  }
+  character.value.gold -= 10;
+  character.value.items.push({
+    id: generateId(),
+    ...DEFAULT_ITEMS.potion,
+    value: 0
+  } as GeneralItem);
+  addLog('🧪 キノコ狩り職人から『特製キノコエキス (治療のポーション)』を購入しました。(金貨10枚消費)', 'success');
+}
+
+function buyMushroomCure() {
+  if (!character.value.statusEffects || character.value.statusEffects.length === 0) {
+    addLog('現在、治療が必要な状態異常にはかかっていません。', 'info');
+    return;
+  }
+  if (character.value.gold < 5) {
+    addLog('金貨が足りません！(解毒の胞子は金貨5枚必要)', 'error');
+    return;
+  }
+  character.value.gold -= 5;
+  character.value.statusEffects = [];
+  addLog('🌿 キノコ狩り職人の『解毒の胞子』により、すべての状態異常が治癒しました！(金貨5枚消費)', 'success');
 }
 
 // Loot item logic
@@ -1110,19 +1136,65 @@ function resolveSkeletonEvent() {
 
 
 
+        <!-- Mushroom Gatherer NPC (洞窟のキノコ狩り職人) -->
+        <div v-else-if="activeEvent.title === '洞窟のキノコ狩り職人'">
+          <button v-if="!showMerchant" @click="showMerchant = true" class="btn-ink">🍄 取引をする</button>
+          <button v-else @click="showMerchant = false" class="btn-ink btn-mini">閉じる</button>
+          <button v-if="!showMerchant" @click="activeEvent = null; dungeonDepth++" class="btn-ink btn-secondary">部屋を立ち去る</button>
+
+          <!-- Interactive Mushroom Merchant Menu -->
+          <div v-if="showMerchant" class="merchant-menu">
+            <h4 class="menu-title">🍄 取引メニュー (洞窟のキノコ狩り職人)</h4>
+            <p style="font-size: 0.85rem; color: var(--ink-light); margin-bottom: 12px;">
+              「地底に自生する貴重なキノコを分けてやってもいいぜ。滋養強壮にも効くし、傷も癒える代物だ。」
+            </p>
+            <div class="merchant-tabs" style="grid-template-columns: 1fr;">
+              <div class="merch-cat">
+                <h5>🍄 採取品の取引:</h5>
+                <div class="merch-grid" style="grid-template-columns: 1fr;">
+                  <div class="merch-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px dashed var(--ink-light);">
+                    <div>
+                      <b>🍄 地底キノコ (食料 +1)</b> (金貨2枚)<br/>
+                      <small style="color: var(--ink-light);">腹を満たす地底の食料。背負い袋の枠を取りません。(現在: {{ character.food }}個)</small>
+                    </div>
+                    <button @click="buyMushroomFood" class="btn-ink btn-mini" :disabled="character.gold < 2">購入</button>
+                  </div>
+                  <div class="merch-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px dashed var(--ink-light);">
+                    <div>
+                      <b>🧪 特製キノコエキス (治療のポーション)</b> (金貨10枚)<br/>
+                      <small style="color: var(--ink-light);">生命力を2点回復する秘伝のエキス。背負い袋枠を1消費。</small>
+                    </div>
+                    <button @click="buyMushroomPotion" class="btn-ink btn-mini" :disabled="character.gold < 10 || isBackpackFull">購入</button>
+                  </div>
+                  <div class="merch-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px;">
+                    <div>
+                      <b>🌿 解毒の胞子 (状態異常の治癒)</b> (金貨5枚)<br/>
+                      <small style="color: var(--ink-light);">毒や麻痺などの有害な状態異常を即座に治癒します。(現在: {{ character.statusEffects?.length ? character.statusEffects.join(', ') : 'なし' }})</small>
+                    </div>
+                    <button @click="buyMushroomCure" class="btn-ink btn-mini" :disabled="character.gold < 5 || !character.statusEffects || character.statusEffects.length === 0">治療</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button @click="activeEvent = null; showMerchant = false; dungeonDepth++" class="btn-ink btn-large btn-leave" style="margin-top: 15px; width: 100%;">取引を終えて部屋を進む</button>
+          </div>
+        </div>
+
+        <!-- Standard Merchant (地下の行商人) -->
         <div v-else-if="activeEvent.npcType === 'merchant' || activeEvent.title === '地下の行商人'">
           <button v-if="!showMerchant" @click="showMerchant = true" class="btn-ink">🪙 取引をする</button>
           <button v-else @click="showMerchant = false" class="btn-ink btn-mini">閉じる</button>
           <button v-if="!showMerchant" @click="activeEvent = null; dungeonDepth++" class="btn-ink btn-secondary">部屋を立ち去る</button>
 
-          <!-- Interactive Merchant Menu -->
+          <!-- Interactive Merchant Menu (物資のみ、従者なし) -->
           <div v-if="showMerchant" class="merchant-menu">
             <h4 class="menu-title">🛒 取引メニュー ({{ activeEvent.title }})</h4>
             
             <div class="merchant-tabs">
               <!-- Weapons -->
               <div class="merch-cat">
-                <h5>⚔️ 武器・道具の購入:</h5>
+                <h5>⚔️ 武器の購入:</h5>
                 <div class="merch-grid">
                   <div v-for="w in merchantGoods.weapons" :key="w.name" class="merch-item">
                     <span>{{ w.name }} ({{ w.goldCost }}g)</span>
@@ -1160,20 +1232,6 @@ function resolveSkeletonEvent() {
                   <div v-for="i in merchantGoods.items" :key="i.name" class="merch-item">
                     <span>{{ i.name }} ({{ i.goldCost }}g)</span>
                     <button @click="buyItemFromMerchant(i)" class="btn-ink btn-mini" :disabled="character.gold < i.goldCost || isBackpackFull">購入</button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Hire followers -->
-              <div class="merch-cat">
-                <h5>👥 従者の雇用:</h5>
-                <div class="merch-grid">
-                  <div v-for="f in hireableFollowers" :key="f.name" class="merch-item">
-                    <span class="fol-details">
-                      <b>{{ f.name }}</b> ({{ f.cost }}g)<br/>
-                      <small class="fol-sub-desc">{{ f.desc }}</small>
-                    </span>
-                    <button @click="hireFollower(f.type)" class="btn-ink btn-mini" :disabled="character.gold < f.cost || followers.length >= character.followerCurrent">雇う</button>
                   </div>
                 </div>
               </div>
