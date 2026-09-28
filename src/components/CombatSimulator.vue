@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue';
 import { useGameState } from '../composables/useGameState';
 import { useCombat } from '../composables/useCombat';
+import { useSettings } from '../composables/useSettings';
+import { randomInt } from '../domain/random';
 import MessageWindow from './MessageWindow.vue';
 
 const {
@@ -17,7 +19,45 @@ const {
   showDetailModal
 } = useGameState();
 
+const { autoCombatDefenseAllocation } = useSettings();
+
 const isBattleResolved = computed(() => combatState.isOver && !isMessageWaiting.value);
+
+const autoDefenderMap = ref<Record<string, 'hero' | string>>({});
+
+const currentAttackDefenderId = computed(() => {
+  if (!autoCombatDefenseAllocation.value || activeAttacks.value.length === 0) return null;
+  const currentAttack = activeAttacks.value[0];
+  if (!currentAttack) return null;
+
+  // 攻撃が特定対象を指定している場合（時空牙など）
+  if (currentAttack.type === 'spacetime_fang_hero' || currentAttack.type === 'spacetime_fang_hero_2') {
+    return 'hero';
+  }
+  if (currentAttack.type === 'spacetime_fang_follower' && currentAttack.targetFollowerId) {
+    return currentAttack.targetFollowerId;
+  }
+
+  // 既にこの攻撃の担当者が選定済みなら再利用
+  if (autoDefenderMap.value[currentAttack.id]) {
+    const existing = autoDefenderMap.value[currentAttack.id];
+    if (existing === 'hero') return 'hero';
+    if (activeCombatFollowers.value.some(f => f.id === existing)) return existing;
+  }
+
+  // 候補: 主人公 + 生存中の戦闘従者
+  const candidates: ('hero' | string)[] = ['hero'];
+  activeCombatFollowers.value.forEach(f => candidates.push(f.id));
+
+  const chosen = candidates[randomInt(0, candidates.length - 1)];
+  autoDefenderMap.value[currentAttack.id] = chosen;
+  return chosen;
+});
+
+const currentSelectedFollower = computed(() => {
+  if (!currentAttackDefenderId.value || currentAttackDefenderId.value === 'hero') return null;
+  return activeCombatFollowers.value.find(f => f.id === currentAttackDefenderId.value) || null;
+});
 
 const showSummonSelector = ref(false);
 
@@ -295,7 +335,10 @@ function closeRangedRound() {
           <p class="alert-desc">
             未適用の攻撃回数: <b>{{ activeAttacks.length }}</b> 回。<br/>
             👾 <b>{{ activeAttacks[0].source.name }}</b> の攻撃 (防御目標値: <b>{{ activeAttacks[0].source.level }}</b>)<br/>
-            <small style="color: var(--ink-light);">※ 戦闘コマンドから防御を行う味方を選択してください。</small>
+            <small v-if="autoCombatDefenseAllocation && currentAttackDefenderId" style="color: var(--ink-dark); font-weight: bold;">
+              ※ 自動選定により <b>{{ currentAttackDefenderId === 'hero' ? '主人公' : currentSelectedFollower?.name }}</b> が防御担当に選ばれました。防御ロールを実行してください。
+            </small>
+            <small v-else style="color: var(--ink-light);">※ 戦闘コマンドから防御を行う味方を選択してください。</small>
           </p>
         </template>
       </div>
@@ -404,27 +447,55 @@ function closeRangedRound() {
               </button>
             </div>
             <!-- 通常の防御選択時 -->
-            <div v-else class="cmd-btn-grid" style="grid-template-columns: 1fr;">
-              <button @click="resolveDefense(activeAttacks[0].id, 'hero')" class="btn-ink cmd-btn btn-def" :disabled="diceTray.isRolling">
-                🛡️ 主人公が防御する
-              </button>
-              <button 
-                v-if="character.subStatType === 'strength' && character.subStatCurrent > 0"
-                @click="resolveDefense(activeAttacks[0].id, 'hero', true)" 
-                class="btn-ink cmd-btn btn-def btn-strength"
-                :disabled="diceTray.isRolling"
-              >
-                💪 全力防御 (筋力1消費)
-              </button>
-              <button 
-                v-for="fol in activeCombatFollowers" 
-                :key="fol.id"
-                @click="resolveDefense(activeAttacks[0].id, fol.id)" 
-                class="btn-ink cmd-btn btn-def btn-secondary"
-                :disabled="diceTray.isRolling"
-              >
-                👤 従者 [{{ fol.name }}] が受ける (技量: {{ fol.skill }})
-              </button>
+            <div v-else>
+              <!-- 自動選定有効時 -->
+              <div v-if="autoCombatDefenseAllocation && currentAttackDefenderId" class="cmd-btn-grid" style="grid-template-columns: 1fr;">
+                <template v-if="currentAttackDefenderId === 'hero'">
+                  <button @click="resolveDefense(activeAttacks[0].id, 'hero')" class="btn-ink cmd-btn btn-def" :disabled="diceTray.isRolling">
+                    🛡️ 【自動選定: 主人公】が防御する (技量: {{ character.skillCurrent }})
+                  </button>
+                  <button 
+                    v-if="character.subStatType === 'strength' && character.subStatCurrent > 0"
+                    @click="resolveDefense(activeAttacks[0].id, 'hero', true)" 
+                    class="btn-ink cmd-btn btn-def btn-strength"
+                    :disabled="diceTray.isRolling"
+                  >
+                    💪 全力防御 (筋力1消費)
+                  </button>
+                </template>
+                <template v-else-if="currentSelectedFollower">
+                  <button 
+                    @click="resolveDefense(activeAttacks[0].id, currentSelectedFollower.id)" 
+                    class="btn-ink cmd-btn btn-def btn-secondary"
+                    :disabled="diceTray.isRolling"
+                  >
+                    👤 【自動選定: {{ currentSelectedFollower.name }}】が受ける (技量: {{ currentSelectedFollower.skill }})
+                  </button>
+                </template>
+              </div>
+              <!-- 手動選定時（全ボタン一覧） -->
+              <div v-else class="cmd-btn-grid" style="grid-template-columns: 1fr;">
+                <button @click="resolveDefense(activeAttacks[0].id, 'hero')" class="btn-ink cmd-btn btn-def" :disabled="diceTray.isRolling">
+                  🛡️ 主人公が防御する
+                </button>
+                <button 
+                  v-if="character.subStatType === 'strength' && character.subStatCurrent > 0"
+                  @click="resolveDefense(activeAttacks[0].id, 'hero', true)" 
+                  class="btn-ink cmd-btn btn-def btn-strength"
+                  :disabled="diceTray.isRolling"
+                >
+                  💪 全力防御 (筋力1消費)
+                </button>
+                <button 
+                  v-for="fol in activeCombatFollowers" 
+                  :key="fol.id"
+                  @click="resolveDefense(activeAttacks[0].id, fol.id)" 
+                  class="btn-ink cmd-btn btn-def btn-secondary"
+                  :disabled="diceTray.isRolling"
+                >
+                  👤 従者 [{{ fol.name }}] が受ける (技量: {{ fol.skill }})
+                </button>
+              </div>
             </div>
           </div>
 

@@ -13,7 +13,14 @@ const emit = defineEmits<{
 }>();
 
 const activeMainTab = ref<'settings' | 'help'>(props.initialTab);
-const { showDiceOverlay, toggleDiceOverlay } = useSettings();
+const { 
+  showDiceOverlay, 
+  toggleDiceOverlay,
+  autoTrapTargetAllocation,
+  toggleAutoTrapTarget,
+  autoCombatDefenseAllocation,
+  toggleAutoCombatDefense
+} = useSettings();
 
 // Help Tabs
 type HelpTab = 'basics' | 'explore' | 'combat' | 'growth' | 'sync' | 'workshop';
@@ -59,6 +66,7 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
       <div class="modal-body-container custom-scrollbar">
         <!-- 1. SETTINGS TAB CONTENT -->
         <div v-if="activeMainTab === 'settings'" class="settings-content animate-fade-in">
+          <!-- 1. Dice Overlay Toggle -->
           <div class="setting-item">
             <div class="setting-info">
               <span class="setting-title">🎲 運命のダイス演出</span>
@@ -75,6 +83,48 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
                 @click="toggleDiceOverlay"
               >
                 {{ showDiceOverlay ? 'ON (表示)' : 'OFF (非表示)' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. Auto Trap Target Allocation Toggle -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">🎯 トラップ対象の自動割り振り</span>
+              <span class="setting-desc">
+                罠の発動時、主人公や同行従者からランダムに対象を自動選定して即座に解決します。<br/>
+                OFF（手動）にすると毎回プレイヤーが身代わりや対象を選択できます。
+              </span>
+            </div>
+            <div class="setting-control">
+              <button 
+                type="button" 
+                class="btn-toggle" 
+                :class="{ active: autoTrapTargetAllocation }"
+                @click="toggleAutoTrapTarget"
+              >
+                {{ autoTrapTargetAllocation ? 'ON (自動)' : 'OFF (手動)' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. Auto Combat Defense Allocation Toggle -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">🛡️ 戦闘防御担当の自動割り振り</span>
+              <span class="setting-desc">
+                敵の攻撃を受けた際、防御を行うキャラクター（主人公または戦闘従者）をランダムに自動選定します。<br/>
+                ダイス判定や【そらし】【かばう】の手動判断はそのまま行えます。
+              </span>
+            </div>
+            <div class="setting-control">
+              <button 
+                type="button" 
+                class="btn-toggle" 
+                :class="{ active: autoCombatDefenseAllocation }"
+                @click="toggleAutoCombatDefense"
+              >
+                {{ autoCombatDefenseAllocation ? 'ON (自動)' : 'OFF (手動)' }}
               </button>
             </div>
           </div>
@@ -310,6 +360,9 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
 /* Settings Styles */
 .settings-content {
   padding: 10px 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .setting-item {

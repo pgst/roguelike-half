@@ -1,8 +1,10 @@
 import { useGameState } from './useGameState';
+import { useSettings } from './useSettings';
 import type { Enemy } from '../types';
 import { runScenarioHook } from './scenarioPlugins';
 import { generateId, randomInt } from '../domain/random';
 export function useDungeon() {
+  const { autoTrapTargetAllocation } = useSettings();
   const { 
     character, 
     activeEvent, 
@@ -569,6 +571,10 @@ export function useDungeon() {
             chooseCount: countRoll,
             chosenIds: []
           };
+          if (autoTrapTargetAllocation.value) {
+            autoResolveAllTrapDamage();
+            return false;
+          }
           addLog(`⚠️ 罠が作動しました！ ${countRoll} 人の対象者を順に選択してください。`, 'error');
           return false;
         }
@@ -583,6 +589,10 @@ export function useDungeon() {
             roll,
             total
           };
+          if (autoTrapTargetAllocation.value) {
+            autoResolveAllTrapDamage();
+            return false;
+          }
           addLog('⚠️ 罠が作動しました！ダメージを受けるキャラクター（主人公または従者）を選択してください。', 'error');
           return false;
         } else {
@@ -735,6 +745,44 @@ export function useDungeon() {
 罠を発動させてしまい、${resolutionNames.join('、')} がダメージを受けました！`;
   }
 
+  // 自動トラップ割り振り解決（完全自動・ランダム選定）
+  function autoResolveAllTrapDamage() {
+    if (!combatState.pendingTrapDamage) return;
+
+    while (combatState.pendingTrapDamage) {
+      const pending = combatState.pendingTrapDamage;
+      const chosenIds = pending.chosenIds || [];
+
+      // 候補: 主人公 + 生存中のウォー・ドール以外の従者（未選定者）
+      const validFollowers = followers.value.filter(
+        f => f.lifeCurrent > 0 && f.name !== 'ウォー・ドール' && !chosenIds.includes(f.id)
+      );
+
+      const candidateIds: string[] = [];
+      if (!chosenIds.includes('hero')) {
+        candidateIds.push('hero');
+      }
+      validFollowers.forEach(f => candidateIds.push(f.id));
+
+      if (candidateIds.length === 0) {
+        // 候補が尽きた場合はスタック防止のため終了
+        combatState.pendingTrapDamage = null;
+        if (activeEvent.value) {
+          (activeEvent.value as any).isResolved = true;
+        }
+        break;
+      }
+
+      // ランダムに1名を抽選
+      const randIdx = randomInt(0, candidateIds.length - 1);
+      const chosenId = candidateIds[randIdx];
+      const targetName = chosenId === 'hero' ? '主人公' : (followers.value.find(f => f.id === chosenId)?.name || '従者');
+
+      addLog(`🎲 【自動選定】罠の身代わり/ダメージ対象に ${targetName} が選ばれました。`, 'info');
+      resolveTrapDamageTarget(chosenId);
+    }
+  }
+
   return {
     exploreNextRoom,
     resolveTrapCheck,
@@ -743,5 +791,6 @@ export function useDungeon() {
     executePerceptionHero,
     startEncounter,
     resolveTrapDamageTarget,
+    autoResolveAllTrapDamage,
   };
 }
