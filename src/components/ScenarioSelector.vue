@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useGameState } from '../composables/useGameState';
 import { useAuth } from '../composables/useAuth';
 import CloudSyncModal from './CloudSyncModal.vue';
@@ -21,7 +21,11 @@ const {
   skipAllMessages,
   resetSessionForNewCharacter
 } = useGameState();
-const { initAuth, userDisplayName } = useAuth();
+const { initAuth, userDisplayName, userPhotoURL } = useAuth();
+const avatarLoadError = ref(false);
+watch(userPhotoURL, () => {
+  avatarLoadError.value = false;
+});
 const { customScenarios, deleteCustomScenario, exportScenarioAsJson, importScenarioFromJson, syncFromCloud } = useCustomScenarios();
 
 const officialScenarios = computed(() => availableScenarios.value.filter(s => !s.id.startsWith('custom_')));
@@ -176,8 +180,17 @@ async function handleFileSelected(event: Event) {
 <template>
   <div class="scenario-selector paper-sheet animate-fade-in">
     <div class="top-nav-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <span class="user-chip" style="font-size: 0.8rem; color: var(--ink-light); background: rgba(0,0,0,0.04); padding: 3px 8px; border-radius: 4px; border: 1px dashed #c2b09a;">
-        👤 {{ userDisplayName }}
+      <span class="user-chip">
+        <img 
+          v-if="userPhotoURL && !avatarLoadError" 
+          :src="userPhotoURL" 
+          alt="Avatar" 
+          class="user-avatar-tiny"
+          referrerpolicy="no-referrer"
+          @error="avatarLoadError = true"
+        />
+        <span v-else class="user-avatar-fallback">👤</span>
+        <span class="user-name-text">{{ userDisplayName }}</span>
       </span>
       <div style="display: flex; gap: 8px;">
         <button @click="showHallModal = true" class="btn-ink btn-mini" style="font-size: 0.8rem;">
@@ -1500,5 +1513,43 @@ async function handleFileSelected(event: Event) {
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+}
+
+/* User Profile Header Chip */
+.user-chip {
+  font-size: 0.8rem;
+  color: var(--ink-light);
+  background: rgba(0, 0, 0, 0.04);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px dashed #c2b09a;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 240px;
+}
+
+.user-avatar-tiny {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+  display: block;
+}
+
+.user-avatar-fallback {
+  font-size: 0.85rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.user-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

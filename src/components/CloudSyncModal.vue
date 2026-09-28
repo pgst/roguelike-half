@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useAuth } from '../composables/useAuth';
 import { useCloudSync } from '../composables/useCloudSync';
 import { useGameState } from '../composables/useGameState';
@@ -8,9 +8,14 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-const { isAnonymous, isLoggedIn, userDisplayName, isLinking, signInWithGoogle, logout } = useAuth();
+const { isAnonymous, isLoggedIn, userDisplayName, userPhotoURL, isLinking, signInWithGoogle, logout } = useAuth();
 const { syncStatus, syncError, cloudSaveMetadata, saveToCloud, checkCloudSave, loadFromCloud } = useCloudSync();
 const { activeSession, saveSession } = useGameState();
+
+const avatarLoadError = ref(false);
+watch(userPhotoURL, () => {
+  avatarLoadError.value = false;
+});
 
 const isCheckingCloud = ref(false);
 const isLoggingOut = ref(false);
@@ -135,7 +140,18 @@ async function handleRestoreFromCloud() {
         <h3 class="section-title">👤 アカウント状況</h3>
         <div class="status-card">
           <div class="user-row">
-            <span class="user-name"><b>{{ userDisplayName }}</b></span>
+            <div class="user-profile-left">
+              <img 
+                v-if="userPhotoURL && !avatarLoadError" 
+                :src="userPhotoURL" 
+                alt="Avatar" 
+                class="user-avatar-modal"
+                referrerpolicy="no-referrer"
+                @error="avatarLoadError = true"
+              />
+              <div v-else class="user-avatar-fallback-modal">👤</div>
+              <span class="user-name"><b>{{ userDisplayName }}</b></span>
+            </div>
             <span v-if="isAnonymous" class="badge-guest">ゲスト</span>
             <span v-else class="badge-linked">連携済み</span>
           </div>
@@ -348,6 +364,36 @@ async function handleRestoreFromCloud() {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+}
+
+.user-profile-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar-modal {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--ink-dark);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  display: block;
+}
+
+.user-avatar-fallback-modal {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px dashed var(--ink-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
 }
 
 .user-name {

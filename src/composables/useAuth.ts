@@ -25,6 +25,12 @@ export function useAuth() {
     }
     return currentUser.value.displayName || currentUser.value.email || '冒険者';
   });
+  const userPhotoURL = computed(() => {
+    if (!currentUser.value || currentUser.value.isAnonymous) {
+      return null;
+    }
+    return currentUser.value.photoURL || null;
+  });
 
   // 認証の初期化（既存セッションの確認のみ。匿名サインインは行わない）
   function initAuth(): Promise<User | null> {
@@ -103,6 +109,7 @@ export function useAuth() {
     isAnonymous,
     isLoggedIn,
     userDisplayName,
+    userPhotoURL,
     initAuth,
     signInWithGoogle,
     logout
