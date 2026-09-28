@@ -23,14 +23,30 @@ export function useAuth() {
     if (!currentUser.value || currentUser.value.isAnonymous) {
       return 'ゲスト冒険者 (未ログイン)';
     }
-    return currentUser.value.displayName || currentUser.value.email || '冒険者';
+    if (currentUser.value.displayName) {
+      return currentUser.value.displayName;
+    }
+    for (const p of currentUser.value.providerData || []) {
+      if (p?.displayName) return p.displayName;
+    }
+    return currentUser.value.email || '冒険者';
   });
   const userPhotoURL = computed(() => {
     if (!currentUser.value || currentUser.value.isAnonymous) {
       return null;
     }
-    return currentUser.value.photoURL || null;
+    if (currentUser.value.photoURL) {
+      return currentUser.value.photoURL;
+    }
+    for (const p of currentUser.value.providerData || []) {
+      if (p?.photoURL) {
+        return p.photoURL;
+      }
+    }
+    return null;
   });
+
+  let hasBackgroundReloaded = false;
 
   // 認証の初期化（既存セッションの確認のみ。匿名サインインは行わない）
   function initAuth(): Promise<User | null> {
@@ -49,6 +65,18 @@ export function useAuth() {
         if (user && !user.isAnonymous) {
           currentUser.value = user;
           resolve(user);
+
+          // セッション復元時に最新プロフィール（画像・表示名）を1回だけ非同期・非ブロッキングで再同期
+          if (!hasBackgroundReloaded) {
+            hasBackgroundReloaded = true;
+            user.reload().then(() => {
+              if (authInstance.currentUser) {
+                currentUser.value = authInstance.currentUser;
+              }
+            }).catch((err) => {
+              console.warn('[useAuth] Background profile reload failed (ignorable):', err);
+            });
+          }
         } else {
           currentUser.value = null;
           resolve(null);
@@ -68,6 +96,8 @@ export function useAuth() {
 
     try {
       const provider = new GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
       // ポップアップサインインを実行
       const result = await signInWithPopup(authInstance, provider);
       currentUser.value = result.user;
