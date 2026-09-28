@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
     "test:e2e": "playwright test",
+    "test:personas": "playwright test --config=playwright.config.personas.ts",
     "test:legacy": "playwright test tests/legacy",
     "test:unit": "vitest run",
     "show-report": "playwright show-report --host 0.0.0.0"
