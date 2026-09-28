@@ -90,9 +90,22 @@ const subStatIcon = computed(() => {
         </div>
 
         <!-- Followers Chip -->
-        <div v-if="followers.length > 0" class="vital-chip" title="同行中の従者">
+        <div 
+          v-if="followers.length > 0" 
+          class="vital-chip follower-chip" 
+          :title="`同行中の従者: ${followers.map(f => f.name).join('、')} (クリックで詳細)`"
+          @click="showDetailModal = true"
+          style="cursor: pointer;"
+        >
           <span class="vital-icon">👥</span>
-          <span class="vital-val"><b>{{ followers.length }}</b>人</span>
+          <span class="vital-val">
+            <template v-if="followers.length === 1">
+              <b>{{ followers[0].name }}</b>
+            </template>
+            <template v-else>
+              <b>{{ followers.length }}</b>人
+            </template>
+          </span>
         </div>
       </div>
 

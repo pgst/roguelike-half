@@ -870,6 +870,40 @@ function resolveSkeletonEvent() {
       </div>
     </div>
 
+    <!-- Party Roster (Followers Bar) -->
+    <div v-if="followers.length > 0" class="party-roster-panel" style="margin-bottom: 15px; background: rgba(92, 75, 61, 0.06); border: 1px dashed var(--ink-light); padding: 8px 12px; border-radius: 4px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-size: 0.85rem; font-weight: bold; color: var(--ink-dark); font-family: 'Noto Serif JP', serif;">
+          👥 同行中のパーティ・従者 ({{ followers.length }} / {{ character.followerCurrent }} 人)
+        </span>
+        <button @click="showDetailModal = true" class="btn-ink btn-mini" style="font-size: 0.75rem; padding: 2px 6px;">
+          📜 従者管理
+        </button>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div 
+          v-for="fol in followers" 
+          :key="fol.id" 
+          class="follower-roster-chip"
+          @click="showDetailModal = true"
+          :title="`${fol.name}: ${fol.description || ''} (クリックで詳細)`"
+          style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid var(--ink-light); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; box-shadow: 1px 1px 0 rgba(0,0,0,0.1);"
+        >
+          <span>{{ fol.type === 'captive' ? '⛓️' : fol.type === 'swordbearer' ? '🗡️' : fol.type === 'mage' ? '🔮' : fol.type === 'scout' ? '🧭' : '👥' }}</span>
+          <span style="font-weight: bold; color: var(--ink-dark);">{{ fol.name }}</span>
+          <span 
+            style="font-size: 0.7rem; padding: 1px 4px; border-radius: 3px;"
+            :style="fol.isCombatant ? 'background: #e8f5e9; color: #2e7d32;' : 'background: #fff3e0; color: #e65100;'"
+          >
+            {{ fol.isCombatant ? `⚔️ 技量:${fol.skill}` : (fol.type === 'captive' ? '⛓️ 身代わり' : '🛡️ 非戦闘') }}
+          </span>
+          <span style="font-size: 0.75rem; color: #8c1c1c; font-weight: bold;">
+            ❤️ {{ fol.lifeCurrent }}/{{ fol.lifeMax }}
+          </span>
+        </div>
+      </div>
+    </div>
+
     <!-- Active Event Panel -->
     <div v-if="activeEvent" class="event-panel">
       <!-- Resolved screen for player acknowledgment -->
