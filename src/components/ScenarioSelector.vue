@@ -1430,4 +1430,75 @@ async function handleFileSelected(event: Event) {
   font-size: 0.8rem;
   line-height: 1.4;
 }
+
+/* Adventure Sheet Modal Overlay & Box */
+.hud-detail-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 99999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 15px;
+  backdrop-filter: blur(2px);
+}
+
+.hud-detail-modal {
+  max-width: 640px;
+  width: 100%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  border: 3px double var(--ink-dark);
+  border-radius: 8px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6);
+  background: var(--paper-bg);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 2px solid var(--ink-dark);
+  background: rgba(0, 0, 0, 0.03);
+  flex-shrink: 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--ink-dark);
+  font-family: 'Noto Serif JP', serif;
+}
+
+.btn-close-hud {
+  background: none;
+  border: 1px solid var(--ink-dark);
+  color: var(--ink-dark);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.15s ease;
+}
+
+.btn-close-hud:hover {
+  background: #8c1c1c;
+  color: #fff;
+  border-color: #8c1c1c;
+}
+
+.modal-body {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
 </style>
