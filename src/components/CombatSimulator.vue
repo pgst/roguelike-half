@@ -289,7 +289,7 @@ function closeRangedRound() {
           <p class="alert-desc">
             👾 <b>{{ combatState.pendingDeflect.enemy.name }}</b> からの攻撃が
             <b>{{ combatState.pendingDeflect.defenderId === 'hero' ? '主人公' : '従者' }}</b> に直撃しようとしています！<br/>
-            <small style="color: var(--ink-light);">※ 下部コマンドウィンドウから【そらし】の発動を選択してください。</small>
+            <small style="color: var(--ink-light);">※ 戦闘コマンドから【そらし】の発動を選択してください。</small>
           </p>
         </template>
 
@@ -297,7 +297,7 @@ function closeRangedRound() {
           <h3 class="alert-title">🛡️ 従者をかばう！</h3>
           <p class="alert-desc">
             従者 <b>{{ combatState.pendingCover.followerName }}</b> が被弾しました！<br/>
-            <small style="color: var(--ink-light);">※ 下部コマンドウィンドウから「かばう」の実行を選択してください。</small>
+            <small style="color: var(--ink-light);">※ 戦闘コマンドから「かばう」の実行を選択してください。</small>
           </p>
         </template>
 
@@ -306,7 +306,7 @@ function closeRangedRound() {
           <p class="alert-desc">
             未適用の攻撃回数: <b>{{ activeAttacks.length }}</b> 回。<br/>
             👾 <b>{{ activeAttacks[0].source.name }}</b> の攻撃 (防御目標値: <b>{{ activeAttacks[0].source.level }}</b>)<br/>
-            <small style="color: var(--ink-light);">※ 下部コマンドウィンドウから防御を行う味方を選択してください。</small>
+            <small style="color: var(--ink-light);">※ 戦闘コマンドから防御を行う味方を選択してください。</small>
           </p>
         </template>
       </div>
@@ -328,7 +328,7 @@ function closeRangedRound() {
         <div v-if="combatState.getLootAfterVictory && !combatState.lootRolled" style="margin-bottom: 15px;">
           <p style="font-size: 1rem; color: var(--ink-dark); margin-bottom: 5px;">
             敵の遺品や宝箱から戦利品を獲得できます。<br/>
-            <small style="color: var(--ink-light);">※ 下部コマンドウィンドウの「宝箱を開ける」を押してください。</small>
+            <small style="color: var(--ink-light);">※ 戦闘コマンドの「宝箱を開ける」を押してください。</small>
           </p>
         </div>
         <div v-else>
@@ -356,13 +356,14 @@ function closeRangedRound() {
       </div>
     </div>
 
-    <!-- DRAGON QUEST III CONSOLE DOCK (Left: Command Window, Right: Message Window) -->
-    <div class="dq3-console-dock">
-      <!-- LEFT: Command Window -->
-      <div class="dq3-command-window paper-sheet" :class="{ 'waiting-overlay': isMessageWaiting }">
-        <div class="cmd-window-header">
-          <span>⚔️ コマンド</span>
-          <span v-if="targetEnemy && !combatState.isOver" class="target-badge">🎯 {{ targetEnemy.name }}</span>
+    <!-- COMBAT ACTIONS PANEL (Integrated directly inside combat card) -->
+    <div class="combat-actions-panel" :class="{ 'waiting-overlay': isMessageWaiting }" style="margin-top: 20px; border-top: 1px dashed rgba(92, 75, 61, 0.4); padding-top: 15px; position: relative;">
+        <!-- ヘッダー（行動タイトル & ターゲット情報） -->
+        <div v-if="targetEnemy && !combatState.isOver" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="font-weight: bold; font-size: 0.9rem; color: var(--ink-dark); font-family: 'Noto Serif JP', serif;">
+            ⚔️ 戦闘行動
+          </span>
+          <span class="target-badge">🎯 目標: {{ targetEnemy.name }}</span>
         </div>
 
         <div class="cmd-window-body">
@@ -655,12 +656,11 @@ function closeRangedRound() {
         </div>
       </div>
 
-      <!-- RIGHT: Message Window -->
-      <div class="dq3-message-slot">
+      <!-- FULL WIDTH MESSAGE DOCK -->
+      <div class="combat-message-dock" style="margin-top: 20px;">
         <MessageWindow :embedded="true" />
       </div>
     </div>
-  </div>
 </template>
 
 <style scoped>
@@ -1062,38 +1062,15 @@ function closeRangedRound() {
   }
 }
 
-/* DRAGON QUEST III CONSOLE DOCK */
-.dq3-console-dock {
-  display: flex;
-  gap: 15px;
-  margin-top: 25px;
-  align-items: stretch;
-  min-height: 220px;
-}
-
-.dq3-command-window {
-  flex: 0 0 320px;
+/* COMBAT ACTIONS PANEL & MESSAGE DOCK */
+.combat-actions-panel {
   display: flex;
   flex-direction: column;
-  border: 3px double var(--ink-dark);
-  background: #fffcf5;
-  border-radius: 6px;
-  padding: 12px;
   position: relative;
-  box-shadow: 3px 3px 0 rgba(27, 22, 18, 0.2);
 }
 
-.cmd-window-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-family: 'Noto Serif JP', serif;
-  font-weight: bold;
-  font-size: 0.95rem;
-  color: var(--ink-dark);
-  border-bottom: 2px solid var(--ink-dark);
-  padding-bottom: 6px;
-  margin-bottom: 10px;
+.combat-message-dock {
+  width: 100%;
 }
 
 .target-badge {
@@ -1103,14 +1080,13 @@ function closeRangedRound() {
   padding: 2px 6px;
   border-radius: 4px;
   border: 1px solid rgba(140, 28, 28, 0.3);
-  max-width: 160px;
+  max-width: 180px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .cmd-window-body {
-  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1119,7 +1095,7 @@ function closeRangedRound() {
 
 .cmd-btn-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
   width: 100%;
 }
@@ -1158,12 +1134,6 @@ function closeRangedRound() {
   50% { opacity: 0.55; }
 }
 
-.dq3-message-slot {
-  flex: 1;
-  display: flex;
-  min-width: 0;
-}
-
 .is-selected-target {
   border-color: #8c1c1c !important;
   box-shadow: 0 0 8px rgba(140, 28, 28, 0.4), inset 0 0 6px rgba(140, 28, 28, 0.1) !important;
@@ -1181,15 +1151,4 @@ function closeRangedRound() {
   from { opacity: 0.4; }
   to { opacity: 1; }
 }
-
-@media (max-width: 768px) {
-  .dq3-console-dock {
-    flex-direction: column;
-  }
-  .dq3-command-window {
-    flex: none;
-    width: 100%;
-  }
-}
-
 </style>
