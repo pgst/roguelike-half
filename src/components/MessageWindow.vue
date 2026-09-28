@@ -143,6 +143,7 @@ function handleWindowClick(e: MouseEvent) {
 
 <style scoped>
 .dq-message-window {
+  box-sizing: border-box;
   margin: 0 auto 10px auto;
   max-width: 960px;
   width: 100%;
@@ -171,29 +172,32 @@ function handleWindowClick(e: MouseEvent) {
 }
 
 .dq-message-window.is-embedded {
+  box-sizing: border-box;
   margin: 0;
-  max-width: none;
-  height: 100%;
-  min-height: 110px;
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  min-height: 95px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border: 2.5px double var(--ink-dark, #1b1612);
-  background: var(--paper-bg, #f6ebd2);
+  border: 2px dashed rgba(92, 75, 61, 0.5);
+  background: rgba(255, 253, 248, 0.85);
   background-image: radial-gradient(rgba(0,0,0,0.02) 20%, transparent 20%),
                     radial-gradient(rgba(0,0,0,0.02) 20%, transparent 20%);
   background-size: 16px 16px;
   background-position: 0 0, 8px 8px;
-  box-shadow: 2px 2px 0 var(--ink-dark, #1b1612);
+  box-shadow: inset 0 0 8px rgba(92, 75, 61, 0.08);
   border-radius: 4px;
 }
 
 .dq-message-window.is-embedded.has-unread {
-  border-color: #8c1c1c;
-  box-shadow: 0 0 8px rgba(140, 28, 28, 0.3), 2px 2px 0 var(--ink-dark, #1b1612);
+  border: 2px solid #8c1c1c;
+  box-shadow: 0 0 8px rgba(140, 28, 28, 0.2), inset 0 0 6px rgba(140, 28, 28, 0.05);
 }
 
 .window-inner {
+  box-sizing: border-box;
   position: relative;
   width: 100%;
   height: 100%;
@@ -204,6 +208,7 @@ function handleWindowClick(e: MouseEvent) {
 }
 
 .msg-content {
+  box-sizing: border-box;
   width: 100%;
   display: flex;
   align-items: baseline;
@@ -255,8 +260,8 @@ function handleWindowClick(e: MouseEvent) {
 /* 操作系ボタン（右下固定ツールバー） */
 .msg-controls {
   position: absolute;
-  right: 0;
-  bottom: 0;
+  right: 6px;
+  bottom: 6px;
   display: flex;
   align-items: center;
   gap: 6px;

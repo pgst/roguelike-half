@@ -356,8 +356,13 @@ function closeRangedRound() {
       </div>
     </div>
 
+    <!-- GM NARRATION CONSOLE (Integrated between creature situation and actions) -->
+    <div class="combat-message-dock" style="margin-top: 15px; margin-bottom: 15px;">
+      <MessageWindow :embedded="true" />
+    </div>
+
     <!-- COMBAT ACTIONS PANEL (Integrated directly inside combat card) -->
-    <div class="combat-actions-panel" :class="{ 'waiting-overlay': isMessageWaiting }" style="margin-top: 20px; border-top: 1px dashed rgba(92, 75, 61, 0.4); padding-top: 15px; position: relative;">
+    <div class="combat-actions-panel" :class="{ 'waiting-overlay': isMessageWaiting }" style="border-top: 1px dashed rgba(92, 75, 61, 0.4); padding-top: 15px; position: relative;">
         <!-- ヘッダー（行動タイトル & ターゲット情報） -->
         <div v-if="targetEnemy && !combatState.isOver" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <span style="font-weight: bold; font-size: 0.9rem; color: var(--ink-dark); font-family: 'Noto Serif JP', serif;">
@@ -654,11 +659,6 @@ function closeRangedRound() {
             <span>▼ メッセージを読み進めてください</span>
           </div>
         </div>
-      </div>
-
-      <!-- FULL WIDTH MESSAGE DOCK -->
-      <div class="combat-message-dock" style="margin-top: 20px;">
-        <MessageWindow :embedded="true" />
       </div>
     </div>
 </template>
