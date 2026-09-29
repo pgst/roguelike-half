@@ -278,7 +278,7 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
               </div>
 
               <div class="help-section">
-                <h3>🏃 敵の【逃走】とプレイヤーの【逃走】 【Rule 41, 42】</h3>
+                <h3>🏃 敵の【逃走】とプレイヤーの【逃走】 【Rule 38, 42】</h3>
                 <div class="rule-box">
                   <ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
                     <li><strong>敵の逃走：</strong> 敵の生命点または人数が<strong>初期値の半分以下（端数切り捨て）</strong>になった瞬間、敵は戦意を喪失して自動的に逃走します。この場合も敵を倒した時と同様に勝利となり、【宝物表】を獲得できます。</li>
@@ -288,7 +288,7 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
               </div>
 
               <div class="help-section">
-                <h3>🛡️ 従者システムと【かばう】 【Rule 32, 33】</h3>
+                <h3>🛡️ 従者システムと【かばう】 【Rule 22, 32, 33】</h3>
                 <div class="rule-box">
                   <ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
                     <li><strong>戦闘従者の生命点：</strong> 兵士・剣士・弓兵・魔術師などの「戦う従者」は生命点が1点しかなく、敵の攻撃を受けると即死します。</li>
@@ -316,7 +316,7 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
             <!-- 4. 成長と装備 -->
             <div v-else-if="activeHelpTab === 'growth'" class="tab-content animate-fade-in">
               <div class="help-section">
-                <h3>⭐ 経験点と能力値の成長 【Rule 5, 6, 17〜24】</h3>
+                <h3>⭐ 経験点と能力値の成長 【Rule 5, 15, 16】</h3>
                 <p>
                   「ローグライクハーフ」は、キャラクター作成時（初期EXP10点など）および冒険の合間に、手に入れた【経験点（EXP）】を各能力値に1点単位で自由に割り振る<strong>ポイントバイ方式</strong>を採用しています。<br/>
                   技量点、生命点の最大値、副能力値、従者点の上限を、プレイヤーの好みのビルドに合わせて成長させることができます。
@@ -325,9 +325,16 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
 
               <div class="help-section">
                 <h3>🎒 背負い袋の制限とアイテム管理 【Rule 27】</h3>
-                <p>
-                  装備品欄（武器・鎧・盾）以外に持ち歩けるアイテムは、背負い袋の枠数（基本6枠）までに制限されます。予備の武具やアイテムを拾う際は、所持枠の管理が重要となります。
-                </p>
+                <div class="rule-box">
+                  <p>
+                    装備品欄（武器・鎧・盾）以外に持ち歩けるアイテムの上限は、<strong>生命点の最大値（着用防具・盾によるボーナスを含む）と同じ数</strong>です。
+                  </p>
+                  <ul style="margin: 6px 0 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px;">
+                    <li><strong>被弾による影響なし：</strong> 戦闘でダメージを受けて「現在の生命点」が減っても、持ち物上限は減少しません。</li>
+                    <li><strong>荷物持ち従者の恩恵：</strong> 「荷物持ち」が1人同行するごとに、持ち物枠が <strong>+3枠</strong> 拡張されます。</li>
+                    <li><strong>予備の鎧は不可：</strong> 鎧はかさばるため、着用しているもの以外の鎧を持ち歩くことはできません。</li>
+                  </ul>
+                </div>
               </div>
 
               <div class="help-section">
