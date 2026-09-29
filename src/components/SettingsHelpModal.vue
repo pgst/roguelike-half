@@ -228,6 +228,19 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
                   敵の反撃を受けた際、防御判定を行います。同行中の従者が攻撃対象になった場合、主人公の技量点や腕力を消費して「かばう」ことができます。
                 </p>
               </div>
+              <div class="help-section">
+                <h3>🔨 武器属性【打撃】と【斬撃】の違い</h3>
+                <div class="rule-box">
+                  <p style="margin-bottom: 6px;">
+                    すべての近接武器や従者は<strong>【打撃】</strong>か<strong>【斬撃】</strong>のいずれかの属性を持ちます。
+                  </p>
+                  <ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
+                    <li><strong>基本性能の差はありません：</strong> どちらの属性でも通常与えるダメージは同一（命中時1点）です。</li>
+                    <li><strong>モンスターの「耐性・弱点」で差が出ます：</strong> 硬い岩石でできた【ゴーレム】には、刃が通らないため【斬撃】で攻撃判定に -1 のペナルティを受けますが、粉砕する【打撃】なら +1 のボーナスを得られます。</li>
+                    <li><strong>射撃武器と素手の特性：</strong> 『弓矢』は【斬撃】、『スリング（投石器）』と素手攻撃は【打撃】として扱われます。</li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
             <!-- 4. 成長と装備 -->
