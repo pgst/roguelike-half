@@ -1,7 +1,10 @@
 import { useGameState } from './useGameState';
-import type { Enemy, GeneralItem } from '../types';
+import type { Enemy } from '../types';
 import { runScenarioHook } from './scenarioPlugins';
 import { generateId, randomInt } from '../domain/random';
+import { useCombatEnemy } from './combat/useCombatEnemy';
+import { useCombatLoot } from './combat/useCombatLoot';
+import { useCombatMagic } from './combat/useCombatMagic';
 
 export function useCombat() {
   const {
@@ -100,240 +103,81 @@ export function useCombat() {
     return { hit, total };
   }
 
-  // Check if enemies should retreat (half health or count, rule 38)
-  function checkEnemyRetreat() {
-    if (combatState.isOver) return;
-    if (combatState.enemies.length === 0) return;
-    if (!activeEvent.value) return;
-    
-    // Check if the battle event is "Fight to Death" (死ぬまで戦う)
-    const isFightToDeath = activeEvent.value.title.includes('決戦') || activeEvent.value.title.includes('魔将');
-    if (isFightToDeath) return;
+  // Enemy and reaction sub-module
+  const enemyModule = useCombatEnemy({
+    character,
+    followers,
+    combatState,
+    activeScenario,
+    activeEvent,
+    dungeonDepth,
+    totalRoomsToClear,
+    addLog,
+    rollD6,
+    endCombat,
+    endCombatPeaceful,
+    executeEnemyAttacks
+  });
 
-    // Calculate total starting health vs current health
-    let totalStartLife = 0;
-    let totalCurrentLife = 0;
-    
-    // In our event table, we can calculate based on activeEvent enemies
-    activeEvent.value.enemies?.forEach(e => {
-      totalStartLife += e.lifeMax;
-    });
+  const checkEnemyRetreat = enemyModule.checkEnemyRetreat;
+  const rollReactionCheck = enemyModule.rollReactionCheck;
+  const applyFriendshipReaction = enemyModule.applyFriendshipReaction;
+  const confirmReactionResult = enemyModule.confirmReactionResult;
+  const payBribe = enemyModule.payBribe;
+  const refuseBribeAndFight = enemyModule.refuseBribeAndFight;
 
-    combatState.enemies.forEach(e => {
-      totalCurrentLife += e.lifeCurrent;
-    });
+  // Loot sub-module
+  const lootModule = useCombatLoot({
+    character,
+    followers,
+    combatState,
+    activeScenario,
+    addLog,
+    rollD6
+  });
 
-    if (totalCurrentLife <= totalStartLife / 2) {
-      addLog('⚔️ 敵の生命力/人数が初期の半分以下になったため、敵は恐怖して【逃走】しました！', 'success');
-      endCombat(true);
-    }
-  }
+  const resolveLoot = lootModule.resolveLoot;
+  const applyDexLootBonus = lootModule.applyDexLootBonus;
+  const confirmLootWithoutDex = lootModule.confirmLootWithoutDex;
+  const rollMagicTreasure = lootModule.rollMagicTreasure;
+  const activateWarDoll = lootModule.activateWarDoll;
 
-  // Combat reaction roll before fighting (Rule 35)
-  async function rollReactionCheck() {
-    if (dungeonDepth.value >= totalRoomsToClear.value) {
-      addLog('⚠️ ボス戦では反応チェックを行えません。', 'error');
-      return;
-    }
-    if (combatState.hasReactionChecked) return;
-    combatState.hasReactionChecked = true;
-    combatState.isBribeAllowed = false;
-
-    addLog('敵の反応を確認します。1d6を振ります...', 'info');
-    const roll = await rollD6();
-    let text = '';
-    let actionType: 'hostile' | 'bribe' | 'flee' | 'neutral' | 'hospitable' | 'outnumbered_flee' | 'outnumbered_hostile' = 'hostile';
-
-    if (roll === 1) {
-      text = '敵対的：クリーチャーは激しい敵意を示し、即座に襲いかかってきました！(敵先制攻撃)';
-      actionType = 'hostile';
-      addLog(text, 'error');
-    } else if (roll === 2) {
-      combatState.isBribeAllowed = true;
-      text = 'ワイロ：金貨を要求されました。金貨5枚を支払えば戦闘を回避できます。';
-      actionType = 'bribe';
-      addLog(text, 'info');
-    } else if (roll === 3) {
-      const partySize = 1 + followers.value.length;
-      const enemySize = combatState.enemies.reduce((sum, e) => sum + e.count, 0);
-      if (partySize > enemySize) {
-        text = '劣勢のため逃走：味方の数が敵より多いため、敵は逃げ出しました！';
-        actionType = 'outnumbered_flee';
-        addLog(text, 'success');
-      } else {
-        text = '数で劣っていないため、敵は強気になり襲いかかってきました！';
-        actionType = 'outnumbered_hostile';
-        addLog(text, 'error');
-      }
-    } else if (roll === 4) {
-      text = '逃走：敵は怯えて逃げ出しました！勝利と同様に宝物を手に入れられます。';
-      actionType = 'flee';
-      addLog(text, 'success');
-    } else if (roll === 5) {
-      text = '中立：敵は攻撃してきません。エリアを自由に横切って立ち去ることができます。';
-      actionType = 'neutral';
-      addLog(text, 'success');
-    } else if (roll === 6) {
-      text = '歓待：食事と休息を提供してくれました！全員の生命力が1点回復し、敵は立ち去ります。';
-      actionType = 'hospitable';
-      addLog(text, 'success');
-    }
-
-    combatState.reactionResult = {
-      roll,
-      text,
-      actionType
-    };
-  }
-
-  async function applyFriendshipReaction(adjustment: number) {
-    if (!combatState.reactionResult) return;
-
-    // Consume Magic point
-    character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
-
-    let roll = combatState.reactionResult.roll;
-    roll = Math.max(1, Math.min(6, roll + adjustment));
-
-    let text = '';
-    let actionType: 'hostile' | 'bribe' | 'flee' | 'neutral' | 'hospitable' | 'outnumbered_flee' | 'outnumbered_hostile' = 'hostile';
-
-    if (roll === 1) {
-      text = '敵対的：クリーチャーは激しい敵意を示し、即座に襲いかかってきました！(敵先制攻撃)';
-      actionType = 'hostile';
-    } else if (roll === 2) {
-      combatState.isBribeAllowed = true;
-      text = 'ワイロ：金貨を要求されました。金貨5枚を支払えば戦闘を回避できます。';
-      actionType = 'bribe';
-    } else if (roll === 3) {
-      const partySize = 1 + followers.value.length;
-      const enemySize = combatState.enemies.reduce((sum, e) => sum + e.count, 0);
-      if (partySize > enemySize) {
-        text = '劣勢のため逃走：味方の数が敵より多いため、敵は逃げ出しました！';
-        actionType = 'outnumbered_flee';
-      } else {
-        text = '数で劣っていないため、敵は強気になり襲いかかってきました！';
-        actionType = 'outnumbered_hostile';
-      }
-    } else if (roll === 4) {
-      text = '逃走：敵は怯えて逃げ出しました！勝利と同様に宝物を手に入れられます。';
-      actionType = 'flee';
-    } else if (roll === 5) {
-      text = '中立：敵は攻撃してきません。エリアを自由に横切って立ち去ることができます。';
-      actionType = 'neutral';
-    } else if (roll === 6) {
-      text = '歓待：食事と休息を提供してくれました！全員の生命力が1点回復し、敵は立ち去ります。';
-      actionType = 'hospitable';
-    }
-
-    addLog(`🔮 魔法【友情】を発動！ 出目を ${adjustment > 0 ? '+' : ''}${adjustment} して【 ${roll} 】に変更しました。(魔術点残り: ${character.value.subStatCurrent})`, 'success');
-    addLog(`反応再評価: ${text}`, 'info');
-
-    combatState.reactionResult = {
-      roll,
-      text,
-      actionType
-    };
-  }
-
-  async function confirmReactionResult() {
-    if (!combatState.reactionResult) return;
-    const { actionType } = combatState.reactionResult;
-
-    // Clear reaction result to dismiss UI
-    combatState.reactionResult = null;
-
-    // Apply outcome effects
-    if (actionType === 'hostile' || actionType === 'outnumbered_hostile') {
-      if (combatState.hasQuickStrikeActive) {
-        addLog('【速撃】の効果により、クリーチャーの先制攻撃を防ぎました！(プレイヤー先制)', 'success');
-      } else {
-        await executeEnemyAttacks();
-      }
-    } else if (actionType === 'flee' || actionType === 'outnumbered_flee') {
-      endCombat(true);
-    } else if (actionType === 'neutral') {
-      endCombatPeaceful('中立：敵は攻撃してきません。戦うことなく安全に立ち去ることができました。');
-    } else if (actionType === 'hospitable') {
-      character.value.lifeCurrent = Math.min(character.value.lifeMax, character.value.lifeCurrent + 1);
-      followers.value.forEach(f => f.lifeCurrent = 1);
-      endCombatPeaceful('歓待：クリーチャーは食事と休息を提供してくれました！全員の生命力が1点回復し、敵は立ち去りました。');
-    }
-  }
-
-  // Pay bribe to escape combat
-  function payBribe(useFriendship = false) {
-    if (dungeonDepth.value >= totalRoomsToClear.value) {
-      addLog('⚠️ ボス戦ではワイロを支払えません。', 'error');
-      return;
-    }
-
-    let cost = 5;
-    if (useFriendship) {
-      character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
-      cost = 1;
-      addLog('🔮 魔法【友情】を発動！ 魔術点1を消費し、ワイロの額を金貨1枚に減額しました。', 'success');
-    }
-
-    if (character.value.gold < cost) {
-      addLog('金貨が足りないため、ワイロを支払えません！', 'error');
-      return;
-    }
-    character.value.gold -= cost;
-    addLog(`金貨 ${cost} 枚のワイロを支払い、安全に離脱しました。`, 'success');
-    combatState.reactionResult = null;
-    endCombatPeaceful(`ワイロ：金貨${cost}枚のワイロを支払い、穏便に道を通して（見逃して）もらいました。`);
-  }
-
-  // Refuse bribe and fight (Enemy attacks first)
-  async function refuseBribeAndFight() {
-    combatState.reactionResult = null;
-    addLog('ワイロの支払いを拒否しました。敵は敵対的になり、襲いかかってきました！(敵先制攻撃)', 'error');
-    if (combatState.hasQuickStrikeActive) {
-      addLog('【速撃】の効果により、クリーチャーの先制攻撃を防ぎました！(プレイヤー先制)', 'success');
-    } else {
-      await executeEnemyAttacks();
-    }
-  }
-
-  // Escaping combat manually (Rule 42)
+  // Escaping combat (Rule 42: 各敵から1回ずつ攻撃を受け、耐え切れば1部屋後退)
   async function escapeCombat() {
     if (combatState.isOver) return;
     if (combatState.enemies.length === 0) return;
 
-    // 最もレベルの高い敵のレベルを目標値にする
-    const targetLevel = Math.max(...combatState.enemies.map(e => e.level));
+    addLog('🏃 戦闘からの【逃走】を決断しました！ 敵からそれぞれ一度ずつ反撃を受けます。(Rule 42)', 'info');
 
-    addLog(`🏃 戦闘からの【逃走】を試みます！逃亡判定ロール... (目標値: ${targetLevel})`, 'info');
+    for (const enemy of [...combatState.enemies]) {
+      if (character.value.lifeCurrent <= 0) break;
+      addLog(`⚔️ ${enemy.name} の離脱追撃！ (目標値: ${enemy.level})`, 'combat');
+      const roll = await rollD6(true);
+      let modifier = 0;
+      if (character.value.equippedArmor) modifier += character.value.equippedArmor.modDef;
+      if (character.value.equippedShield) modifier += 1;
+      if (!carriesLantern.value) modifier -= 2;
 
-    const roll = await rollD6(true);
-    const skill = character.value.skillCurrent;
-    let modifier = 0;
-    if (!carriesLantern.value) {
-      modifier -= 2;
-      addLog('暗闇のため逃亡判定に -2 のペナルティ！', 'error');
+      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + character.value.skillCurrent + modifier;
+      const defSuccess = roll === 6 || (roll !== 1 && total >= enemy.level);
+
+      if (defSuccess) {
+        addLog(`🛡️ 防御成功！ ${enemy.name} の追撃をかわした。(出目: ${roll})`, 'success');
+      } else {
+        character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
+        addLog(`💥 被弾！ ${enemy.name} の追撃を受け、生命点1点を失った！(残り生命点: ${character.value.lifeCurrent})`, 'error');
+        if (character.value.lifeCurrent <= 0) {
+          handleDeath();
+          return;
+        }
+      }
     }
 
-    const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + skill + modifier;
-    const success = roll === 6 || (roll !== 1 && total >= targetLevel);
-
-    if (success) {
+    if (character.value.lifeCurrent > 0) {
       combatState.isOver = true;
       combatState.resultType = 'escaped';
       (combatState as any).activeAttacks = [];
-      addLog(`🏃 逃亡に成功しました！「結果を承認」して1つ前の部屋に戻ってください。(ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${targetLevel})`, 'success');
-    } else {
-      // Damage hero and continue combat
-      character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
-      addLog(`💥 逃亡失敗！敵に回り込まれてダメージを被りました。戦闘が続行されます。(ロール計: ${roll === 1 ? 'ファンブル' : total} < ${targetLevel})`, 'error');
-
-      if (character.value.lifeCurrent <= 0) {
-        handleDeath();
-        return;
-      }
-
-      // 逃亡失敗したため、敵の手番を実行する
-      await executeEnemyAttacks();
+      addLog('🏃 敵の追撃を耐え抜き、逃亡に成功しました！「結果を承認」して1つ前の部屋に戻ってください。', 'success');
     }
   }
 
@@ -1004,658 +848,30 @@ export function useCombat() {
     }
   }
 
-  // Cast follower spells manually (Rule 33)
-  async function castFollowerSpell(followerId: string, targetEnemyId?: string) {
-    if (combatState.isOver) return;
-    const follower = followers.value.find(f => f.id === followerId);
-    if (!follower || follower.type !== 'mage') return;
-    if (follower.lifeCurrent <= 0) return;
-    if (follower.statusEffects && (follower.statusEffects.includes('麻痺') || follower.statusEffects.includes('石化'))) {
-      addLog(`⚠️ 従者の魔術師 ${follower.name} は動けないため、魔法を唱えられません！`, 'error');
-      return;
-    }
-    if (follower.magicCurrent === undefined || follower.magicCurrent < 1) {
-      addLog(`従者の魔術師 ${follower.name} の魔術点が足りません！`, 'error');
-      return;
-    }
-
-    const spellName = (follower.magicList && follower.magicList.length > 0) ? follower.magicList[0] : '炎球';
-    addLog(`🔮 従者の魔術師 ${follower.name} が呪文 [${spellName}] を唱えた！ (魔術点消費。残り: ${follower.magicCurrent - 1})`, 'success');
-    
-    follower.magicCurrent--;
-
-    const enemies = combatState.enemies;
-
-    if (spellName === '気絶') {
-      const target = targetEnemyId ? enemies.find(e => e.id === targetEnemyId) : enemies[0];
-      if (!target) {
-        follower.magicCurrent++; // refund
-        return;
-      }
-      if (!target.tags.includes('weak')) {
-        addLog('【気絶】は「弱いクリーチャー」にしか効果がありません。', 'error');
-        follower.magicCurrent++; // refund
-        return;
-      }
-      if (hasTag(target, 'undead') || hasTag(target, 'golem') || hasTag(target, 'plant')) {
-        addLog('アンデッドやゴーレム、植物などには【気絶】の効果はありません！', 'error');
-        follower.magicCurrent++; // refund
-        return;
-      }
-
-      const spellRoll = await rollD6(true);
-      let modifier = 0;
-      if (!carriesLantern.value) {
-        modifier -= 2;
-        addLog('暗闇のため従者の魔術判定に -2 のペナルティ！', 'error');
-      }
-      const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0 + modifier;
-      const spellHit = spellRoll === 6 || (spellRoll !== 1 && spellTotal >= target.level);
-
-      if (spellHit) {
-        addLog(`💤 成功！ ${target.name} は深い眠りに落ちた。(撃破扱い)`, 'success');
-        const idx = enemies.findIndex(e => e.id === target.id);
-        enemies.splice(idx, 1);
-        
-        let excess = spellTotal - target.level;
-        while (excess >= 2 && enemies.length > 0) {
-          const nextWeak = enemies.find(e => e.tags.includes('weak') && !hasTag(e, 'undead') && !hasTag(e, 'golem') && !hasTag(e, 'plant'));
-          if (nextWeak) {
-            addLog(`💤 追加で ${nextWeak.name} も眠りに落ちた。`, 'success');
-            const nIdx = enemies.findIndex(e => e.id === nextWeak.id);
-            enemies.splice(nIdx, 1);
-            excess -= 2;
-          } else {
-            break;
-          }
-        }
-      } else {
-        addLog(`💨 呪文は抵抗された！`, 'error');
-      }
-
-    } else if (spellName === '氷槍') {
-      const target = targetEnemyId ? enemies.find(e => e.id === targetEnemyId) : enemies[0];
-      if (!target) {
-        follower.magicCurrent++; // refund
-        return;
-      }
-
-      const spellRoll = await rollD6(true);
-      let modifier = 0;
-      if (!carriesLantern.value) {
-        modifier -= 2;
-        addLog('暗闇のため従者の魔術判定に -2 のペナルティ！', 'error');
-      }
-      const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0 + modifier;
-      const spellHit = spellRoll === 6 || (spellRoll !== 1 && spellTotal >= target.level);
-
-      if (spellHit) {
-        if (target.name.includes('キャットゴーレム')) {
-          addLog(`❄️ ${target.name}は大理石の身体のため、氷のダメージを無効化した！`, 'error');
-        } else {
-          target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
-          addLog(`❄️ 直撃！ ${target.name} に極大の2点ダメージ！`, 'success');
-          if (target.lifeCurrent <= 0) {
-            addLog(`💀 ${target.name} は砕け散った！`, 'success');
-            const idx = enemies.findIndex(e => e.id === target.id);
-            enemies.splice(idx, 1);
-          }
-        }
-      } else {
-        addLog(`💨 氷槍は回避された。`, 'error');
-      }
-
-    } else if (spellName === '速撃') {
-      combatState.hasQuickStrikeActive = true;
-      addLog('【速撃】の効果により、戦闘の主導権を奪取します！', 'success');
-
-    } else if (spellName === '炎球') {
-      addLog('火炎球を放ちます！魔術判定ロール...', 'info');
-      // Check narrow space
-      let isNarrow = false;
-      const spaceRoll = await rollD6();
-      if (spaceRoll <= 3 || enemies.some(e => e.name.includes('木ゴーレム'))) {
-        isNarrow = true;
-        if (enemies.some(e => e.name.includes('木ゴーレム'))) {
-          addLog('🔥 部屋の中に【木ゴーレム】がいるため、炎に弱い木ゴーレムに炎球の効果が高まります！', 'success');
-        } else {
-          addLog('廊下のような【狭い場所】のため、炎球の威力が高まります！', 'success');
-        }
-      } else {
-        addLog('ホールのような【広い場所】のため、炎球の威力が拡散します。', 'info');
-      }
-
-      const spellRoll = await rollD6(true);
-      let modifier = 0;
-      if (!carriesLantern.value) {
-        modifier -= 2;
-        addLog('暗闇のため従者の魔術判定に -2 のペナルティ！', 'error');
-      }
-      const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0 + modifier;
-
-      if (isNarrow) {
-        let hits = 1;
-        if (enemies.length > 0) {
-          const firstEnemy = enemies[0];
-          if (spellRoll === 6) {
-            hits = 99;
-          } else if (spellRoll !== 1 && spellTotal >= firstEnemy.level) {
-            hits = 1 + (spellTotal - firstEnemy.level);
-          } else {
-            hits = 0;
-          }
-        } else {
-          hits = 0;
-        }
-
-        if (hits > 0) {
-          let hitCount = 0;
-          for (let i = 0; i < enemies.length; i++) {
-            if (hitCount >= hits) break;
-            const e = enemies[i];
-            if (e.name.includes('キャットゴーレム')) {
-              addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
-            } else {
-              e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
-              addLog(`🔥 ${e.name} に炎球が炸裂！ 1点ダメージを与えた！`, 'success');
-            }
-            hitCount++;
-          }
-        } else {
-          addLog('💨 炎球は不発、または回避された！', 'error');
-        }
-      } else {
-        if (enemies.length > 0) {
-          const firstEnemy = enemies[0];
-          let totalHits = 0;
-          if (spellRoll === 6) {
-            totalHits = 99;
-          } else if (spellRoll !== 1 && spellTotal >= firstEnemy.level) {
-            totalHits = Math.floor(spellTotal / firstEnemy.level);
-          }
-          
-          if (totalHits > 0) {
-            let hitCount = 0;
-            for (let i = 0; i < enemies.length; i++) {
-              if (hitCount >= totalHits) break;
-              const e = enemies[i];
-              if (e.name.includes('キャットゴーレム')) {
-                addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
-              } else {
-                e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
-                addLog(`🔥 ${e.name} に炎球が直撃！ 1点ダメージ！`, 'success');
-              }
-              hitCount++;
-            }
-          } else {
-            addLog(`💨 炎球は ${firstEnemy.name} に回避された。(ロール計: ${spellRoll === 1 ? 'ファンブル' : spellTotal} < ${firstEnemy.level})`, 'info');
-          }
-        }
-      }
-
-      combatState.enemies = enemies.filter(e => {
-        if (e.lifeCurrent <= 0) {
-          addLog(`💀 ${e.name} は力尽きた。`, 'success');
-          return false;
-        }
-        return true;
-      });
-    }
-
-    if (combatState.enemies.length === 0) {
-      endCombat(true);
-    }
-  }
-
-  // Cast spells in Round 0 or close combat (Rule 19)
-  async function castSpell(spellName: string, targetEnemyId?: string) {
-    if (combatState.isOver) return;
-    if (character.value.spells.length === 0) return;
-    if (character.value.subStatCurrent < 1) {
-      addLog('魔術点が足りないため、呪文を唱えられません！', 'error');
-      return;
-    }
-
-    let isMagicPrevented = false;
-    playerActiveStatusEffectRules.value.forEach(rule => {
-      if (rule.preventsMagic) {
-        addLog(`⚠️ 状態異常により魔法を唱えることができません！ (理由: ${rule.description})`, 'error');
-        isMagicPrevented = true;
-      }
-    });
-    if (isMagicPrevented) return;
-
-    addLog(`✨ 呪文【${spellName}】を唱えます！`, 'success');
-    
-    // Cast consumes 1 mana
-    character.value.subStatCurrent--;
-
-    const enemies = combatState.enemies;
-
-    if (spellName === '気絶') {
-      // Target must be "weak"
-      if (!targetEnemyId) return;
-      const target = enemies.find(e => e.id === targetEnemyId);
-      if (!target) return;
-
-      if (!target.tags.includes('weak')) {
-        addLog('【気絶】は「弱いクリーチャー」にしか効果がありません。', 'error');
-        return;
-      }
-      
-      if (hasTag(target, 'undead') || hasTag(target, 'golem') || hasTag(target, 'plant')) {
-        addLog('アンデッドやゴーレム、植物などには【気絶】の効果はありません！', 'error');
-        return;
-      }
-
-      addLog(`眠りの呪文を放ちます！魔術判定ロール...`, 'info');
-      const roll = await rollD6(true);
-      const val = character.value.skillCurrent; // Casts with skill or magic stat if using.
-      let modifier = 0;
-      if (!carriesLantern.value) {
-        modifier -= 2;
-        addLog('暗闇のため魔術判定に -2 のペナルティ！', 'error');
-      }
-      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
-      const success = roll === 6 || (roll !== 1 && total >= target.level);
-
-      if (success) {
-        addLog(`💤 成功！ ${target.name} は深い眠りに落ちた。(撃破扱い)`, 'success');
-        const idx = enemies.findIndex(e => e.id === targetEnemyId);
-        enemies.splice(idx, 1);
-
-        // Sleep extra enemies if exceeded by multiples of 2
-        let excess = total - target.level;
-        while (excess >= 2 && enemies.length > 0) {
-          const nextWeak = enemies.find(e => e.tags.includes('weak') && !hasTag(e, 'undead') && !hasTag(e, 'golem'));
-          if (nextWeak) {
-            addLog(`💤 追加で ${nextWeak.name} も眠りに落ちた。`, 'success');
-            const nIdx = enemies.findIndex(e => e.id === nextWeak.id);
-            enemies.splice(nIdx, 1);
-            excess -= 2;
-          } else {
-            break;
-          }
-        }
-      } else {
-        addLog('💨 呪文は抵抗された！', 'error');
-      }
-
-    } else if (spellName === '炎球') {
-      addLog('火炎球を放ちます！魔術判定ロール...', 'info');
-      // Check narrow space
-      let isNarrow = false;
-      const spaceRoll = await rollD6();
-      if (spaceRoll <= 3 || enemies.some(e => e.name.includes('木ゴーレム'))) {
-        isNarrow = true;
-        if (enemies.some(e => e.name.includes('木ゴーレム'))) {
-          addLog('🔥 部屋の中に【木ゴーレム】がいるため、炎に弱い木ゴーレムに炎球の効果が高まります！', 'success');
-        } else {
-          addLog('廊下のような【狭い場所】のため、炎球の威力が高まります！', 'success');
-        }
-      } else {
-        addLog('ホールのような【広い場所】のため、炎球の威力が拡散します。', 'info');
-      }
-
-      const roll = await rollD6(true);
-      const val = character.value.skillCurrent;
-      let modifier = 0;
-      if (!carriesLantern.value) {
-        modifier -= 2;
-        addLog('暗闇のため魔術判定に -2 のペナルティ！', 'error');
-      }
-      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
-
-      if (isNarrow) {
-        // Deals 1 damage to each enemy whose level is <= total
-        // Exceeding by 1 lets you hit another enemy
-        let hits = 1;
-        enemies.forEach(e => {
-          if (hits > 0 && total >= e.level) {
-            if (e.name.includes('キャットゴーレム')) {
-              addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
-            } else {
-              e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
-              addLog(`🔥 ${e.name} に炎球が炸裂！ 1点ダメージを与えた！`, 'success');
-            }
-            hits--;
-          }
-        });
-      } else {
-        // Deals 1 damage on level multiples
-        enemies.forEach(e => {
-          if (total >= e.level) {
-            if (e.name.includes('キャットゴーレム')) {
-              addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
-            } else {
-              e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
-              addLog(`🔥 ${e.name} に炎球が直撃！ 1点ダメージ！`, 'success');
-            }
-          }
-        });
-      }
-
-      // Filter dead enemies
-      combatState.enemies = enemies.filter(e => {
-        if (e.lifeCurrent <= 0) {
-          addLog(`💀 ${e.name} は焼き尽くされた。`, 'success');
-          return false;
-        }
-        return true;
-      });
-
-    } else if (spellName === '氷槍') {
-      if (!targetEnemyId) return;
-      const target = enemies.find(e => e.id === targetEnemyId);
-      if (!target) return;
-
-      addLog(`氷の槍を放ちます！魔術判定ロール...`, 'info');
-      const roll = await rollD6(true);
-      const val = character.value.skillCurrent;
-      let modifier = 0;
-      if (!carriesLantern.value) {
-        modifier -= 2;
-        addLog('暗闇のため魔術判定に -2 のペナルティ！', 'error');
-      }
-      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
-
-      if (roll === 6 || (roll !== 1 && total >= target.level)) {
-        if (target.name.includes('キャットゴーレム')) {
-          addLog(`❄️ ${target.name}は大理石の身体のため、氷のダメージを無効化した！`, 'error');
-        } else {
-          target.lifeCurrent = Math.max(0, target.lifeCurrent - 2);
-          addLog(`❄️ 直撃！ ${target.name} に極大の2点ダメージ！`, 'success');
-          if (target.lifeCurrent <= 0) {
-            addLog(`💀 ${target.name} は氷結して砕け散った！`, 'success');
-            const idx = enemies.findIndex(e => e.id === targetEnemyId);
-            enemies.splice(idx, 1);
-          }
-        }
-      } else {
-        addLog('💨 氷槍は回避された。', 'error');
-      }
-
-    } else if (spellName === '速撃') {
-      combatState.hasQuickStrikeActive = true;
-      addLog('【速撃】の魔術効果により、戦闘の主導権を奪取します！', 'success');
-      if (combatState.reactionResult) {
-        combatState.reactionResult.text = `【速撃】を発動中！ 敵の先制攻撃を阻止し、こちらが先制（第0ラウンド）を行います。`;
-      }
-    }
-
-    addLog(`現在の残り魔術点: ${character.value.subStatCurrent}`, 'info');
-    checkEnemyRetreat();
-
-    if (combatState.enemies.length === 0) {
-      endCombat(true);
-      return;
-    }
-
-    const isOffensive = ['気絶', '炎球', '氷槍'].includes(spellName);
-    if (isOffensive) {
-      if (combatState.round === 0) {
-        combatState.hasRangedFired = true;
-        addLog('第0ラウンドの魔術詠唱が完了しました。', 'info');
-      } else {
-        await executeFollowerAttacks();
-        checkEnemyRetreat();
-        if (combatState.enemies.length === 0) {
-          endCombat(true);
-          return;
-        }
-        await executeEnemyAttacks();
-      }
-    }
-  }
-
-  async function resolveCreateWeaponSpell(category: 'weapon' | 'armor' | 'shield', itemKey: string) {
-    castCreateWeaponSpell(category, itemKey);
-    if (combatState.active) {
-      if (combatState.round === 0) {
-        combatState.hasRangedFired = true;
-        addLog('第0ラウンドの魔術詠唱が完了しました。', 'info');
-      } else {
-        await executeFollowerAttacks();
-        checkEnemyRetreat();
-        if (combatState.enemies.length === 0) {
-          endCombat(true);
-          return;
-        }
-        await executeEnemyAttacks();
-      }
-    }
-  }
-
-  // Cast miracles (Rule 20)
-  async function castMiracle(miracleName: string, _targetEnemyId?: string) {
-    if (combatState.isOver) return;
-    if (character.value.miracles.length === 0) return;
-    if (character.value.subStatCurrent < 1) {
-      addLog('幸運点が足りないため、奇跡を発動できません！', 'error');
-      return;
-    }
-
-    let isMagicPrevented = false;
-    playerActiveStatusEffectRules.value.forEach(rule => {
-      if (rule.preventsMagic) {
-        addLog(`⚠️ 状態異常により奇跡を行使することができません！ (理由: ${rule.description})`, 'error');
-        isMagicPrevented = true;
-      }
-    });
-    if (isMagicPrevented) return;
-
-    addLog(`✨ 奇跡【${miracleName}】を発動！`, 'success');
-    character.value.subStatCurrent--;
-
-    if (miracleName === '防衛') {
-      combatState.buffs.defenseBonus += 1;
-      addLog('🛡️ 天使の加護が味方全員を包み込みました！ 【防御ロール】に+1のボーナスを得ます。(戦闘終了まで持続)', 'success');
-
-    } else if (miracleName === 'そらし') {
-      addLog('【そらし】は敵の飛び道具を被弾した際にのみ、割り込んで発動できます。', 'error');
-      character.value.subStatCurrent++; // 返還
-      return;
-
-    } else if (miracleName === '祝福') {
-      let healed = false;
-      if (character.value.statusEffects && character.value.statusEffects.length > 0) {
-        const removed = character.value.statusEffects.shift();
-        addLog(`✨ 祝福の光により、主人公の【${removed}】を治療しました！`, 'success');
-        healed = true;
-      } else {
-        for (const f of followers.value) {
-          if (f.statusEffects && f.statusEffects.length > 0) {
-            const removed = f.statusEffects.shift();
-            addLog(`✨ 祝福の光により、従者 ${f.name} の【${removed}】を治療しました！`, 'success');
-            healed = true;
-            break;
-          }
-        }
-      }
-      if (!healed) {
-        addLog('味方に治療すべき状態異常（呪い・石化・麻痺）はありません。', 'info');
-        character.value.subStatCurrent++; // 返還
-        return;
-      }
-
-    } else if (miracleName === '聖洗脳') {
-      if (combatState.enemies.length !== 1) {
-        addLog('【聖洗脳】は敵が残り1体のときしか発動できません！', 'error');
-        character.value.subStatCurrent++; // Refund
-        return;
-      }
-      const target = combatState.enemies[0];
-      if (!target.tags.includes('weak') || hasTag(target, 'undead')) {
-        addLog('このクリーチャーは洗脳できません。', 'error');
-        character.value.subStatCurrent++; // Refund
-        return;
-      }
-
-      addLog(`洗脳の念を送ります！幸運判定ロール...`, 'info');
-      const roll = await rollD6(true);
-      const val = character.value.subStatCurrent; // 幸運点の現在値（修正点：skillCurrentから変更）
-      let modifier = 0;
-      if (!carriesLantern.value) {
-        modifier -= 2;
-        addLog('暗闇のため幸運判定に -2 のペナルティ！', 'error');
-      }
-      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
-
-      if (roll === 6 || (roll !== 1 && total >= target.level)) {
-        addLog(`✨ 成功！ ${target.name} は改心し、【捕虜】の従者として同行することになりました！`, 'success');
-        followers.value.push({
-          id: generateId(),
-          name: `捕虜の${target.name}`,
-          type: 'captive',
-          isCombatant: false,
-          skill: 0,
-          lifeMax: 1,
-          lifeCurrent: 1,
-          weaponAttribute: 'strike',
-          goldCost: 0,
-          description: '聖洗脳した敵。戦わない従者。常に判定ロールは失敗するが、身代わりに使える。',
-          statusEffects: [],
-        });
-        combatState.enemies = [];
-        endCombat(true);
-      } else {
-        addLog('💨 奇跡は弾かれた！', 'error');
-      }
-
-    } else if (miracleName === '招天') {
-      const hasUndead = combatState.enemies.some(e => hasTag(e, 'undead'));
-      if (!hasUndead) {
-        addLog('戦闘フィールドにアンデッドの敵が存在しないため、招天を発動できません。', 'error');
-        character.value.subStatCurrent++; // Refund
-        return;
-      }
-
-      combatState.pendingHolyArrow = 2;
-      addLog('⚡ 光り輝く2本の聖なる矢があなたの周囲に出現しました！ 対象のアンデッドを選択して発射してください。', 'success');
-    }
-
-    addLog(`現在の残り幸運点: ${character.value.subStatCurrent}`, 'info');
-    checkEnemyRetreat();
-
-    if (combatState.enemies.length === 0) {
-      endCombat(true);
-      return;
-    }
-
-    const isActionMiracle = ['防衛', '聖洗脳'].includes(miracleName); // 招天は手動で対象選択して放つため、アクションの終了をトリガーさせない
-    if (isActionMiracle) {
-      if (combatState.round === 0) {
-        combatState.hasRangedFired = true;
-        addLog('第0ラウンドの奇跡発動が完了しました。', 'info');
-      } else {
-        await executeFollowerAttacks();
-        checkEnemyRetreat();
-        if (combatState.enemies.length === 0) {
-          endCombat(true);
-          return;
-        }
-        await executeEnemyAttacks();
-      }
-    }
-  }
-
-  // 奇跡【そらし】の割り込みをスキップ（見送り）してダメージを適用
-  async function skipDeflect() {
-    const pending = combatState.pendingDeflect;
-    if (!pending) return;
-    combatState.pendingDeflect = null;
-    await resolveDefense(pending.attackId, pending.defenderId, false, true);
-  }
-
-  // 奇跡【そらし】を発動して飛び道具を無効化
-  async function executeDeflect() {
-    const pending = combatState.pendingDeflect;
-    if (!pending) return;
-
-    character.value.subStatCurrent--;
-    addLog(`✨ 奇跡【そらし】を発動！ 飛び道具をそらし、ダメージを回避しました。(残り幸運点: ${character.value.subStatCurrent})`, 'success');
-    combatState.pendingDeflect = null;
-
-    // 攻撃キューから今回の攻撃を取り除く
-    const queue = (combatState as any).activeAttacks || [];
-    const idx = queue.findIndex((a: any) => a.id === pending.attackId);
-    if (idx !== -1) {
-      queue.splice(idx, 1);
-    }
-
-    checkEnemyRetreat();
-    if (combatState.enemies.length === 0) {
-      endCombat(true);
-    }
-  }
-
-  // 奇跡【招天】の光の矢を1本放つ
-  async function fireHolyArrow(targetEnemyId: string) {
-    if (combatState.isOver) return;
-    if (combatState.pendingHolyArrow <= 0) return;
-    const target = combatState.enemies.find(e => e.id === targetEnemyId);
-    if (!target) return;
-
-    if (!hasTag(target, 'undead')) {
-      addLog(`${target.name} はアンデッドではないため、聖なる矢の効果がありません。`, 'error');
-      return;
-    }
-
-    combatState.pendingHolyArrow--;
-    addLog(`⚡ ${target.name} に聖なる矢を放ちます！(残り矢数: ${combatState.pendingHolyArrow})`, 'combat');
-
-    const roll = await rollD6(true);
-    const val = character.value.subStatCurrent; // 幸運点の現在値
-    let modifier = 0;
-    if (!carriesLantern.value) {
-      modifier -= 2;
-      addLog('暗闇のため判定に -2 のペナルティ！', 'error');
-    }
-    const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
-    const success = roll === 6 || (roll !== 1 && total >= target.level);
-
-    if (success) {
-      const isWeak = target.tags.includes('weak');
-      if (isWeak) {
-        target.lifeCurrent = 0;
-        addLog(`💀 聖なる光が貫き、${target.name} は浄化され塵に還った！`, 'success');
-      } else {
-        target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
-        addLog(`💥 直撃！ ${target.name} に1点の聖なるダメージを与えました。`, 'success');
-      }
-    } else {
-      addLog('💨 矢は外れるか、邪悪な闇に弾かれた！', 'error');
-    }
-
-    if (roll === 6) {
-      combatState.pendingHolyArrow++;
-      addLog('✨ クリティカル！ 聖なる奇跡の矢が1本追加されました！', 'success');
-    }
-
-    // 敵の死亡をフィルタリング
-    combatState.enemies = combatState.enemies.filter(e => e.lifeCurrent > 0);
-    checkEnemyRetreat();
-
-    if (combatState.enemies.length === 0) {
-      combatState.pendingHolyArrow = 0;
-      endCombat(true);
-    }
-
-    if (combatState.pendingHolyArrow === 0 && combatState.enemies.length > 0) {
-      if (combatState.round === 0) {
-        combatState.hasRangedFired = true;
-        addLog('第0ラウンドの奇跡発動が完了しました。', 'info');
-      } else {
-        await executeFollowerAttacks();
-        checkEnemyRetreat();
-        if (combatState.enemies.length === 0) {
-          endCombat(true);
-          return;
-        }
-        await executeEnemyAttacks();
-      }
-    }
-  }
+  // Magic and miracles sub-module
+  const magicModule = useCombatMagic({
+    character,
+    followers,
+    combatState,
+    carriesLantern,
+    playerActiveStatusEffectRules,
+    addLog,
+    rollD6,
+    hasTag,
+    checkEnemyRetreat,
+    endCombat,
+    executeFollowerAttacks,
+    executeEnemyAttacks,
+    castCreateWeaponSpell
+  });
+
+  const castSpell = magicModule.castSpell;
+  const resolveCreateWeaponSpell = magicModule.resolveCreateWeaponSpell;
+  const castMiracle = magicModule.castMiracle;
+  const skipDeflect = magicModule.skipDeflect;
+  const executeDeflect = magicModule.executeDeflect;
+  const fireHolyArrow = magicModule.fireHolyArrow;
+  const castFollowerSpell = magicModule.castFollowerSpell;
 
   // End Combat and trigger treasure reward or escape
   function endCombat(isVictory: boolean, getLoot = true) {
@@ -1728,224 +944,6 @@ export function useCombat() {
     combatState.resultType = 'peaceful';
     combatState.peacefulText = text;
     addLog('🕊️ 平和的に解決しました。結果を承認してください。', 'success');
-  }
-
-  // Treasure Table Roll (Rule 40)
-  async function resolveLoot(): Promise<string> {
-    addLog('💰 宝箱を開けるか、敵の遺品から戦利品（宝物表ロール）を獲得します！', 'info');
-    const roll = await rollD6();
-    let mod = 0;
-
-    // Dexterity "Treasure Hunter" (+1)
-    if (character.value.subStatType === 'dexterity' && character.value.subStatCurrent > 0) {
-      const useDex = confirm('器用点【宝物の獲得】を発動して、出目を+1しますか？ (器用点1消費)');
-      if (useDex) {
-        character.value.subStatCurrent--;
-        mod += 1;
-        addLog('器用点【宝物の獲得】の効果により、宝物ロールの出目に +1', 'success');
-      }
-    }
-
-    const total = Math.max(1, roll + mod);
-    addLog(`宝物ロール決定: [ ${roll} ] + 補正 [ ${mod} ] = [ ${total} ]`, 'success');
-
-    let summary = '';
-    if (total <= 1) {
-      character.value.gold += 1;
-      summary = '金貨 1 枚';
-      addLog('金貨1枚を獲得した。', 'success');
-    } else if (total === 2) {
-      const g = await rollD6();
-      character.value.gold += g;
-      summary = `金貨 ${g} 枚`;
-      addLog(`金貨 ${g} 枚を獲得した！`, 'success');
-    } else if (total === 3) {
-      const g1 = await rollD6();
-      const g2 = await rollD6();
-      const sum = Math.max(5, g1 + g2);
-      character.value.gold += sum;
-      summary = `金貨 ${sum} 枚 (下限5枚)`;
-      addLog(`金貨 ${sum} 枚を獲得した！ (下限5枚)`, 'success');
-    } else if (total === 4) {
-      // Accessory (value d6 * d6)
-      const d1 = await rollD6();
-      const d2 = await rollD6();
-      const value = d1 * d2;
-      const item: GeneralItem = {
-        id: generateId(),
-        name: '魔除けのアクセサリー',
-        type: 'accessory',
-        goldCost: 0,
-        value,
-        description: `金貨 ${value} 枚の価値がある宝飾品。`,
-      };
-      character.value.items.push(item);
-      summary = `魔除けのアクセサリー (価値: 金貨${value}枚)`;
-      addLog(`美しい宝飾アクセサリーを獲得！ (売却価値: 金貨${value}枚)`, 'success');
-    } else if (total === 5) {
-      // Gem small (value d6 * 5, lower bound 15)
-      const d = await rollD6();
-      const value = Math.max(15, d * 5);
-      const item: GeneralItem = {
-        id: generateId(),
-        name: '宝石（小）',
-        type: 'gem_small',
-        goldCost: 0,
-        value,
-        description: `金貨 ${value} 枚の価値がある煌めく小宝石。`,
-      };
-      character.value.items.push(item);
-      summary = `宝石（小） (価値: 金貨${value}枚)`;
-      addLog(`煌めく宝石(小)を獲得！ (売却価値: 金貨${value}枚)`, 'success');
-    } else if (total === 6) {
-      // Gem large (value 2d6 * 5, lower bound 30)
-      const d1 = await rollD6();
-      const d2 = await rollD6();
-      const value = Math.max(30, (d1 + d2) * 5);
-      const item: GeneralItem = {
-        id: generateId(),
-        name: '宝石（大）',
-        type: 'gem_large',
-        goldCost: 0,
-        value,
-        description: `金貨 ${value} 枚の価値がある巨大な宝石。`,
-      };
-      character.value.items.push(item);
-      summary = `宝石（大） (価値: 金貨${value}枚)`;
-      addLog(`まばゆい大宝石を獲得！ (売却価値: 金貨${value}枚)`, 'success');
-    } else if (total >= 7) {
-      // Magic Treasure Table!
-      summary = await rollMagicTreasure();
-    }
-
-    combatState.lootText = summary;
-    combatState.lootRolled = true;
-    return summary;
-  }
-
-  // Magic Treasure Table (Rule 40)
-  async function rollMagicTreasure(): Promise<string> {
-    addLog('✨ レア！ 【魔法の宝物表】でダイスロールを行います！', 'success');
-    const roll = await rollD6();
-    let item: GeneralItem;
-    let descText = '';
-
-    if (roll === 1) {
-      item = {
-        id: generateId(),
-        name: '貫きの石弾 (5個)',
-        type: 'holywater', // behaves like combat consumable
-        goldCost: 15,
-        value: 12,
-        chargesCurrent: 5,
-        chargesMax: 5,
-        description: 'スリング用の魔法石弾。使用時に攻撃判定+2ボーナス。魔法武器属性。',
-      };
-      descText = '魔法の石弾『貫きの石弾 (5個)』';
-      addLog('✨ 『貫きの石弾(5回分)』を獲得！ (攻撃時に+2ボーナス)', 'success');
-    } else if (roll === 2) {
-      item = {
-        id: generateId(),
-        name: '安らぎのフルート',
-        type: 'magic_flute',
-        goldCost: 60,
-        value: 60,
-        chargesCurrent: 3,
-        chargesMax: 3,
-        description: '演奏すると【気絶】の魔術をノーコストで発動可能(3回まで)。魔術点所持者のみ使用可能。',
-      };
-      descText = '魔法の楽器『安らぎのフルート (3回分)』';
-      addLog('✨ 『安らぎのフルート』を獲得！ (ノーコストで「気絶」を詠唱可能、3回制限)', 'success');
-    } else if (roll === 3) {
-      item = {
-        id: generateId(),
-        name: '換石の杖',
-        type: 'magic_staff',
-        goldCost: 60,
-        value: 60,
-        chargesCurrent: 3,
-        chargesMax: 3,
-        description: '戦闘時、広い部屋の空間を狭い部屋に変える魔力壁を生成する(3回)。',
-      };
-      descText = '魔法の杖『換石の杖 (3回分)』';
-      addLog('✨ 『換石の杖』を獲得！ (広い戦闘エリアを狭いエリアに変更可能、3回制限)', 'success');
-    } else if (roll === 4) {
-      item = {
-        id: generateId(),
-        name: '看破の片眼鏡',
-        type: 'magic_monocle',
-        goldCost: 60,
-        value: 60,
-        chargesCurrent: 3,
-        chargesMax: 6, // 1d6 charges (we will roll it)
-        description: '探索・隠し部屋発見などの判定ロールに+1修正。',
-      };
-      const charges = await rollD6();
-      item.chargesCurrent = charges;
-      item.chargesMax = charges;
-      descText = `魔法の眼鏡『看破の片眼鏡 (${charges}回分)』`;
-      addLog(`✨ 『看破の片眼鏡』を獲得！ (${charges}回分、判定に+1修正)`, 'success');
-    } else if (roll === 5) {
-      item = {
-        id: generateId(),
-        name: '魔法の大盾',
-        type: 'magic_shield',
-        goldCost: 60,
-        value: 60,
-        description: '戦う従者のための盾。装備中、従者は飛び道具攻撃に対して防御判定+1修正。',
-      };
-      descText = '従者用魔法防具『魔法の大盾』';
-      addLog('✨ 従者専用 『魔法の大盾』を獲得！', 'success');
-    } else {
-      // War doll (Golem Follower)
-      item = {
-        id: generateId(),
-        name: 'ウォー・ドール (未起動)',
-        type: 'magic_doll',
-        goldCost: 60,
-        value: 60,
-        description: '魔法の人形。経験点1を消費して起動すると「戦う従者」として同行する。',
-      };
-      descText = '魔法の人形『ウォー・ドール (未起動)』';
-      addLog('✨ 精巧な魔法の人形 『ウォー・ドール』を獲得！ (経験点1で起動可能)', 'success');
-    }
-
-    character.value.items.push(item);
-    return descText;
-  }
-
-  // Activate War Doll follower using 1 EXP
-  function activateWarDoll(itemId: string) {
-    if (character.value.exp < 1) {
-      addLog('経験点が足りないため、ウォー・ドールを起動できません！', 'error');
-      return;
-    }
-    const idx = character.value.items.findIndex(i => i.id === itemId);
-    if (idx === -1) return;
-    
-    // Check follower capacity
-    if (followers.value.length >= character.value.followerCurrent) {
-      addLog('従者枠がいっぱいです。', 'error');
-      return;
-    }
-
-    character.value.exp--;
-    character.value.items.splice(idx, 1);
-
-    followers.value.push({
-      id: generateId(),
-      name: 'ウォー・ドール',
-      type: 'soldier', // treats as soldier for slot, but has Golem traits
-      isCombatant: true,
-      skill: 1,
-      lifeMax: 1,
-      lifeCurrent: 1,
-      weaponAttribute: 'slash',
-      goldCost: 0,
-      description: '【ゴーレム】。接近戦2回攻撃。1冒険に1回だけダメージ無視。罠無効。',
-    });
-
-    addLog('✨ 経験点1を注ぎ込み、ウォー・ドールを起動しました！ 「戦う従者」としてパーティに加入。', 'success');
   }
 
   // Weapon switching resolution (costs 1 round)
@@ -2260,5 +1258,8 @@ export function useCombat() {
     resolveChronovalsRoar,
     resolveCreateWeaponSpell,
     castFollowerSpell,
+    applyDexLootBonus,
+    confirmLootWithoutDex,
+    rollMagicTreasure,
   };
 }

@@ -187,4 +187,66 @@ test.describe('基本ルール ver.5.1: 遭遇・戦闘・逃走・察知・ダ�
     await expect(returnBtn).toBeVisible({ timeout: 5000 });
   });
 
+  test('【Rule 23】器用【宝物の獲得】：宝物表ロール出目確認後の器用点1点消費による出目+1補正', async ({ page }) => {
+    // 1. シナリオ選択
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
+
+    // 2. 器用アーキタイプ作成（器用点 2/2）
+    await page.fill('#char-name', '宝探しの盗賊');
+    await page.locator('.archetype-card').nth(3).click({ force: true });
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+
+    // 冒険開始
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // d66 = 11 (ゴブリン斥候部隊: Lv.2, HP 1, 3体)
+    // 第1R攻撃出目: 4 (敵A撃破、残り2体)
+    // 敵反撃出目: 5 (主人公防御成功)
+    // 第2R攻撃出目: 4 (敵B撃破、残り1体 -> 初期HP3の半分以下になり敵Cが逃走勝利！)
+    // 宝物ロール出目: 5 (小宝石)
+    // 小宝石価値ロール: 出目6
+    // 器用点+1で出目6 (大宝石: 金貨30枚〜)
+    // 大宝石価値ロール: 出目6, 出目6 (2d6=12 * 5 = 60枚)
+    await setupMockRandom(page, 11, [4, 5, 4, 5, 6, 6, 6]);
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    // 接近戦へ移行
+    await transitionToMelee(page);
+
+    // 1回目の通常攻撃（敵A撃破）
+    await clickButtonByText(page, '通常攻撃', 800);
+
+    // 敵の反撃を防御
+    await handlePendingDefense(page);
+
+    // 2回目の通常攻撃（敵B撃破 -> 敵逃走勝利）
+    await clickButtonByText(page, '通常攻撃', 800);
+
+    // 「💎 宝箱を開ける (ダイスを振る)」をクリック
+    const openChestBtn = page.locator('button:has-text("宝箱を開ける")');
+    await expect(openChestBtn).toBeVisible({ timeout: 5000 });
+    await openChestBtn.click();
+    await page.waitForTimeout(500);
+
+    // インラインで「🎯 器用点1消費して出目+1に変更」ボタンが出現することを確認 (Rule 23)
+    const applyDexBtn = page.locator('button:has-text("器用点1消費して出目+1に変更")');
+    await expect(applyDexBtn).toBeVisible({ timeout: 5000 });
+    await applyDexBtn.click();
+    await page.waitForTimeout(500);
+
+    // ログの検証：器用点消費と出目6への変更、大宝石の獲得
+    const logbook = page.locator('.logbook-entries');
+    await expect(logbook).toContainText('器用点【宝物の獲得】を発動！');
+    await expect(logbook).toContainText('大宝石');
+
+    // 冒険記録紙を開き、器用点が 2 から 1 に消費されていることを確認
+    await openAdventureSheet(page);
+    const advSheet = page.locator('.adventure-sheet');
+    await expect(advSheet).toContainText('器用点1 / 2');
+    await closeAdventureSheet(page);
+  });
+
 });

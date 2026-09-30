@@ -31,7 +31,6 @@ const {
   buyFollower,
   equipArmor,
   addLog,
-  clearLogs,
   forgetSpell,
   activeScenario,
   isBackpackFull,
@@ -41,7 +40,8 @@ const {
   triggerLevelUp,
   transitionToSuccess,
   transitionToExplore,
-  triggerGameOver
+  triggerGameOver,
+  retrySession
 } = useGameState();
 
 const ALL_SPELLS = [
@@ -252,93 +252,7 @@ function proceedToNextAdventure() {
 
 // Re-try after death (Rule 41)
 function handleRetry() {
-  const prevLevel = character.value.level;
-  const subType = character.value.subStatType;
-  
-  // Reset dungeon depth and followers on retry
-  dungeonDepth.value = 0;
-  followers.value = [];
-  
-  // Rule 41: starting exp = previous level instead of 10
-  const carryExp = prevLevel;
-  // Starting gold = 10 + 50 per level above 10
-  const bonusGold = 10 + (prevLevel > 10 ? (prevLevel - 10) * 50 : 0);
-
-  // Initialize character state
-  character.value = {
-    name: character.value.name,
-    level: prevLevel,
-    exp: carryExp,
-    gold: bonusGold,
-    food: 2,
-    skillMax: 0,
-    skillCurrent: 0,
-    lifeMax: 4,
-    lifeCurrent: 4,
-    subStatType: subType,
-    subStatMax: 2,
-    subStatCurrent: 2,
-    followerMax: 7,
-    followerCurrent: 7,
-    spells: subType === 'magic' ? (character.value.spells.length > 0 ? [character.value.spells[0]] : ['気絶']) : [], // Rule 18 compliance (1 spell)
-    miracles: subType === 'luck' ? (character.value.miracles.length > 0 ? [character.value.miracles[0]] : ['防衛']) : [], // Rule 20 compliance (1 miracle)
-    weapons: [],
-    armors: [],
-    shields: [],
-    items: [],
-    equippedWeapon: null,
-    equippedArmor: null,
-    equippedShield: null,
-    hasActiveLantern: true,
-  };
-
-  // Re-equip starting items
-  if (subType === 'magic') {
-    character.value.weapons.push({ name: '軽い武器 (短剣等)', type: 'light', modAttack: -1, attribute: 'strike', goldCost: 2, isMagic: false, description: '軽い武器' });
-    character.value.armors.push({ name: '布鎧', type: 'cloth', modLife: 1, modDex: 1, modDef: 0, goldCost: 4, description: '布鎧' });
-    character.value.equippedWeapon = character.value.weapons[0];
-    character.value.equippedArmor = character.value.armors[0];
-  } else if (subType === 'luck') {
-    character.value.weapons.push({ name: '片手武器 (長剣/メイス)', type: 'one-handed', modAttack: 0, attribute: 'slash', goldCost: 5, isMagic: false, description: '片手武器' });
-    character.value.armors.push({ name: '鎖鎧', type: 'chain', modLife: 1, modDex: 0, modDef: 1, goldCost: 30, description: '鎖鎧' });
-    character.value.shields.push({ name: '木盾', type: 'wood', modLife: 1, modDefRanged: 0, goldCost: 5, description: '木盾' });
-    character.value.equippedWeapon = character.value.weapons[0];
-    character.value.equippedArmor = character.value.armors[0];
-    character.value.equippedShield = character.value.shields[0];
-  } else if (subType === 'strength') {
-    character.value.weapons.push({ name: '両手武器 (大剣/戦斧)', type: 'two-handed', modAttack: 1, attribute: 'slash', goldCost: 15, isMagic: false, description: '両手武器' });
-    character.value.armors.push({ name: '板金鎧', type: 'plate', modLife: 2, modDex: 0, modDef: 1, goldCost: 50, description: '板金鎧' });
-    character.value.equippedWeapon = character.value.weapons[0];
-    character.value.equippedArmor = character.value.armors[0];
-  } else if (subType === 'dexterity') {
-    character.value.weapons.push({ name: '弓と十分な矢', type: 'ranged', modAttack: 0, attribute: 'slash', goldCost: 18, isMagic: false, description: '弓矢' });
-    character.value.armors.push({ name: '革鎧', type: 'leather', modLife: 2, modDex: 1, modDef: 0, goldCost: 10, description: '革鎧' });
-    character.value.equippedWeapon = character.value.weapons[0];
-    character.value.equippedArmor = character.value.armors[0];
-  }
-
-  // Everyone gets a lantern
-  character.value.items.push({
-    id: generateId(),
-    name: 'ランタン',
-    type: 'lantern',
-    goldCost: 2,
-    value: 0,
-    description: 'ランタン',
-  });
-
-  // Rule 30: Adjust lifeMax and lifeCurrent based on equipped armor and shield at start
-  if (character.value.equippedArmor) {
-    character.value.lifeMax += character.value.equippedArmor.modLife;
-  }
-  if (character.value.equippedShield) {
-    character.value.lifeMax += character.value.equippedShield.modLife;
-  }
-  character.value.lifeCurrent = character.value.lifeMax;
-
-  clearLogs();
-  addLog(`💀 再挑戦！ レベル ${prevLevel} の強さを受け継ぎ、新しい体で復活しました。経験点 ${carryExp} 点を配分して金貨 ${bonusGold} 枚でリスタートします。`, 'success');
-  triggerLevelUp();
+  retrySession();
 }
 
 function startAdventure() {

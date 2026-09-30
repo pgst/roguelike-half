@@ -146,6 +146,7 @@ function createDefaultCombatState() {
     resultType: null as 'victory' | 'escaped' | 'peaceful' | null,
     lootText: null as string | null,
     lootRolled: false,
+    pendingDexLootChoice: null as { baseRoll: number } | null,
     getLootAfterVictory: true,
     hasReactionChecked: false,
     isBribeAllowed: false,
@@ -648,14 +649,14 @@ const currentBackpackCount = computed(() => {
   const baseItems = character.value.weapons.length + 
                      character.value.armors.length + 
                      character.value.shields.length + 
-                     character.value.items.length;
+                     character.value.items.filter(i => i.type !== 'clue').length;
   // Exclude equipped items
   let equippedCount = 0;
   if (character.value.equippedWeapon) equippedCount++;
   if (character.value.equippedArmor) equippedCount++;
   if (character.value.equippedShield) equippedCount++;
 
-  const equipmentCount = baseItems - equippedCount;
+  const equipmentCount = Math.max(0, baseItems - equippedCount);
 
   // Gold and Food weight rules:
   // 金貨100枚につき1スロット、食料10個につき1スロット
@@ -1465,6 +1466,77 @@ function handleDeath() {
   triggerGameOver();
 }
 
+function retrySession() {
+  const prevLevel = character.value.level;
+  const subType = character.value.subStatType;
+  const charName = character.value.name;
+
+  // Reset dungeon depth and followers on retry
+  dungeonDepth.value = 0;
+  followers.value = [];
+  nextRoomTensDigitOverride.value = null;
+  activeEvent.value = null;
+  resetCombatState();
+  Object.assign(diceTray, createDefaultDiceTray());
+  clearLogs();
+
+  // Rule 41: starting exp = previous level instead of 10
+  const carryExp = prevLevel;
+  // Starting gold = 10 + 50 per level above 10
+  const bonusGold = 10 + (prevLevel > 10 ? (prevLevel - 10) * 50 : 0);
+
+  character.value = createDefaultCharacter(charName, subType);
+  character.value.level = prevLevel;
+  character.value.exp = carryExp;
+  character.value.gold = bonusGold;
+
+  // Set default initial equipment based on sub-stat
+  if (subType === 'magic') {
+    character.value.weapons.push({ ...DEFAULT_WEAPONS.light });
+    character.value.armors.push({ ...DEFAULT_ARMORS.cloth });
+    character.value.equippedWeapon = character.value.weapons[0];
+    character.value.equippedArmor = character.value.armors[0];
+    character.value.spells = [];
+  } else if (subType === 'luck') {
+    character.value.weapons.push({ ...DEFAULT_WEAPONS.oneHanded });
+    character.value.armors.push({ ...DEFAULT_ARMORS.chain });
+    character.value.shields.push({ ...DEFAULT_SHIELDS.wood });
+    character.value.equippedWeapon = character.value.weapons[0];
+    character.value.equippedArmor = character.value.armors[0];
+    character.value.equippedShield = character.value.shields[0];
+    character.value.miracles = [];
+  } else if (subType === 'strength') {
+    character.value.weapons.push({ ...DEFAULT_WEAPONS.twoHanded });
+    character.value.armors.push({ ...DEFAULT_ARMORS.plate });
+    character.value.equippedWeapon = character.value.weapons[0];
+    character.value.equippedArmor = character.value.armors[0];
+  } else if (subType === 'dexterity') {
+    character.value.weapons.push({ ...DEFAULT_WEAPONS.bow });
+    character.value.weapons.push({ ...DEFAULT_WEAPONS.light });
+    character.value.armors.push({ ...DEFAULT_ARMORS.leather });
+    character.value.equippedWeapon = character.value.weapons[0];
+    character.value.equippedArmor = character.value.armors[0];
+  }
+
+  // Everyone gets a lantern
+  character.value.items.push({
+    id: generateId(),
+    ...DEFAULT_ITEMS.lantern,
+  });
+
+  // Rule 30: Adjust lifeMax and lifeCurrent based on equipped armor and shield at start
+  if (character.value.equippedArmor) {
+    character.value.lifeMax += character.value.equippedArmor.modLife;
+  }
+  if (character.value.equippedShield) {
+    character.value.lifeMax += character.value.equippedShield.modLife;
+  }
+  character.value.lifeCurrent = character.value.lifeMax;
+
+  saveSession();
+  transitionTo('levelup');
+}
+
 function forgetSpell(name: string) {
   if (character.value.subStatType === 'magic') {
     if (checkpointSpells.value.includes(name)) {
@@ -1576,6 +1648,7 @@ export function useGameState() {
 
     // Lifecycle
     initNewCharacter,
+    retrySession,
     resetCombatState,
     handleDeath,
     clearDiceTray,

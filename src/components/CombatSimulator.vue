@@ -102,7 +102,9 @@ const {
   fireHolyArrow,
   resolveChronovalsRoar,
   resolveCreateWeaponSpell,
-  castFollowerSpell
+  castFollowerSpell,
+  applyDexLootBonus,
+  confirmLootWithoutDex
 } = useCombat();
 
 const magesWithMagic = computed(() => {
@@ -406,10 +408,23 @@ function closeRangedRound() {
         <div class="cmd-window-body">
           <!-- 1. 戦闘終了時 -->
           <div v-if="isBattleResolved" class="cmd-single-action">
-            <div v-if="combatState.resultType === 'victory' && combatState.getLootAfterVictory && !combatState.lootRolled">
-              <button @click="resolveLoot" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
-                💎 宝箱を開ける (ダイスを振る)
-              </button>
+            <div v-if="combatState.resultType === 'victory' && combatState.getLootAfterVictory && (!combatState.lootRolled || combatState.pendingDexLootChoice)">
+              <div v-if="combatState.pendingDexLootChoice" style="display: flex; flex-direction: column; gap: 8px;">
+                <p style="font-size: 0.95rem; color: var(--ink-dark); margin: 0; font-weight: bold; text-align: center;">
+                  出目: 【{{ combatState.pendingDexLootChoice.baseRoll }}】
+                </p>
+                <button @click="applyDexLootBonus" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
+                  🎯 器用点1消費して出目+1に変更 (出目 {{ combatState.pendingDexLootChoice.baseRoll + 1 }} に確定)
+                </button>
+                <button @click="confirmLootWithoutDex" class="btn-ink btn-large btn-secondary" style="width: 100%;">
+                  🎲 出目そのままで確定 (出目 {{ combatState.pendingDexLootChoice.baseRoll }})
+                </button>
+              </div>
+              <div v-else>
+                <button @click="resolveLoot" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
+                  💎 宝箱を開ける (ダイスを振る)
+                </button>
+              </div>
             </div>
             <div v-else-if="combatState.resultType === 'escaped'">
               <button @click="confirmCombatResult" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
