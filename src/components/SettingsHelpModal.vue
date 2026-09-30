@@ -250,9 +250,9 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
               </div>
 
               <div class="help-section">
-                <h3>🏮 カンテラと暗闇ペナルティ 【Rule 28】</h3>
+                <h3>🏮 ランタンと暗闇ペナルティ 【Rule 28】</h3>
                 <p>
-                  カンテラを所持していない場合、または両手武器を装備して両手が塞がっている場合、洞窟内は「暗闇」となり、<strong>すべての判定ロールに -2 の重いペナルティ</strong>が課されます。探索前の購入や装備の確認が肝要です。
+                  ランタンを所持していない場合、または両手武器を装備して両手が塞がっている場合、洞窟内は「暗闇」となり、<strong>すべての判定ロールに -2 の重いペナルティ</strong>が課されます。探索前の購入や装備の確認が肝要です。
                 </p>
               </div>
 
@@ -343,7 +343,7 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
                   <ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
                     <li><strong>武具制限なし：</strong> 職業による装備制限はありません。魔術師であっても板金鎧や両手武器を自由に装備可能です。</li>
                     <li><strong>武器の攻撃修正：</strong> 軽い武器（攻撃-1）、片手武器（修正なし）、両手武器（攻撃+1）。武器未装備の素手攻撃は攻撃-2（打撃）。</li>
-                    <li><strong>両手武器と盾の排他：</strong> 両手武器を装備している間は、盾を装備したりカンテラを手に持つことはできません。</li>
+                    <li><strong>両手武器と盾の排他：</strong> 両手武器を装備している間は、盾を装備したりランタンを手に持つことはできません。</li>
                     <li><strong>防具と生命点：</strong> 鎧（革鎧・鎖帷子・板金鎧など）や盾は、着用者の生命点の最大値を底上げします。</li>
                   </ul>
                 </div>
