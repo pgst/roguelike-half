@@ -420,28 +420,39 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
 }
 
 .main-tabs-group {
-  display: flex;
-  gap: 8px;
+  display: inline-flex;
+  background: rgba(92, 75, 61, 0.08);
+  border: 1px solid rgba(92, 75, 61, 0.2);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 4px;
+  max-width: calc(100% - 40px);
 }
 
 .main-tab-btn {
   background: transparent;
-  border: 1px solid var(--ink-light);
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
+  border: none;
+  border-radius: 6px;
   padding: 6px 14px;
   font-family: 'Noto Serif JP', serif;
-  font-weight: bold;
-  font-size: 0.95rem;
+  font-weight: 500;
+  font-size: 0.9rem;
   color: var(--ink-light);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.main-tab-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink-dark);
 }
 
 .main-tab-btn.active {
   background: var(--ink-dark);
   color: var(--paper-bg);
-  border-color: var(--ink-dark);
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
 }
 
 .btn-close {
@@ -533,7 +544,7 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding-bottom: 8px;
+  padding: 4px 2px 8px 2px;
   margin-bottom: 12px;
   border-bottom: 1px dashed rgba(92, 75, 61, 0.3);
 }
@@ -542,14 +553,21 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
+  padding: 5px 12px;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid #c2b09a;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 0.8rem;
   font-family: 'Noto Serif JP', serif;
+  color: #5c4b3d;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.sub-tab-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--ink-dark);
 }
 
 .sub-tab-btn.active {
@@ -557,6 +575,8 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
   color: var(--paper-bg);
   border-color: var(--ink-dark);
   font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
 }
 
 .help-sections {

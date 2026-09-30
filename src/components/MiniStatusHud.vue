@@ -416,27 +416,39 @@ const livingFollowers = computed(() => followers.value.filter(f => f.lifeCurrent
 }
 
 .header-tab-group {
-  display: flex;
-  gap: 6px;
+  display: inline-flex;
+  background: rgba(92, 75, 61, 0.08);
+  border: 1px solid rgba(92, 75, 61, 0.2);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 4px;
+  max-width: calc(100% - 90px);
 }
 
 .hud-tab-btn {
   background: transparent;
-  border: 1px solid var(--ink-light);
-  border-radius: 4px;
-  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
   font-family: 'Noto Serif JP', serif;
-  font-weight: bold;
+  font-weight: 500;
   font-size: 0.85rem;
   color: var(--ink-light);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.hud-tab-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink-dark);
 }
 
 .hud-tab-btn.active {
   background: var(--ink-dark);
   color: var(--paper-bg);
-  border-color: var(--ink-dark);
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
 }
 
 .btn-close-hud {
