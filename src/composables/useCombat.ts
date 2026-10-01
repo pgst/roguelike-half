@@ -147,6 +147,15 @@ export function useCombat() {
     if (combatState.isOver) return;
     if (combatState.enemies.length === 0) return;
 
+    const isBossFight = dungeonDepth.value >= totalRoomsToClear.value;
+    const isMidpointFight = activeScenario.value?.midpointEvent && 
+      (activeEvent.value?.d66Code === 'midpoint' || activeEvent.value?.title === activeScenario.value.midpointEvent.event.title);
+
+    if (isBossFight || isMidpointFight) {
+      addLog('⚠️ 決戦ボスおよび中間イベントの敵からは逃走することができません！', 'error');
+      return;
+    }
+
     addLog('🏃 戦闘からの【逃走】を決断しました！ 敵からそれぞれ一度ずつ反撃を受けます。(Rule 42)', 'info');
 
     for (const enemy of [...combatState.enemies]) {
@@ -935,6 +944,28 @@ export function useCombat() {
 
   async function handleRoundEndEffects() {
     await runScenarioHook(activeScenario.value?.id, 'onCombatRoundEnd', context);
+
+    // Self-destruct enemies (e.g. self_destruct tag in Twilight Knight)
+    if (combatState.round >= 1) {
+      const selfDestructEnemies = combatState.enemies.filter((e: any) => e.tags?.includes('self_destruct'));
+      if (selfDestructEnemies.length > 0) {
+        for (const enemy of selfDestructEnemies) {
+          const dmg = enemy.selfDestructDamage !== undefined ? enemy.selfDestructDamage : 2;
+          addLog(`💥 【自爆発動】${enemy.name} は時限爆弾を作動させ、激しい爆発とともに自爆した！`, 'error');
+          character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - dmg);
+          addLog(`主人公は ${dmg} 点の自爆ダメージを受けました。(現在生命力: ${character.value.lifeCurrent})`, 'damage');
+          // Remove enemy from combat
+          combatState.enemies = combatState.enemies.filter((e: any) => e.id !== enemy.id);
+          if (character.value.lifeCurrent <= 0) {
+            handleDeath();
+            return;
+          }
+        }
+        if (combatState.enemies.length === 0) {
+          endCombat(true);
+        }
+      }
+    }
   }
 
   function endCombatPeaceful(text = '敵と争うことなく、穏便に交渉するか、敵の撤退に成功しました。') {

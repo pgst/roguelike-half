@@ -42,21 +42,30 @@ export async function selectScenarioInUI(page: any, scenarioTitle: string): Prom
   const scenarioCard = page.locator('.scenario-card').filter({ hasText: scenarioTitle }).first();
   await scenarioCard.waitFor({ state: 'visible', timeout: 10000 });
   await scenarioCard.scrollIntoViewIfNeeded();
-  await scenarioCard.click({ force: true });
+  await page.evaluate((text: string) => {
+    const cards = Array.from(document.querySelectorAll('.scenario-card'));
+    const target = cards.find(c => c.textContent?.includes(text)) as HTMLElement | undefined;
+    if (target) target.click();
+  }, scenarioTitle);
+  await page.waitForTimeout(300);
   
-  // 詳細パネルが選択したシナリオを表示するまで確実に待機
-  const detailHeader = page.locator(`.scenario-detail-panel .detail-title:has-text("${scenarioTitle}")`);
-  try {
-    await detailHeader.waitFor({ state: 'visible', timeout: 3000 });
-  } catch {
-    // リトライクリック
-    await scenarioCard.click({ force: true });
-    await detailHeader.waitFor({ state: 'visible', timeout: 3000 });
-  }
+  // カスタムシナリオの場合はクリック時点で直接キャラクター作成画面へ遷移する
+  const isCreatorShown = await page.locator('#char-name, .character-creator').isVisible({ timeout: 1000 }).catch(() => false);
+  if (!isCreatorShown) {
+    // 詳細パネルが選択したシナリオを表示するまで確実に待機（公式シナリオ用）
+    const detailHeader = page.locator(`.scenario-detail-panel .detail-title:has-text("${scenarioTitle}")`);
+    try {
+      await detailHeader.waitFor({ state: 'visible', timeout: 3000 });
+    } catch {
+      // リトライクリック
+      await scenarioCard.click({ force: true });
+      await detailHeader.waitFor({ state: 'visible', timeout: 3000 });
+    }
 
-  const startBtn = page.locator('.scenario-detail-panel button:has-text("このシナリオに挑む")');
-  await startBtn.waitFor({ state: 'visible', timeout: 5000 });
-  await startBtn.click({ force: true });
+    const startBtn = page.locator('.scenario-detail-panel button:has-text("このシナリオに挑む")');
+    await startBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await startBtn.click({ force: true });
+  }
 
   // キャラクター作成画面の表示を確実に待機
   await page.waitForSelector('#char-name, .character-creator', { state: 'visible', timeout: 10000 });

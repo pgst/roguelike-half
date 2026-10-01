@@ -173,7 +173,7 @@ export function useCustomScenarios() {
     for (const code of ALL_D66_CODES) {
       const room = rawTable[code];
       if (room && typeof room === 'object') {
-        const roomType = ['encounter', 'trap', 'rest', 'treasure', 'empty', 'npc'].includes(room.type)
+        const roomType = ['encounter', 'trap', 'rest', 'treasure', 'empty', 'npc', 'search'].includes(room.type)
           ? room.type
           : 'empty';
 
@@ -187,7 +187,8 @@ export function useCustomScenarios() {
               attackCount: Math.max(1, Math.min(5, Number(e.attackCount) || 1)),
               tags: Array.isArray(e.tags) ? e.tags : ['weak'],
               count: Math.max(1, Math.min(10, Number(e.count) || 1)),
-              weaponAttribute: e.weaponAttribute || 'strike'
+              weaponAttribute: e.weaponAttribute || 'strike',
+              selfDestructDamage: e.selfDestructDamage !== undefined ? Number(e.selfDestructDamage) : undefined
             }))
           : undefined;
 
@@ -201,7 +202,14 @@ export function useCustomScenarios() {
           trapTarget: room.trapTarget !== undefined ? Number(room.trapTarget) : undefined,
           trapDamage: room.trapDamage !== undefined ? Number(room.trapDamage) : undefined,
           lootModifier: room.lootModifier !== undefined ? Number(room.lootModifier) : undefined,
-          npcType: room.npcType
+          npcType: room.npcType,
+          searchStat: room.searchStat,
+          searchTarget: room.searchTarget !== undefined ? Number(room.searchTarget) : undefined,
+          searchRewardGold: room.searchRewardGold !== undefined ? Number(room.searchRewardGold) : undefined,
+          searchRewardItem: room.searchRewardItem ? String(room.searchRewardItem) : undefined,
+          searchSuccessText: room.searchSuccessText ? String(room.searchSuccessText) : undefined,
+          searchFailureText: room.searchFailureText ? String(room.searchFailureText) : undefined,
+          reactionType: room.reactionType
         };
       } else {
         // 未定義のマスは安全な空室イベントで補完
@@ -214,6 +222,26 @@ export function useCustomScenarios() {
       }
     }
 
+    const sanitizedMidpoint = data.midpointEvent && typeof data.midpointEvent === 'object' && data.midpointEvent.event ? {
+      roomNumber: Math.max(1, Math.min(clampedRooms - 1, Number(data.midpointEvent.roomNumber) || Math.floor(clampedRooms / 2))),
+      event: {
+        title: String(data.midpointEvent.event.title || '中間地点の決戦'),
+        d66Code: 'midpoint',
+        description: String(data.midpointEvent.event.description || '行く手を塞ぐ強敵が現れた！'),
+        type: data.midpointEvent.event.type || 'encounter',
+        enemies: Array.isArray(data.midpointEvent.event.enemies) ? data.midpointEvent.event.enemies.map((e: any) => ({
+          name: String(e.name || '中ボス'),
+          level: Math.max(1, Math.min(20, Number(e.level) || 4)),
+          lifeMax: Math.max(1, Math.min(100, Number(e.lifeMax) || 4)),
+          lifeCurrent: Math.max(1, Math.min(100, Number(e.lifeMax) || 4)),
+          attackCount: Math.max(1, Math.min(5, Number(e.attackCount) || 1)),
+          tags: Array.isArray(e.tags) ? e.tags : ['strong'],
+          count: Math.max(1, Math.min(10, Number(e.count) || 1)),
+          weaponAttribute: e.weaponAttribute || 'strike'
+        })) : undefined
+      }
+    } : undefined;
+
     const sanitizedScenario: Scenario = {
       id: scenarioId,
       title: data.title.trim(),
@@ -221,7 +249,8 @@ export function useCustomScenarios() {
       recommendedLevel: String(data.recommendedLevel || '適正レベル：11-12'),
       totalRoomsToClear: clampedRooms,
       d66EventTable: safeEventTable,
-      bossEvent: safeBossEvent
+      bossEvent: safeBossEvent,
+      midpointEvent: sanitizedMidpoint
     };
 
     return { isValid: true, scenario: sanitizedScenario };

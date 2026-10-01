@@ -117,6 +117,63 @@ function removeEnemyFromCurrentRoom(idx: number) {
   }
 }
 
+// 中間イベント制御ヘルパー
+const hasMidpointEvent = computed({
+  get: () => !!draft.midpointEvent,
+  set: (val: boolean) => {
+    if (val) {
+      if (!draft.midpointEvent) {
+        draft.midpointEvent = {
+          roomNumber: Math.max(1, Math.floor(draft.totalRoomsToClear / 2)),
+          event: {
+            title: '【中腹】真夜中の盗賊たち',
+            d66Code: 'midpoint',
+            description: '通路の曲がり角から見張りの一団が現れ、行く手を遮りました！',
+            type: 'encounter',
+            enemies: [
+              {
+                name: '中腹の見張り番',
+                level: 3,
+                lifeMax: 4,
+                lifeCurrent: 4,
+                attackCount: 1,
+                tags: ['strong', 'fight_to_death'],
+                count: 1,
+                weaponAttribute: 'slash'
+              }
+            ]
+          }
+        };
+      }
+    } else {
+      delete draft.midpointEvent;
+    }
+  }
+});
+
+function addMidpointEnemy() {
+  if (!draft.midpointEvent) return;
+  if (!draft.midpointEvent.event.enemies) {
+    draft.midpointEvent.event.enemies = [];
+  }
+  draft.midpointEvent.event.enemies.push({
+    name: '中腹の手下',
+    level: 2,
+    lifeMax: 2,
+    lifeCurrent: 2,
+    attackCount: 1,
+    tags: ['weak'],
+    count: 1,
+    weaponAttribute: 'strike'
+  });
+}
+
+function removeMidpointEnemy(idx: number) {
+  if (draft.midpointEvent?.event.enemies) {
+    draft.midpointEvent.event.enemies.splice(idx, 1);
+  }
+}
+
 // 保存処理
 async function handleSave() {
   saveError.value = null;
@@ -138,6 +195,7 @@ function getRoomTypeBadge(type: string) {
     case 'encounter': return { icon: '👾', text: '遭遇', color: '#c0392b' };
     case 'trap': return { icon: '⚠️', text: '罠', color: '#d35400' };
     case 'treasure': return { icon: '💎', text: '宝物', color: '#27ae60' };
+    case 'search': return { icon: '🔍', text: '探索', color: '#16a085' };
     case 'npc': return { icon: '🛒', text: 'NPC', color: '#8e44ad' };
     case 'rest': return { icon: '🏕️', text: '休息', color: '#2980b9' };
     default: return { icon: '🚪', text: '空室', color: '#7f8c8d' };
@@ -151,7 +209,7 @@ function getRoomTypeBadge(type: string) {
       <!-- Header -->
       <div class="editor-header">
         <div class="header-left">
-          <h2>🖋️ シナリオエディタ</h2>
+          <h2>🛠️ シナリオ工房</h2>
           <span class="editing-id-badge">ID: {{ draft.id }}</span>
         </div>
         
@@ -246,6 +304,81 @@ function getRoomTypeBadge(type: string) {
             <label>決戦までの踏破部屋数 (3〜50) *</label>
             <input v-model.number="draft.totalRoomsToClear" type="number" min="3" max="50" class="input-ink" />
             <small style="color: var(--ink-light);">通常シナリオは 8 部屋程度が標準です。</small>
+          </div>
+        </div>
+
+        <!-- Midpoint Event Section -->
+        <div class="paper-sheet" style="margin-top: 20px; padding: 15px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.02);">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <label style="font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" v-model="hasMidpointEvent" />
+              ⚔️ 規定部屋数での中間イベント（中ボス等）を有効にする
+            </label>
+            <span v-if="hasMidpointEvent" class="badge-type" style="background-color: #d35400; color: #fff;">
+              {{ draft.midpointEvent?.roomNumber }}部屋目に発生
+            </span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--ink-light); margin: 6px 0 0 0;">
+            「黄昏の騎士」の盗賊の頭など、特定の部屋数（例: 4部屋目）を踏破した瞬間に強制発生する固定イベントです。戦闘時は逃走不可となります。
+          </p>
+
+          <div v-if="hasMidpointEvent && draft.midpointEvent" style="margin-top: 15px; padding-top: 12px; border-top: 1px dashed var(--border-color);">
+            <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 12px;">
+              <div class="form-group" style="flex: 1; min-width: 140px;">
+                <label>発生部屋番号 (1〜{{ Math.max(1, draft.totalRoomsToClear - 1) }}) *</label>
+                <input 
+                  v-model.number="draft.midpointEvent.roomNumber" 
+                  type="number" 
+                  min="1" 
+                  :max="Math.max(1, draft.totalRoomsToClear - 1)" 
+                  class="input-ink" 
+                />
+              </div>
+              <div class="form-group" style="flex: 2; min-width: 200px;">
+                <label>イベント名 *</label>
+                <input v-model="draft.midpointEvent.event.title" type="text" class="input-ink" />
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label>イベント描写テキスト</label>
+              <textarea v-model="draft.midpointEvent.event.description" rows="2" class="input-ink"></textarea>
+            </div>
+
+            <!-- Midpoint Enemies -->
+            <div style="background: #fffcf8; padding: 10px; border: 1px dashed #c0392b; border-radius: 4px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <b style="color: #c0392b;">👾 中間イベント出現敵:</b>
+                <button type="button" @click="addMidpointEnemy" class="btn-ink btn-mini">+ 敵を追加</button>
+              </div>
+
+              <div v-for="(enemy, eIdx) in draft.midpointEvent.event.enemies" :key="eIdx" class="sub-card" style="margin-bottom: 8px;">
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+                  <input v-model="enemy.name" type="text" placeholder="敵の名前" class="input-ink" style="flex: 2;" />
+                  <button type="button" @click="removeMidpointEnemy(eIdx)" class="btn-del">✕</button>
+                </div>
+                <div style="display: flex; gap: 8px; font-size: 0.8rem; flex-wrap: wrap; align-items: center;">
+                  <label>Lv: <input v-model.number="enemy.level" type="number" min="1" max="20" style="width: 45px;" /></label>
+                  <label>HP: <input v-model.number="enemy.lifeMax" @input="enemy.lifeCurrent = enemy.lifeMax" type="number" min="1" max="50" style="width: 45px;" /></label>
+                  <label>数: <input v-model.number="enemy.count" type="number" min="1" max="10" style="width: 40px;" /></label>
+                  <label>
+                    属性:
+                    <select v-model="enemy.weaponAttribute">
+                      <option value="strike">打撃</option>
+                      <option value="slash">斬撃</option>
+                    </select>
+                  </label>
+                  <label><input type="checkbox" value="weak" v-model="enemy.tags" /> 雑魚</label>
+                  <label><input type="checkbox" value="strong" v-model="enemy.tags" /> 強敵</label>
+                  <label><input type="checkbox" value="fight_to_death" v-model="enemy.tags" /> 💀 死ぬまで戦う</label>
+                  <label><input type="checkbox" value="preemptive" v-model="enemy.tags" /> ⚡ 先制攻撃</label>
+                  <label><input type="checkbox" value="self_destruct" v-model="enemy.tags" /> 💥 自爆</label>
+                  <span v-if="enemy.tags?.includes('self_destruct')" style="display: inline-flex; align-items: center; gap: 4px;">
+                    自爆ダメ: <input v-model.number="enemy.selfDestructDamage" type="number" min="1" max="20" style="width: 40px;" placeholder="2" />
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -350,6 +483,7 @@ function getRoomTypeBadge(type: string) {
             <label>部屋の種類 (イベント種別)</label>
             <select v-model="currentRoom.type" class="input-ink">
               <option value="encounter">👾 モンスター遭遇 (encounter)</option>
+              <option value="search">🔍 探索・調査 (search)</option>
               <option value="trap">⚠️ 罠・トラップ (trap)</option>
               <option value="treasure">💎 宝物・遺品 (treasure)</option>
               <option value="npc">🛒 NPC・行商人・出会い (npc)</option>
@@ -365,6 +499,18 @@ function getRoomTypeBadge(type: string) {
 
           <!-- Type: Encounter Editor -->
           <div v-if="currentRoom.type === 'encounter'" class="type-detail-box">
+            <!-- Reaction preset -->
+            <div class="form-group" style="margin-bottom: 12px; background: rgba(0,0,0,0.03); padding: 8px; border-radius: 4px;">
+              <label style="font-size: 0.85rem; font-weight: bold;">🎲 遭遇時の反応タイプ (Reaction):</label>
+              <select v-model="currentRoom.reactionType" class="input-ink" style="margin-top: 4px; font-size: 0.85rem;">
+                <option :value="undefined">🎲 通常の反応表ロール (2d6)</option>
+                <option value="always_hostile">⚔️ 常に敵対 (逃走判定は通常通り)</option>
+                <option value="always_fight_to_death">💀 常に死ぬまで戦う (逃亡・士気崩壊なし)</option>
+                <option value="neutral">🤝 中立 (話しかける/見逃す)</option>
+                <option value="friendly">😊 友好的 (好意的・手助け)</option>
+              </select>
+            </div>
+
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <b>👾 出現クリーチャー一覧:</b>
               <button @click="addEnemyToCurrentRoom" class="btn-ink btn-mini">+ 敵を追加</button>
@@ -376,7 +522,7 @@ function getRoomTypeBadge(type: string) {
                 <button @click="removeEnemyFromCurrentRoom(eIdx)" class="btn-del">✕</button>
               </div>
 
-              <div style="display: flex; gap: 8px; font-size: 0.8rem; flex-wrap: wrap;">
+              <div style="display: flex; gap: 8px; font-size: 0.8rem; flex-wrap: wrap; align-items: center;">
                 <label>Lv: <input v-model.number="enemy.level" type="number" min="1" max="20" style="width: 40px;" /></label>
                 <label>HP: <input v-model.number="enemy.lifeMax" @input="enemy.lifeCurrent = enemy.lifeMax" type="number" min="1" max="50" style="width: 40px;" /></label>
                 <label>数: <input v-model.number="enemy.count" type="number" min="1" max="10" style="width: 40px;" /></label>
@@ -390,10 +536,55 @@ function getRoomTypeBadge(type: string) {
                 <label><input type="checkbox" value="weak" v-model="enemy.tags" /> 雑魚</label>
                 <label><input type="checkbox" value="strong" v-model="enemy.tags" /> 強敵</label>
                 <label><input type="checkbox" value="undead" v-model="enemy.tags" /> アンデッド</label>
+                <label><input type="checkbox" value="fight_to_death" v-model="enemy.tags" /> 💀 死ぬまで戦う</label>
+                <label><input type="checkbox" value="preemptive" v-model="enemy.tags" /> ⚡ 先制攻撃</label>
+                <label><input type="checkbox" value="self_destruct" v-model="enemy.tags" /> 💥 自爆</label>
+                <span v-if="enemy.tags?.includes('self_destruct')" style="display: inline-flex; align-items: center; gap: 4px;">
+                  自爆ダメ: <input v-model.number="enemy.selfDestructDamage" type="number" min="1" max="20" style="width: 40px;" placeholder="2" />
+                </span>
               </div>
             </div>
             <div v-if="!currentRoom.enemies || currentRoom.enemies.length === 0" style="color: var(--ink-light); font-size: 0.85rem; font-style: italic;">
               敵が設定されていません。「+ 敵を追加」を押してください。
+            </div>
+          </div>
+
+          <!-- Type: Search Editor -->
+          <div v-if="currentRoom.type === 'search'" class="type-detail-box">
+            <b>🔍 探索・調査の判定パラメータ設定:</b>
+            <div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;">
+              <div class="form-group" style="flex: 1; min-width: 140px;">
+                <label>判定能力値</label>
+                <select v-model="currentRoom.searchStat" class="input-ink">
+                  <option value="dexterity">敏捷 (dexterity)</option>
+                  <option value="strength">腕力 (strength)</option>
+                  <option value="magic">魔術 (magic)</option>
+                  <option value="luck">幸運 (luck)</option>
+                  <option value="skill">技量 (skill)</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex: 1; min-width: 100px;">
+                <label>目標値 (通常は4)</label>
+                <input v-model.number="currentRoom.searchTarget" type="number" min="1" max="10" class="input-ink" />
+              </div>
+              <div class="form-group" style="flex: 1; min-width: 100px;">
+                <label>獲得ゴールド</label>
+                <input v-model.number="currentRoom.searchRewardGold" type="number" min="0" max="1000" class="input-ink" placeholder="例: 10" />
+              </div>
+              <div class="form-group" style="flex: 1.5; min-width: 150px;">
+                <label>獲得アイテム名</label>
+                <input v-model="currentRoom.searchRewardItem" type="text" class="input-ink" placeholder="例: 治療薬 または ポーション" />
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 8px;">
+              <label>成功時メッセージ</label>
+              <input v-model="currentRoom.searchSuccessText" type="text" class="input-ink" placeholder="例: 瓦礫を慎重に調べ、隠された金貨を発見した！" />
+            </div>
+
+            <div class="form-group" style="margin-top: 8px;">
+              <label>失敗時メッセージ</label>
+              <input v-model="currentRoom.searchFailureText" type="text" class="input-ink" placeholder="例: 入念に調べたが、特にめぼしいものは見つからなかった。" />
             </div>
           </div>
 

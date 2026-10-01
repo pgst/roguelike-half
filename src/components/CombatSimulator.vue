@@ -16,7 +16,9 @@ const {
   isSwitchingWeapons,
   diceTray,
   isMessageWaiting,
-  showDetailModal
+  showDetailModal,
+  activeScenario,
+  activeEvent
 } = useGameState();
 
 const { autoCombatDefenseAllocation } = useSettings();
@@ -72,6 +74,11 @@ const targetEnemy = computed(() => {
 const showMagicSubmenu = ref(false);
 
 const isBossRoom = computed(() => dungeonDepth.value >= totalRoomsToClear.value);
+const isMidpointRoom = computed(() => {
+  return !!activeScenario.value?.midpointEvent && 
+    (activeEvent.value?.d66Code === 'midpoint' || activeEvent.value?.title === activeScenario.value.midpointEvent.event.title);
+});
+const canEscape = computed(() => !isBossRoom.value && !isMidpointRoom.value);
 
 const showShireenClueAction = computed(() => {
   const hasShireen = combatState.enemies.some((e: any) => e.name === '異端者シーリーン');
@@ -636,7 +643,7 @@ function closeRangedRound() {
                 <button 
                   @click="rollReactionCheck" 
                   class="btn-ink cmd-btn" 
-                  :disabled="combatState.hasReactionChecked || combatState.hasRangedFired || isBossRoom"
+                  :disabled="combatState.hasReactionChecked || combatState.hasRangedFired || isBossRoom || isMidpointRoom"
                 >
                   🎲 反応表を振る
                 </button>
@@ -697,6 +704,7 @@ function closeRangedRound() {
               </button>
 
               <button 
+                v-if="canEscape"
                 @click="escapeCombat" 
                 class="btn-ink cmd-btn btn-flee"
               >

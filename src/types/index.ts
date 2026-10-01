@@ -37,7 +37,7 @@ export interface Shield {
 export interface GeneralItem {
   id: string;
   name: string;
-  type: 'lantern' | 'rope' | 'holywater' | 'healingpotion' | 'accessory' | 'gem_small' | 'gem_large' | 'magic_flute' | 'magic_staff' | 'magic_monocle' | 'magic_shield' | 'magic_doll' | 'clue' | 'quest';
+  type: 'lantern' | 'rope' | 'holywater' | 'healingpotion' | 'accessory' | 'gem_small' | 'gem_large' | 'magic_flute' | 'magic_staff' | 'magic_monocle' | 'magic_shield' | 'magic_doll' | 'clue' | 'quest' | 'consumable';
   goldCost: number;
   chargesCurrent?: number;
   chargesMax?: number;
@@ -105,20 +105,21 @@ export interface Enemy {
   lifeMax: number;
   lifeCurrent: number;
   attackCount: number;
-  tags: ('undead' | 'golem' | 'weak' | 'strong' | 'plant' | 'weapon' | 'structure' | 'demon')[];
+  tags: ('undead' | 'golem' | 'weak' | 'strong' | 'plant' | 'weapon' | 'structure' | 'demon' | 'fight_to_death' | 'preemptive' | 'self_destruct')[];
   special?: string;
   count: number; // for groups of weak enemies
   isRanged?: boolean; // 【追加】 飛び道具（遠距離攻撃）を行うクリーチャーかの判定フラグ
   weaponAttribute?: 'strike' | 'slash';
   resistances?: EnemyResistance[]; // 【追加】 特定の攻撃属性（strike, slash, ranged, magic）に対する修正
   evasionRule?: string; // 【追加】 特殊回避ルール（例: 'shireen_future_sight'）
+  selfDestructDamage?: number; // 【追加】 自爆時のプレイヤーへのダメージ値（デフォルト2）
 }
 
 export interface DungeonEvent {
   title: string;
   d66Code: string;
   description: string;
-  type: 'encounter' | 'trap' | 'rest' | 'treasure' | 'empty' | 'npc';
+  type: 'encounter' | 'trap' | 'rest' | 'treasure' | 'empty' | 'npc' | 'search';
   enemies?: Omit<Enemy, 'id'>[];
   trapStat?: 'dexterity' | 'strength' | 'magic' | 'luck' | 'skill';
   trapTarget?: number;
@@ -129,6 +130,15 @@ export interface DungeonEvent {
   resolutionText?: string;
   statusEffect?: string; // 【追加】 罠によって受ける状態異常（例: '呪い', '石化', '麻痺'）
   customChoices?: any[]; // 【追加】 シナリオ固有の選択肢を注入するためのフィールド
+  // 【追加】 探索・調査（search）部屋用パラメータ
+  searchStat?: 'dexterity' | 'strength' | 'magic' | 'luck' | 'skill';
+  searchTarget?: number;
+  searchRewardGold?: number;
+  searchRewardItem?: string;
+  searchSuccessText?: string;
+  searchFailureText?: string;
+  // 【追加】 遭遇反応プリセット（敵遭遇部屋用）
+  reactionType?: 'standard' | 'always_hostile' | 'always_fight_to_death' | 'always_neutral' | 'always_friendly' | 'neutral' | 'friendly';
 }
 
 export interface StatusEffectRule {
@@ -150,6 +160,7 @@ export interface Scenario {
   totalRoomsToClear: number;
   d66EventTable: Record<string, DungeonEvent>;
   bossEvent: DungeonEvent;
+  midpointEvent?: { roomNumber: number; event: DungeonEvent }; // 【追加】 中間地点イベント
   statusEffectRules?: Record<string, StatusEffectRule>; // 【追加】 シナリオ固有の状態異常ルール定義
   runCountMax?: number;
   customSetup?: {

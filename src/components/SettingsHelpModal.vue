@@ -363,9 +363,9 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
             <!-- 6. シナリオ工房 -->
             <div v-else-if="activeHelpTab === 'workshop'" class="tab-content animate-fade-in">
               <div class="help-section">
-                <h3>🛠️ カスタムシナリオ工房</h3>
+                <h3>🛠️ シナリオ工房</h3>
                 <p>
-                  シナリオ選択画面の「＋ 新規シナリオ作成」から、独自のイベントテーブルやボスを設定したカスタム迷宮を作成・プレイ・JSONエクスポートできます。
+                  シナリオ選択画面の「＋ 新規カスタムシナリオ作成」から、独自のイベントテーブルやボスを設定したカスタムシナリオを作成・プレイ・JSONエクスポートできます。
                 </p>
               </div>
             </div>

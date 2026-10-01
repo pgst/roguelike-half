@@ -43,6 +43,7 @@ const {
 const { 
   exploreNextRoom, 
   resolveTrapCheck, 
+  resolveSearchCheck,
   confirmPerceptionSkip, 
   executePerceptionScout, 
   executePerceptionHero,
@@ -950,8 +951,9 @@ function resolveSkeletonEvent() {
       <!-- Active unresolved event card -->
       <div v-else>
         <div class="event-type-badge" :class="activeEvent.type">
-          {{ activeEvent.type === 'trap' ? '💀 トラップ' : activeEvent.type === 'treasure' ? '🎁 宝箱' : activeEvent.type === 'rest' ? '⛲ 聖域/休息' : activeEvent.type === 'npc' ? '👤 遭遇' : '部屋' }}
+          {{ activeEvent.type === 'trap' ? '💀 トラップ' : activeEvent.type === 'treasure' ? '🎁 宝箱' : activeEvent.type === 'rest' ? '⛲ 聖域/休息' : activeEvent.type === 'npc' ? '👤 遭遇' : activeEvent.type === 'search' ? '🔍 探索・調査' : '部屋' }}
           (d66: {{ activeEvent.d66Code }})
+          <span v-if="activeEvent.d66Code === 'midpoint'" style="margin-left: 6px; font-weight: bold; color: #f39c12;">【中間イベント】</span>
         </div>
         <h3 class="event-title">{{ activeEvent.title }}</h3>
         <p class="event-description">{{ activeEvent.description }}</p>
@@ -1024,6 +1026,21 @@ function resolveSkeletonEvent() {
               🎲 判定ロールに挑戦する (技量点判定値: {{ character.skillCurrent }} / 目標値: {{ activeEvent.trapTarget }})
             </button>
           </template>
+        </div>
+
+        <!-- Search Actions -->
+        <div v-else-if="activeEvent.type === 'search'">
+          <div v-if="activeEvent.searchStat && character.subStatType === activeEvent.searchStat && character.subStatCurrent > 0" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button @click="resolveSearchCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
+              {{ activeEvent.searchStat === 'strength' ? '💪' : activeEvent.searchStat === 'dexterity' ? '🏹' : activeEvent.searchStat === 'magic' ? '🔮' : '✨' }} 副能力値【{{ activeEvent.searchStat === 'strength' ? '筋力点' : activeEvent.searchStat === 'dexterity' ? '器用点' : activeEvent.searchStat === 'magic' ? '魔術点' : activeEvent.searchStat === 'luck' ? '幸運点' : activeEvent.searchStat }}】で調査 (判定値: {{ character.subStatCurrent }} / 1点消費)
+            </button>
+            <button @click="resolveSearchCheck(false)" class="btn-ink" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
+              🎲 技量点で調査 (判定値: {{ character.skillCurrent }} / 消費なし)
+            </button>
+          </div>
+          <button v-else @click="resolveSearchCheck(true)" class="btn-ink" style="width: 100%; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
+            🎲 調査判定を行う (技量点判定値: {{ character.skillCurrent }} / 目標値: {{ activeEvent.searchTarget || 4 }})
+          </button>
         </div>
 
         <!-- Treasure Actions -->
@@ -1520,6 +1537,7 @@ function resolveSkeletonEvent() {
 .event-type-badge.treasure { background: #b8860b; }
 .event-type-badge.rest { background: #2e8b57; }
 .event-type-badge.npc { background: #4682b4; }
+.event-type-badge.search { background: #16a085; }
 
 .event-title {
   font-family: 'Noto Serif JP', serif;

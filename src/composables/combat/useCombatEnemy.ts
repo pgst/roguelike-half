@@ -39,7 +39,13 @@ export function useCombatEnemy(deps: CombatEnemyDependencies) {
     if (!activeEvent.value) return;
 
     // Check if the battle event is "Fight to Death" (死ぬまで戦う)
-    const isFightToDeath = activeEvent.value.title.includes('決戦') || activeEvent.value.title.includes('ボス') || activeEvent.value.title.includes('魔将');
+    const isFightToDeath = 
+      activeEvent.value.title.includes('決戦') || 
+      activeEvent.value.title.includes('ボス') || 
+      activeEvent.value.title.includes('魔将') ||
+      activeEvent.value.d66Code === 'midpoint' ||
+      activeEvent.value.reactionType === 'always_fight_to_death' ||
+      combatState.enemies.some((e: any) => e.tags?.includes('fight_to_death'));
     if (isFightToDeath) return;
 
     // Calculate total starting health vs current health
@@ -62,13 +68,42 @@ export function useCombatEnemy(deps: CombatEnemyDependencies) {
 
   // Combat reaction roll before fighting (Rule 35)
   async function rollReactionCheck() {
-    if (dungeonDepth.value >= totalRoomsToClear.value) {
-      addLog('⚠️ ボス戦では反応チェックを行えません。', 'error');
+    if (dungeonDepth.value >= totalRoomsToClear.value || activeEvent.value?.d66Code === 'midpoint') {
+      addLog('⚠️ ボス戦および中間イベントでは反応チェックを行えません。', 'error');
       return;
     }
     if (combatState.hasReactionChecked) return;
     combatState.hasReactionChecked = true;
     combatState.isBribeAllowed = false;
+
+    // Check reactionType preset
+    const preset = activeEvent.value?.reactionType;
+    if (preset === 'always_hostile' || preset === 'always_fight_to_death') {
+      const isFight = preset === 'always_fight_to_death';
+      addLog(isFight ? '💀 常に死ぬまで戦う：敵は命を顧みず襲いかかってきます！' : '⚔️ 常に敵対：敵は容赦なく武器を構えて襲いかかってきました！', 'error');
+      combatState.reactionResult = {
+        roll: 1,
+        text: isFight ? '死ぬまで戦う：敵は退路を断ち、最後の1体まで戦う姿勢です。' : '敵対的：クリーチャーは激しい敵意を示しています。',
+        actionType: 'hostile'
+      };
+      return;
+    } else if (preset === 'always_neutral' || preset === 'neutral') {
+      addLog('🤝 中立：敵はこちらに敵意を持たず、関心を示していません。', 'success');
+      combatState.reactionResult = {
+        roll: 5,
+        text: '中立：敵は攻撃してきません。立ち去ることができます。',
+        actionType: 'neutral'
+      };
+      return;
+    } else if (preset === 'always_friendly' || preset === 'friendly') {
+      addLog('😊 友好的：敵は好意的な態度を示しています。', 'success');
+      combatState.reactionResult = {
+        roll: 6,
+        text: '歓待：敵は友好的で、危害を加える様子はありません。',
+        actionType: 'hospitable'
+      };
+      return;
+    }
 
     addLog('敵の反応を確認します。1d6を振ります...', 'info');
     const roll = await rollD6();
@@ -170,15 +205,22 @@ export function useCombatEnemy(deps: CombatEnemyDependencies) {
 
   async function confirmReactionResult() {
     if (!combatState.reactionResult) return;
-    const { actionType } = combatState.reactionResult;
+    const { actionType, roll } = combatState.reactionResult;
 
     combatState.reactionResult = null;
 
     if (actionType === 'hostile' || actionType === 'outnumbered_hostile') {
-      if (combatState.hasQuickStrikeActive) {
-        addLog('【速撃】の効果により、クリーチャーの先制攻撃を防ぎました！(プレイヤー先制)', 'success');
-      } else {
-        await executeEnemyAttacks();
+      const hasPreemptiveEnemy = combatState.enemies.some((e: any) => e.tags?.includes('preemptive'));
+      const isSurprise = roll === 1 || hasPreemptiveEnemy;
+      if (isSurprise) {
+        if (hasPreemptiveEnemy) {
+          addLog('⚡ 敵の【先制攻撃】特性が発動しました！', 'error');
+        }
+        if (combatState.hasQuickStrikeActive) {
+          addLog('【速撃】の効果により、クリーチャーの先制攻撃を防ぎました！(プレイヤー先制)', 'success');
+        } else {
+          await executeEnemyAttacks();
+        }
       }
     } else if (actionType === 'flee' || actionType === 'outnumbered_flee') {
       endCombat(true);

@@ -225,9 +225,9 @@ const tabs: { id: HelpTab; label: string; icon: string }[] = [
         <!-- 6. シナリオ工房 -->
         <div v-if="activeTab === 'workshop'" class="tab-content animate-fade-in">
           <div class="help-section">
-            <h3>🛠️ シナリオ工房（自作ダンジョン）</h3>
+            <h3>🛠️ シナリオ工房</h3>
             <p>
-              タイトル画面の「🛠️ カスタムシナリオ」から、オリジナルのダンジョンを自由自在に創作できます。
+              タイトル画面の「🛠️ カスタムシナリオ」エリアの「＋ 新規カスタムシナリオ作成」から、シナリオ工房でオリジナルのダンジョンを自由自在に創作できます。
             </p>
           </div>
 

@@ -76,6 +76,18 @@ export function useDungeon() {
       return;
     }
 
+    // Check for Midpoint Event (e.g. 4th room in Twilight Knight)
+    if (
+      activeScenario.value.midpointEvent &&
+      dungeonDepth.value + 1 === activeScenario.value.midpointEvent.roomNumber
+    ) {
+      const midEvent = JSON.parse(JSON.stringify(activeScenario.value.midpointEvent.event));
+      midEvent.d66Code = 'midpoint';
+      addLog(`【中間地点】${midEvent.title} が発生しました！`, 'error');
+      activateRoomEvent(midEvent);
+      return;
+    }
+
     addLog('次の部屋へ向けて通路を進みます...', 'info');
 
     const { value } = await rollD66();
@@ -141,13 +153,14 @@ export function useDungeon() {
       activeEvent.value!.type !== 'trap' &&
       activeEvent.value!.type !== 'treasure' &&
       activeEvent.value!.type !== 'rest' &&
-      activeEvent.value!.type !== 'npc'
+      activeEvent.value!.type !== 'npc' &&
+      activeEvent.value!.type !== 'search'
     ) {
       // For standard rooms with no action required, resolve immediately
       (activeEvent.value as any).isResolved = true;
       (activeEvent.value as any).resolutionText = activeEvent.value!.description;
     } else {
-      // For traps, rests, treasure, we stay in 'explore' screen but render activeEvent UI
+      // For traps, rests, treasure, search, we stay in 'explore' screen but render activeEvent UI
     }
   }
 
@@ -783,9 +796,126 @@ export function useDungeon() {
     }
   }
 
+  // Handle Search Check Resolution (Rule-compliant stat roll)
+  async function resolveSearchCheck(useSubStat = true): Promise<boolean> {
+    if (!activeEvent.value || activeEvent.value.type !== 'search' || (activeEvent.value as any).isResolved) {
+      return false;
+    }
+
+    const stat = activeEvent.value.searchStat || 'dexterity';
+    const target = activeEvent.value.searchTarget !== undefined ? activeEvent.value.searchTarget : 4;
+    const rewardGold = activeEvent.value.searchRewardGold || 0;
+    const rewardItemName = activeEvent.value.searchRewardItem || '';
+    const successMsg = activeEvent.value.searchSuccessText || '入念な探索により、隠された報酬を発見した！';
+    const failureMsg = activeEvent.value.searchFailureText || '周囲をくまなく探したが、何も見つからなかった。';
+
+    addLog(`🔍 探索判定開始: 【${stat.toUpperCase()}】判定ロール (目標値: ${target})`, 'info');
+
+    const roll = await rollD6(true);
+    let modifier = 0;
+
+    // Lantern penalty
+    if (!carriesLantern.value) {
+      modifier -= 2;
+      addLog('暗闇での探索により判定に -2 のペナルティ！', 'error');
+    }
+
+    // Apply status effect modifiers
+    playerActiveStatusEffectRules.value.forEach(rule => {
+      if (rule.modSkill) {
+        modifier += rule.modSkill;
+        addLog(`状態異常ペナルティにより判定に ${rule.modSkill} の修正が入ります。`, 'error');
+      }
+    });
+
+    // Armor bonus (if dexterity and equipped armor has modDex)
+    if (stat === 'dexterity' && character.value.equippedArmor) {
+      const arm = character.value.equippedArmor;
+      if (arm.modDex > 0) {
+        modifier += arm.modDex;
+        addLog(`防具 [${arm.name}] の効果で器用判定に +${arm.modDex}`, 'success');
+      }
+    }
+
+    // Determine stat value
+    let statVal = 0;
+    let isUsingSubStat = false;
+
+    if (stat === 'skill') {
+      statVal = character.value.skillCurrent;
+    } else {
+      const isSubMatch = character.value.subStatType === stat;
+      if (isSubMatch && useSubStat) {
+        if (character.value.subStatCurrent > 0) {
+          statVal = character.value.subStatCurrent;
+          isUsingSubStat = true;
+          addLog(`得意な副能力値【${stat.toUpperCase()}】を技量点の代わりに使用します。(現在値: ${statVal})`, 'success');
+        } else {
+          statVal = character.value.skillCurrent;
+          addLog(`副能力値が0点以下のため、技量点を使用します。`, 'error');
+        }
+      } else {
+        statVal = character.value.skillCurrent;
+        if (isSubMatch && !useSubStat) {
+          addLog(`副能力値【${stat.toUpperCase()}】を使用せず、技量点を使用して判定を行います。(現在値: ${statVal})`, 'info');
+        } else {
+          addLog(`技量点を使用して判定を行います。(現在値: ${statVal})`, 'info');
+        }
+      }
+    }
+
+    const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + statVal + modifier;
+    const isSuccess = roll === 6 || (roll !== 1 && total >= target);
+
+    if (isUsingSubStat) {
+      character.value.subStatCurrent--;
+      addLog(`判定終了後、副能力値を1点消費しました。(残り: ${character.value.subStatCurrent}点)`, 'info');
+    }
+
+    (activeEvent.value as any).isResolved = true;
+
+    if (isSuccess) {
+      let rewardText = '';
+      if (rewardGold > 0) {
+        character.value.gold += rewardGold;
+        rewardText += ` 金貨 ${rewardGold} 枚`;
+      }
+      if (rewardItemName) {
+        character.value.items.push({
+          id: generateId(),
+          name: rewardItemName,
+          type: 'consumable',
+          goldCost: 0,
+          value: 0,
+          description: `探索で発見したアイテム`
+        });
+        rewardText += (rewardText ? '、' : ' ') + `【${rewardItemName}】`;
+      }
+
+      addLog(`🎉 探索判定に成功しました！${rewardText ? `(報酬獲得:${rewardText})` : ''} (出目: ${roll})`, 'success');
+
+      (activeEvent.value as any).resolutionText = `🎉 探索判定に成功しました！
+判定能力: ${stat.toUpperCase()} (目標値: ${target})
+判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 6 ? 'クリティカル成功' : total} ]
+
+${successMsg}
+${rewardText ? `\n【獲得報酬】:${rewardText}` : ''}`;
+      return true;
+    } else {
+      addLog(`💥 探索判定に失敗しました。(出目: ${roll})`, 'error');
+      (activeEvent.value as any).resolutionText = `💥 探索判定に失敗しました。
+判定能力: ${stat.toUpperCase()} (目標値: ${target})
+判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
+
+${failureMsg}`;
+      return false;
+    }
+  }
+
   return {
     exploreNextRoom,
     resolveTrapCheck,
+    resolveSearchCheck,
     confirmPerceptionSkip,
     executePerceptionScout,
     executePerceptionHero,
