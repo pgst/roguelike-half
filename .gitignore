@@ -30,6 +30,7 @@ dist-ssr
 # Playwright
 /test-results/
 /playwright-report/
+/playwright-report-personas/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
