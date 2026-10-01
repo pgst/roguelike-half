@@ -411,7 +411,7 @@ export function useCustomScenarios() {
       type: 'encounter',
       enemies: [
         {
-          name: '迷宮の魔将',
+          name: '迷宮の主（ボス）',
           level: 5,
           lifeMax: 8,
           lifeCurrent: 8,

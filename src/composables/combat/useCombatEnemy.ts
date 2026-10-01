@@ -39,7 +39,7 @@ export function useCombatEnemy(deps: CombatEnemyDependencies) {
     if (!activeEvent.value) return;
 
     // Check if the battle event is "Fight to Death" (死ぬまで戦う)
-    const isFightToDeath = activeEvent.value.title.includes('決戦') || activeEvent.value.title.includes('魔将');
+    const isFightToDeath = activeEvent.value.title.includes('決戦') || activeEvent.value.title.includes('ボス') || activeEvent.value.title.includes('魔将');
     if (isFightToDeath) return;
 
     // Calculate total starting health vs current health

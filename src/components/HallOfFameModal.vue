@@ -48,7 +48,7 @@ function getArchetypeIcon(subStat: string): string {
 
       <div class="header-desc-row">
         <p class="subtitle">
-          数々の死線を乗り越え、迷宮最深部の魔将を打ち倒した英雄たちの記録です。
+          数々の死線を乗り越え、迷宮最深部のボスを打ち倒した英雄たちの記録です。
         </p>
         <span v-if="lastFetchedAt > 0" class="cache-badge">
           ⚡ キャッシュ有効 (5分間)

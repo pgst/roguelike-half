@@ -57,7 +57,7 @@ const currentRoom = computed<DungeonEvent>({
 const bossEnemy = computed(() => {
   if (!draft.bossEvent.enemies || draft.bossEvent.enemies.length === 0) {
     draft.bossEvent.enemies = [{
-      name: '迷宮の魔将',
+      name: '迷宮の主（ボス）',
       level: 5,
       lifeMax: 10,
       lifeCurrent: 10,
@@ -259,7 +259,7 @@ function getRoomTypeBadge(type: string) {
 
         <div class="form-group">
           <label>ボス決戦イベント名</label>
-          <input v-model="draft.bossEvent.title" type="text" class="input-ink" placeholder="例: 魔将の玉座" />
+          <input v-model="draft.bossEvent.title" type="text" class="input-ink" placeholder="例: 迷宮深奥の玉座（ボス戦）" />
         </div>
 
         <div class="form-group">

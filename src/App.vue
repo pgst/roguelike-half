@@ -615,7 +615,7 @@ function startAdventure() {
         <!-- VICTORY SUCCESS SCREEN -->
         <div v-else-if="currentScreen === 'success'" class="victory-card paper-sheet">
           <h2 class="victory-title">🏆 迷宮踏破！ 冒険成功！</h2>
-          <p class="victory-desc">最深部の魔将を打ち倒し、迷宮の生ける宝物を抱えて地上へと生還しました！</p>
+          <p class="victory-desc">最深部のボスを打ち倒し、迷宮の生ける宝物を抱えて地上へと生還しました！</p>
           
           <div class="victory-stats">
             <p>獲得経験値: <b>+1 点</b></p>
