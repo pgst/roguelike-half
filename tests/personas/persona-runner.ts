@@ -177,15 +177,15 @@ async function handleExplorerScreen(page: Page, persona: PersonaConfig, step: nu
     return;
   }
 
-  // 4. トラップ・判定ロール
-  const subStatCheckBtn = page.locator('button:has-text("副能力値"), button:has-text("で挑戦")').first();
-  const normalCheckBtn = page.locator('button:has-text("判定ロールに挑戦する")').first();
+  // 4. トラップ・判定ロール・探索部屋調査
+  const subStatCheckBtn = page.locator('button:has-text("副能力値"), button:has-text("で挑戦"), button:has-text("で調査")').first();
+  const normalCheckBtn = page.locator('button:has-text("判定ロールに挑戦する"), button:has-text("調査判定を行う")').first();
   if (persona.preferSubStatForChecks && await subStatCheckBtn.isVisible({ timeout: 0 }) && await isElementEnabled(subStatCheckBtn)) {
-    console.log(`[Step ${step}] ペルソナ特性: 副能力値を消費して判定ロールに挑戦`);
+    console.log(`[Step ${step}] ペルソナ特性: 副能力値を消費して判定ロール/調査に挑戦`);
     await safeClick(subStatCheckBtn, 'SubStat check roll', 500);
     return;
   } else if (await normalCheckBtn.isVisible({ timeout: 0 }) && await isElementEnabled(normalCheckBtn)) {
-    console.log(`[Step ${step}] 通常の判定ロールに挑戦`);
+    console.log(`[Step ${step}] 通常の判定ロール/調査に挑戦`);
     await safeClick(normalCheckBtn, 'Normal check roll', 500);
     return;
   }
@@ -333,6 +333,20 @@ async function handleCombatScreen(
     return;
   }
 
+  // 6-1. 器用点【宝物の獲得】（出目調整の選択ダイアログ）
+  const dexLootModifyBtn = page.locator('button:has-text("器用点1消費して出目+1に変更")').first();
+  const dexLootKeepBtn = page.locator('button:has-text("出目そのままで確定")').first();
+  if (await dexLootModifyBtn.isVisible({ timeout: 0 }) && await isElementEnabled(dexLootModifyBtn)) {
+    console.log(`[Step ${step}] ペルソナ特性: 器用点を消費して戦利品出目を+1に変更`);
+    await safeClick(dexLootModifyBtn, 'Modify loot roll with Dexterity', 400);
+    return;
+  }
+  if (await dexLootKeepBtn.isVisible({ timeout: 0 }) && await isElementEnabled(dexLootKeepBtn)) {
+    console.log(`[Step ${step}] 戦利品出目を確定`);
+    await safeClick(dexLootKeepBtn, 'Confirm loot roll without modification', 400);
+    return;
+  }
+
   const confirmCombatBtn = page.locator('button:has-text("戦闘に勝利した！"), button:has-text("戦闘勝利！次の部屋へ進む"), button:has-text("結果を承認")').first();
   if (await confirmCombatBtn.isVisible({ timeout: 0 }) && await isElementEnabled(confirmCombatBtn)) {
     console.log(`[Step ${step}] 戦闘勝利確定: 次の部屋へ進む`);
@@ -356,8 +370,19 @@ async function handleCombatScreen(
 
   if (cannotAttack) {
     const spellBackBtn = page.locator('.cmd-magic-menu button:has-text("戻る")').first();
-    if (await spellBackBtn.isVisible({ timeout: 0 }) && await isElementEnabled(spellBackBtn)) {
-      await safeClick(spellBackBtn, 'Close spell menu due to status effect', 200);
+    if (await spellBackBtn.isVisible({ timeout: 0 })) {
+      console.log(`[Step ${step}] 状態異常中: 魔法メニューを閉じる`);
+      await page.evaluate(() => {
+        const btn = Array.from(document.querySelectorAll('.cmd-magic-menu button')).find(b => b.textContent?.includes('戻る')) as HTMLElement | undefined;
+        if (btn) btn.click();
+      });
+      await page.waitForTimeout(300);
+      return;
+    }
+    const closeRangedBtn = page.locator('button:has-text("接近戦へ移行する")').first();
+    if (await closeRangedBtn.isVisible({ timeout: 0 }) && await isElementEnabled(closeRangedBtn)) {
+      console.log(`[Step ${step}] 状態異常中 (第0ラウンド): 接近戦へ移行`);
+      await safeClick(closeRangedBtn, 'Transition to melee during status effect', 400);
       return;
     }
     const fleeBtn = page.locator('button:has-text("戦闘から逃走する")').first();
@@ -384,7 +409,15 @@ async function handleCombatScreen(
   } else if (await spellBackBtn.isVisible({ timeout: 0 }) && await isElementEnabled(spellBackBtn)) {
     console.log(`[Step ${step}] 詠唱可能な呪文がないためメニューを閉じて通常攻撃へ移行`);
     simContext.skipMagicInCombat = true;
-    await safeClick(spellBackBtn, 'Close spell menu', 200);
+    await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('.cmd-magic-menu button')).find(b => b.textContent?.includes('戻る')) as HTMLElement | undefined;
+      if (btn) btn.click();
+    });
+    await page.waitForTimeout(300);
+    const closeRanged = page.locator('button:has-text("接近戦へ移行する")').first();
+    if (await closeRanged.isVisible({ timeout: 200 }) && await isElementEnabled(closeRanged)) {
+      await safeClick(closeRanged, 'Transition to melee after closing magic menu', 400);
+    }
     const fallbackAtk = page.locator('button:has-text("通常攻撃"), button:has-text("攻撃する"), button:has-text("攻撃")').first();
     if (await fallbackAtk.isVisible({ timeout: 300 }) && await isElementEnabled(fallbackAtk)) {
       await safeClick(fallbackAtk, 'Fallback attack after closing magic menu', 400);
