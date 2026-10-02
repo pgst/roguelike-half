@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import type { Scenario, DungeonEvent } from '../types';
+import type { Scenario, DungeonEvent, ExplorationMode } from '../types';
 import { generateId } from '../domain/random';
 import { db } from '../firebase/config';
 import { doc, setDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
@@ -242,12 +242,15 @@ export function useCustomScenarios() {
       }
     } : undefined;
 
+    const sanitizedExplorationMode: ExplorationMode = data.explorationMode === 'linear' ? 'linear' : 'tile_map';
+
     const sanitizedScenario: Scenario = {
       id: scenarioId,
       title: data.title.trim(),
       description: String(data.description || 'プレイヤーによって作成されたカスタムシナリオ。'),
       recommendedLevel: String(data.recommendedLevel || '適正レベル：11-12'),
       totalRoomsToClear: clampedRooms,
+      explorationMode: sanitizedExplorationMode,
       d66EventTable: safeEventTable,
       bossEvent: safeBossEvent,
       midpointEvent: sanitizedMidpoint
@@ -458,6 +461,7 @@ export function useCustomScenarios() {
       description: '新たに発見された未開の迷宮。未知の脅威とお宝が眠る。',
       recommendedLevel: calculateRecommendedLevel({ totalRoomsToClear: 8, d66EventTable: eventTable, bossEvent }),
       totalRoomsToClear: 8,
+      explorationMode: 'tile_map',
       d66EventTable: eventTable,
       bossEvent
     };

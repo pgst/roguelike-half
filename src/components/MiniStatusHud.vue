@@ -13,8 +13,11 @@ const {
   currentScreen,
   logs,
   showLogbookModal,
-  showDetailModal
+  showDetailModal,
+  activeScenario
 } = useGameState();
+
+const isLinearMode = computed(() => activeScenario.value?.explorationMode === 'linear');
 
 const showRecordModal = ref(false);
 const activeRecordTab = ref<'status' | 'logbook'>('status');
@@ -72,6 +75,9 @@ const livingFollowers = computed(() => followers.value.filter(f => f.lifeCurrent
         </span>
         <span v-if="currentScreen === 'explore' || currentScreen === 'combat'" class="depth-badge">
           🧭 <b>第 {{ dungeonDepth }} / {{ totalRoomsToClear }} 部屋</b>
+          <span class="hud-mode-pill" :class="isLinearMode ? 'pill-linear' : 'pill-tile'" :title="isLinearMode ? '一本道モード（逃走時に部屋数維持）' : 'マップタイルモード（逃走時に1部屋後退）'">
+            {{ isLinearMode ? '🚶 一本道' : '🗺️ マップ' }}
+          </span>
         </span>
       </div>
 
@@ -249,6 +255,29 @@ const livingFollowers = computed(() => followers.value.filter(f => f.lifeCurrent
   border-radius: 4px;
   font-size: 0.85rem;
   border: 1px dashed var(--ink-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-mode-pill {
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 0 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.pill-tile {
+  background: rgba(41, 128, 185, 0.15);
+  color: #1a5276;
+  border: 1px solid rgba(41, 128, 185, 0.3);
+}
+
+.pill-linear {
+  background: rgba(211, 84, 0, 0.15);
+  color: #933800;
+  border: 1px solid rgba(211, 84, 0, 0.3);
 }
 
 .hud-vitals {

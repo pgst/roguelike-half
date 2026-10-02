@@ -152,12 +152,15 @@ export interface StatusEffectRule {
   preventsCover?: boolean;   // かばう行動不可
 }
 
+export type ExplorationMode = 'tile_map' | 'linear';
+
 export interface Scenario {
   id: string;
   title: string;
   description: string;
   recommendedLevel: string;
   totalRoomsToClear: number;
+  explorationMode?: ExplorationMode; // 'tile_map' (標準: 逃走時1部屋後退) | 'linear' (一本道: 逃走時その場維持)
   d66EventTable: Record<string, DungeonEvent>;
   bossEvent: DungeonEvent;
   midpointEvent?: { roomNumber: number; event: DungeonEvent }; // 【追加】 中間地点イベント

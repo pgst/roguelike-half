@@ -293,4 +293,108 @@ test.describe('シナリオ工房 & 拡張機能 (中間イベント・探索部
     await expect(logbook).toContainText('主人公は 2 点の自爆ダメージを受けました。', { timeout: 5000 });
   });
 
+  test('【ダンジョン探索モード】一本道モードシナリオにおける戦闘逃走時の部屋カウント維持の検証 (ver.5.1 Rule 42)', async ({ page }) => {
+    // 1. 一本道モードのカスタムシナリオを登録
+    const linearScenario = {
+      id: 'custom_linear_mode_test',
+      title: '一本道の回廊テスト',
+      description: '一本道モードの逃走挙動を検証するためのカスタムシナリオです。',
+      recommendedLevel: '10-11',
+      totalRoomsToClear: 5,
+      explorationMode: 'linear',
+      bossEvent: {
+        title: '回廊の主',
+        d66Code: 'boss',
+        description: 'ボス戦です。',
+        type: 'encounter',
+        enemies: [{ name: '迷宮主', level: 5, lifeMax: 8, lifeCurrent: 8, attackCount: 1, tags: ['strong'], count: 1, weaponAttribute: 'strike' }]
+      },
+      d66EventTable: {
+        '11': {
+          title: '安らぎの泉',
+          d66Code: '11',
+          description: '静かな泉があり、心身を癒やすことができます。',
+          type: 'rest'
+        },
+        '12': {
+          title: '回廊の野盗',
+          d66Code: '12',
+          description: '野盗が待ち伏せていました！',
+          type: 'encounter',
+          enemies: [{ name: '待ち伏せ野盗', level: 3, lifeMax: 1, lifeCurrent: 1, attackCount: 1, tags: ['weak'], count: 1, weaponAttribute: 'slash' }]
+        }
+      }
+    };
+
+    await page.addInitScript((sc) => {
+      localStorage.setItem('roguelike_half_custom_scenarios', JSON.stringify([sc]));
+    }, linearScenario);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+
+    // 2. シナリオ選択
+    await selectScenarioInUI(page, '一本道の回廊テスト');
+
+    // 3. キャラクター作成（幸運アーキタイプ）
+    await page.fill('#char-name', '一本道脱出者');
+    await page.locator('.archetype-card').nth(1).click({ force: true });
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+
+    // 4. 冒険開始
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // HUDに「一本道」バッジが表示されていることを確認
+    const hudBadge = page.locator('.hud-mode-pill');
+    await expect(hudBadge).toContainText('一本道');
+
+    // 5. 第1部屋：安らぎの泉（d66=11）に入り、休息を解決して次の小部屋へ進み、踏破部屋数を 1 に進める
+    await setupMockRandom(page, 11);
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    const restBtn = page.locator('button:has-text("怪我を癒やす")');
+    await expect(restBtn).toBeVisible({ timeout: 5000 });
+    await restBtn.click();
+    await page.waitForTimeout(500);
+
+    const proceedBtn = page.locator('button:has-text("次の小部屋へ進む")');
+    await expect(proceedBtn).toBeVisible({ timeout: 5000 });
+    await proceedBtn.click();
+    await page.waitForTimeout(500);
+
+    // 第1部屋踏破後、HUDが「第 1 / 5 部屋」になっていることを確認
+    await expect(page.locator('.depth-badge')).toContainText('第 1 / 5 部屋');
+
+    // 6. 第2部屋：野盗に遭遇（d66=12、逃走判定出目6でクリティカル防御成功）
+    await setupMockRandom(page, 12, [6]);
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    // 接近戦へ移行
+    await transitionToMelee(page);
+
+    // 「戦闘から逃走する」をクリック
+    const fleeBtn = page.locator('button:has-text("戦闘から逃走する")');
+    await expect(fleeBtn).toBeVisible({ timeout: 5000 });
+    await fleeBtn.click();
+    await page.waitForTimeout(500);
+
+    // ログの検証：一本道モード用の逃走成功メッセージ
+    const logbook = page.locator('.logbook-entries');
+    await expect(logbook).toContainText('一本道のためその場にとどまり、再度探索を行います');
+
+    // 結果を承認して探索画面へ戻る
+    const returnBtn = page.locator('button:has-text("結果を承認")');
+    await expect(returnBtn).toBeVisible({ timeout: 5000 });
+    await returnBtn.click();
+    await page.waitForTimeout(500);
+
+    // 探索画面に戻り、マップタイルモードなら 0 に戻るところ、一本道モードのため 1（第 1 / 5 部屋）を維持していることを検証！
+    await expect(page.locator('.depth-badge')).toContainText('第 1 / 5 部屋');
+    await expect(logbook).toContainText('一本道モードのため部屋カウントは進まず、現在位置で再探索を行います');
+  });
+
 });

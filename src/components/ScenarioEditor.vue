@@ -22,6 +22,9 @@ const draft = reactive<Scenario>(
     ? JSON.parse(JSON.stringify(props.initialScenario))
     : createDefaultTemplate()
 );
+if (!draft.explorationMode) {
+  draft.explorationMode = 'tile_map';
+}
 
 // リアルタイム推奨適正レベルの算出
 const computedRecommendedLevel = computed(() => {
@@ -304,6 +307,30 @@ function getRoomTypeBadge(type: string) {
             <label>決戦までの踏破部屋数 (3〜50) *</label>
             <input v-model.number="draft.totalRoomsToClear" type="number" min="3" max="50" class="input-ink" />
             <small style="color: var(--ink-light);">通常シナリオは 8 部屋程度が標準です。</small>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 15px;">
+          <label>ダンジョン探索モード (公式ルール ver.5.1 Rule 42)</label>
+          <div class="exploration-mode-selector" style="display: flex; gap: 12px; margin-top: 6px;">
+            <label class="mode-radio-card" :class="{ 'selected': (draft.explorationMode || 'tile_map') === 'tile_map' }" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; display: flex; align-items: flex-start; gap: 8px; background: rgba(0,0,0,0.02);">
+              <input type="radio" value="tile_map" v-model="draft.explorationMode" style="margin-top: 3px;" />
+              <div>
+                <div style="font-weight: bold;">🗺️ マップタイルモード (標準)</div>
+                <small style="color: var(--ink-light); display: block; margin-top: 2px;">
+                  戦闘から【逃走】した際、ひとつ手前の部屋に戻ります（部屋カウント -1）。
+                </small>
+              </div>
+            </label>
+            <label class="mode-radio-card" :class="{ 'selected': draft.explorationMode === 'linear' }" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; display: flex; align-items: flex-start; gap: 8px; background: rgba(0,0,0,0.02);">
+              <input type="radio" value="linear" v-model="draft.explorationMode" style="margin-top: 3px;" />
+              <div>
+                <div style="font-weight: bold;">🚶 一本道モード (黄昏の騎士形式)</div>
+                <small style="color: var(--ink-light); display: block; margin-top: 2px;">
+                  戦闘から【逃走】しても部屋数は戻らず、その場にとどまって再探索します（部屋カウント維持）。
+                </small>
+              </div>
+            </label>
           </div>
         </div>
 
@@ -922,7 +949,25 @@ function getRoomTypeBadge(type: string) {
   background: #e4d5c0;
 }
 
+.mode-radio-card {
+  transition: all 0.2s ease;
+}
+
+.mode-radio-card:hover {
+  border-color: #8b263e !important;
+  background: rgba(139, 38, 62, 0.04) !important;
+}
+
+.mode-radio-card.selected {
+  border-color: #8b263e !important;
+  background: rgba(139, 38, 62, 0.08) !important;
+  box-shadow: 0 0 0 1px #8b263e;
+}
+
 @media (max-width: 768px) {
+  .exploration-mode-selector {
+    flex-direction: column;
+  }
   .grid-tab-layout {
     grid-template-columns: 1fr;
   }

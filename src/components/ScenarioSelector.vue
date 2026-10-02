@@ -340,7 +340,12 @@ async function handleFileSelected(event: Event) {
                 <h3 class="detail-title">{{ selectedOfficialScenario.title }}</h3>
                 <span class="scenario-level-badge detail-badge">{{ selectedOfficialScenario.recommendedLevel }}</span>
               </div>
-              <span class="detail-rooms-badge">🧭 全 {{ selectedOfficialScenario.totalRoomsToClear }} 部屋 + 決戦</span>
+              <div class="detail-badges-row" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <span class="detail-rooms-badge">🧭 全 {{ selectedOfficialScenario.totalRoomsToClear }} 部屋 + 決戦</span>
+                <span class="mode-badge" :class="selectedOfficialScenario.explorationMode === 'linear' ? 'mode-linear' : 'mode-tile'">
+                  {{ selectedOfficialScenario.explorationMode === 'linear' ? '🚶 一本道' : '🗺️ マップタイル' }}
+                </span>
+              </div>
             </div>
 
             <div class="detail-body">
@@ -396,7 +401,12 @@ async function handleFileSelected(event: Event) {
           <p class="scenario-desc">{{ scenario.description }}</p>
           
           <div class="scenario-footer custom-footer">
-            <span class="scenario-length">🧭 全 {{ scenario.totalRoomsToClear }} 部屋 + 決戦</span>
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+              <span class="scenario-length">🧭 全 {{ scenario.totalRoomsToClear }} 部屋 + 決戦</span>
+              <span class="mode-badge" :class="scenario.explorationMode === 'linear' ? 'mode-linear' : 'mode-tile'">
+                {{ scenario.explorationMode === 'linear' ? '🚶 一本道' : '🗺️ マップ' }}
+              </span>
+            </div>
             <div class="card-action-buttons">
               <button 
                 type="button" 
@@ -729,6 +739,26 @@ async function handleFileSelected(event: Event) {
   font-size: 0.85rem;
   color: #705844;
   font-weight: bold;
+}
+
+.mode-badge {
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 1px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.mode-tile {
+  background: rgba(41, 128, 185, 0.12);
+  color: #1f618d;
+  border: 1px solid rgba(41, 128, 185, 0.3);
+}
+
+.mode-linear {
+  background: rgba(211, 84, 0, 0.12);
+  color: #a04000;
+  border: 1px solid rgba(211, 84, 0, 0.3);
 }
 
 .detail-body {

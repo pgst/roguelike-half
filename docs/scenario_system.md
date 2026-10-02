@@ -17,6 +17,7 @@ export interface Scenario {
   author?: string;                 // 作者名
   description: string;             // シナリオのあらすじ・解説
   totalRoomsToClear: number;       // クリアに必要な踏破部屋数 (標準: 8部屋)
+  explorationMode?: 'tile_map' | 'linear'; // 探索モード ('tile_map': 逃走時1部屋後退, 'linear': 逃走時その場維持)
   recommendedLevel: string;        // 適正レベル帯 (例: "適正レベル：11-12")
   theme?: string;                  // ダンジョンの雰囲気・テーマ
   d66EventTable: Record<string, DungeonEvent>; // d66 (11〜66) の部屋イベント辞書
