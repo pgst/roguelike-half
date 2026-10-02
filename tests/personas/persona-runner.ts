@@ -29,13 +29,14 @@ export async function runPersonaSimulation(
   console.log(`[Persona Simulation Start] ID: ${persona.id} | Name: ${persona.name} | Archetype: ${persona.archetype}`);
   console.log(`======================================================\n`);
 
-  // 1. ローカルストレージをクリアし、クリーンな状態でトップページへ移動
-  await page.goto('/');
-  await page.evaluate(() => {
+  // 1. ダイアログ自動承諾・ストレージ事前初期化・クリーンな状態でトップページへ移動
+  page.on('dialog', dialog => dialog.accept());
+  await page.addInitScript(() => {
     localStorage.clear();
     sessionStorage.clear();
   });
-  await page.reload();
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.locator('#app').waitFor({ state: 'attached', timeout: 10000 });
   await disableAnimations(page);
 
   let currentStep = 0;

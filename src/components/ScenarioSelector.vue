@@ -442,7 +442,7 @@ async function handleFileSelected(event: Event) {
     <div class="tos-credits-container" :class="{ 'tos-collapsed': !showTosDetails }">
       <!-- 閉じている時のコンパクトバー -->
       <div v-if="!showTosDetails" class="tos-collapsed-bar animate-fade-in">
-        <img src="https://ftbooks.xyz/ftnews/article/RLH-100.jpg" alt="RLH ロゴ" class="rlh-logo-mini" />
+        <img src="/RLH-100.jpg" alt="RLH ロゴ" class="rlh-logo-mini" />
         <button 
           type="button" 
           class="btn-ink btn-mini btn-tos-open"
@@ -456,7 +456,7 @@ async function handleFileSelected(event: Event) {
       <div v-else class="tos-expanded-panel animate-fade-in">
         <div class="tos-expanded-header">
           <div class="tos-expanded-title-row">
-            <img src="https://ftbooks.xyz/ftnews/article/RLH-100.jpg" alt="RLH ロゴ" class="rlh-logo" />
+            <img src="/RLH-100.jpg" alt="RLH ロゴ" class="rlh-logo" />
             <div class="tos-title-group">
               <h3 class="tos-title">🛡️ ローグライクハーフ 二次創作ガイドライン・権利表記</h3>
               <p class="tos-subtitle">
