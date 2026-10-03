@@ -1055,9 +1055,9 @@ export function useCombat() {
         // 一本道モード：冒険を進めたことにならず、部屋数は維持（ver.5.1 Rule 42）
         addLog('🚶 一本道モードのため部屋カウントは進まず、現在位置で再探索を行います。(Rule 42)', 'info');
       } else {
-        // マップタイルモード：手前の部屋へ後退
+        // 固定マップ / 通常モード：手前の部屋へ後退
         dungeonDepth.value = Math.max(0, dungeonDepth.value - 1);
-        addLog('🗺️ マップタイルモード：ひとつ手前の部屋へ後退しました。(Rule 42)', 'info');
+        addLog('🗺️ 固定マップ/通常モード：ひとつ手前の部屋へ後退しました。(Rule 42)', 'info');
       }
       transitionToExplore();
     }

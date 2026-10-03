@@ -392,7 +392,7 @@ test.describe('シナリオエディタ & 拡張機能 (中間イベント・探
     await returnBtn.click();
     await page.waitForTimeout(500);
 
-    // 探索画面に戻り、マップタイルモードなら 0 に戻るところ、一本道モードのため 1（第 1 / 5 部屋）を維持していることを検証！
+    // 探索画面に戻り、固定マップ/通常モードなら 0 に戻るところ、一本道モードのため 1（第 1 / 5 部屋）を維持していることを検証！
     await expect(page.locator('.depth-badge')).toContainText('第 1 / 5 部屋');
     await expect(logbook).toContainText('一本道モードのため部屋カウントは進まず、現在位置で再探索を行います');
   });

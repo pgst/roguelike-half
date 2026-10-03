@@ -316,7 +316,7 @@ function getRoomTypeBadge(type: string) {
             <label class="mode-radio-card" :class="{ 'selected': (draft.explorationMode || 'tile_map') === 'tile_map' }" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; display: flex; align-items: flex-start; gap: 8px; background: rgba(0,0,0,0.02);">
               <input type="radio" value="tile_map" v-model="draft.explorationMode" style="margin-top: 3px;" />
               <div>
-                <div style="font-weight: bold;">🗺️ マップタイルモード (標準)</div>
+                <div style="font-weight: bold;">🗺️ 固定マップ / 通常モード (標準)</div>
                 <small style="color: var(--ink-light); display: block; margin-top: 2px;">
                   戦闘から【逃走】した際、ひとつ手前の部屋に戻ります（部屋カウント -1）。
                 </small>
