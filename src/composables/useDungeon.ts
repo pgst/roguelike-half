@@ -390,12 +390,21 @@ export function useDungeon() {
     if (isSuccess) {
       addLog(`🎉 トラップ判定に成功しました！ (ロール計: ${roll === 6 ? 'クリティカル' : total} >= 目標: ${target})`, 'success');
       if (activeEvent.value) {
-        (activeEvent.value as any).isResolved = true;
-        (activeEvent.value as any).resolutionText = `🎉 トラップ判定に成功しました！
+        if (activeEvent.value.lootModifier !== undefined) {
+          (activeEvent.value as any).isChestUnlocked = true;
+          (activeEvent.value as any).resolutionText = `🎉 トラップの解除に成功しました！
+判定能力: ${stat.toUpperCase()} (目標値: ${target})
+判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 6 ? 'クリティカル成功' : total} ]
+
+罠を作動させることなく、安全に宝箱を開錠しました。宝物を獲得できます！`;
+        } else {
+          (activeEvent.value as any).isResolved = true;
+          (activeEvent.value as any).resolutionText = `🎉 トラップ判定に成功しました！
 判定能力: ${stat.toUpperCase()} (目標値: ${target})
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 6 ? 'クリティカル成功' : total} ]
 
 無事に罠を感知・回避し、無傷で先へ進むことができます！`;
+        }
       }
       return true;
     } else {
@@ -650,12 +659,22 @@ export function useDungeon() {
           }
 
           if (activeEvent.value) {
-            (activeEvent.value as any).isResolved = true;
-            (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
+            if (activeEvent.value.lootModifier !== undefined) {
+              (activeEvent.value as any).isTrapChestFailed = true;
+              (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
+判定能力: ${stat.toUpperCase()} (目標値: ${target})
+判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
+
+罠を発動させてしまい、${damageTaken > 0 ? `生命力に ${damageTaken} 点のダメージを受けました！` : ''}${effectApplied ? `さらに状態異常【${effectApplied}】を受けました！` : ''}${damageTaken === 0 && !effectApplied ? '何も起こりませんでした。' : ''} (残り生命力: ${character.value.lifeCurrent})
+宝箱はまだ開いていません。もう一度開錠を試みる（再挑戦）か、諦めて先へ進むかを選択できます。`;
+            } else {
+              (activeEvent.value as any).isResolved = true;
+              (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
 判定能力: ${stat.toUpperCase()} (目標値: ${target})
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 罠を発動させてしまい、${damageTaken > 0 ? `生命力に ${damageTaken} 点のダメージを受けました！` : ''}${effectApplied ? `さらに状態異常【${effectApplied}】を受けました！` : ''}${damageTaken === 0 && !effectApplied ? '何も起こりませんでした。' : ''} (残り生命力: ${character.value.lifeCurrent})`;
+            }
           }
           return false;
         }
@@ -764,13 +783,23 @@ export function useDungeon() {
       return;
     }
 
-    // Set trap event as resolved
-    (activeEvent.value as any).isResolved = true;
-    (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
+    // Set trap event as resolved (or retryable if trap chest)
+    if (activeEvent.value.lootModifier !== undefined) {
+      (activeEvent.value as any).isTrapChestFailed = true;
+      (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
+判定能力: ${stat.toUpperCase()} (目標値: ${target})
+判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${total - roll} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
+
+罠を発動させてしまい、${resolutionNames.join('、')} がダメージを受けました！
+宝箱はまだ開いていません。もう一度開錠を試みる（再挑戦）か、諦めて先へ進むかを選択できます。`;
+    } else {
+      (activeEvent.value as any).isResolved = true;
+      (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
 判定能力: ${stat.toUpperCase()} (目標値: ${target})
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${total - roll} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 罠を発動させてしまい、${resolutionNames.join('、')} がダメージを受けました！`;
+    }
   }
 
   // 自動トラップ割り振り解決（完全自動・ランダム選定）

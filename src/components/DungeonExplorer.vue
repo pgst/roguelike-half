@@ -1012,8 +1012,35 @@ function resolveSkeletonEvent() {
               </button>
             </div>
           </div>
+          <!-- トラップ付き宝箱: 開錠成功時 -->
+          <div v-else-if="(activeEvent as any).isChestUnlocked" class="chest-unlocked-panel" style="width: 100%;">
+            <button @click="resolveLootRoom" class="btn-ink btn-primary-ink" style="width: 100%; justify-content: center;" :disabled="diceTray.isRolling">
+              💎 宝箱を開けて宝物を入手する (ダイスを振る)
+            </button>
+          </div>
+
+          <!-- トラップ付き宝箱: 解除失敗時（再挑戦 or 立ち去る） -->
+          <div v-else-if="(activeEvent as any).isTrapChestFailed" class="button-group" style="display: flex; gap: 10px; width: 100%;">
+            <button 
+              @click="(activeEvent as any).isTrapChestFailed = false; resolveTrapCheck(true)" 
+              class="btn-ink btn-strength" 
+              style="flex: 1; justify-content: center;"
+              :disabled="diceTray.isRolling || character.lifeCurrent <= 0"
+            >
+              🔄 もう一度開錠を試みる (再挑戦)
+            </button>
+            <button 
+              @click="(activeEvent as any).isResolved = true; (activeEvent as any).isTrapChestFailed = false;" 
+              class="btn-ink" 
+              style="flex: 1; justify-content: center;"
+              :disabled="diceTray.isRolling"
+            >
+              🏃 諦めて先へ進む (立ち去る)
+            </button>
+          </div>
+
           <!-- Trap Challenge Options -->
-          <template v-else>
+          <template v-else-if="!activeEvent.isResolved">
             <div v-if="activeEvent.trapStat && character.subStatType === activeEvent.trapStat && character.subStatCurrent > 0" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
               <button @click="resolveTrapCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
                 {{ activeEvent.trapStat === 'strength' ? '💪' : activeEvent.trapStat === 'dexterity' ? '🏹' : activeEvent.trapStat === 'magic' ? '🔮' : '✨' }} 副能力値【{{ activeEvent.trapStat === 'strength' ? '筋力点' : activeEvent.trapStat === 'dexterity' ? '器用点' : activeEvent.trapStat === 'magic' ? '魔術点' : activeEvent.trapStat === 'luck' ? '幸運点' : activeEvent.trapStat }}】で挑戦 (判定値: {{ character.subStatCurrent }} / 1点消費)
@@ -1024,6 +1051,15 @@ function resolveSkeletonEvent() {
             </div>
             <button v-else @click="resolveTrapCheck(true)" class="btn-ink" style="width: 100%; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
               🎲 判定ロールに挑戦する (技量点判定値: {{ character.skillCurrent }} / 目標値: {{ activeEvent.trapTarget }})
+            </button>
+            <button 
+              v-if="activeEvent.lootModifier !== undefined"
+              @click="(activeEvent as any).isResolved = true" 
+              class="btn-ink" 
+              style="width: 100%; justify-content: center; margin-top: 8px;"
+              :disabled="diceTray.isRolling"
+            >
+              🏃 宝箱を開けずに立ち去る
             </button>
           </template>
         </div>

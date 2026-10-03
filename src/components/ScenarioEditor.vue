@@ -304,15 +304,50 @@ function removeMidpointEnemy(idx: number) {
   }
 }
 
-// 保存処理
-async function handleSave() {
-  saveError.value = null;
+function cleanDraft() {
   if (hasMultiPhaseBoss.value && draft.bossPhases && draft.bossPhases.length > 0) {
     draft.bossEvent = JSON.parse(JSON.stringify(draft.bossPhases[0].bossEvent));
   } else {
     delete draft.bossPhases;
     delete draft.completeClearMessage;
   }
+
+  // 各部屋の型に応じた孤立プロパティの安全なクリーンアップ
+  for (const code of ALL_D66_CODES) {
+    const room = draft.d66EventTable[code];
+    if (!room) continue;
+    if (room.type !== 'trap' && room.type !== 'treasure') {
+      delete room.lootModifier;
+    }
+    if (room.type !== 'trap') {
+      delete room.trapStat;
+      delete room.trapTarget;
+      delete room.trapDamage;
+    }
+    if (room.type !== 'search') {
+      delete room.searchStat;
+      delete room.searchTarget;
+      delete room.searchRewardGold;
+      delete room.searchRewardItem;
+      delete room.searchSuccessText;
+      delete room.searchFailureText;
+    }
+    if (room.type !== 'npc') {
+      delete room.npcType;
+    }
+    if (room.type !== 'encounter' && room.type !== 'npc') {
+      delete room.reactionType;
+    }
+    if (room.type !== 'encounter') {
+      delete room.enemies;
+    }
+  }
+}
+
+// 保存処理
+async function handleSave() {
+  saveError.value = null;
+  cleanDraft();
   const res = await saveCustomScenario(draft);
   if (res.success) {
     emit('saved', draft);
@@ -323,6 +358,7 @@ async function handleSave() {
 }
 
 function handleDownloadJson() {
+  cleanDraft();
   exportScenarioAsJson(draft);
 }
 
@@ -409,9 +445,21 @@ function getRoomTypeBadge(type: string) {
 
       <!-- TAB 1: Meta Settings -->
       <div v-if="activeTab === 'meta'" class="tab-content">
-        <div class="form-group">
-          <label>シナリオのタイトル *</label>
-          <input v-model="draft.title" type="text" class="input-ink" placeholder="例: 奈落の魔窟" />
+        <div class="form-row" style="display: flex; gap: 20px;">
+          <div class="form-group" style="flex: 2;">
+            <label>シナリオのタイトル *</label>
+            <input v-model="draft.title" type="text" class="input-ink" placeholder="例: 奈落の魔窟" />
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>シナリオID (半角英数字・記号) *</label>
+            <input 
+              v-model="draft.id" 
+              type="text" 
+              class="input-ink" 
+              placeholder="例: custom_my_scenario" 
+              @input="draft.id = draft.id.replace(/[^a-zA-Z0-9_-]/g, '')"
+            />
+          </div>
         </div>
 
         <div class="form-group">
@@ -873,6 +921,33 @@ function getRoomTypeBadge(type: string) {
                 <input v-model.number="currentRoom.trapDamage" type="number" min="1" max="10" class="input-ink" />
               </div>
             </div>
+
+            <!-- トラップ付き宝箱オプション -->
+            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border-color);">
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: bold; cursor: pointer;">
+                <input 
+                  type="checkbox" 
+                  :checked="currentRoom.lootModifier !== undefined"
+                  @change="(e) => {
+                    const checked = (e.target as HTMLInputElement).checked;
+                    currentRoom.lootModifier = checked ? 1 : undefined;
+                  }"
+                />
+                🎁 トラップ付き宝箱（開錠時に宝物表獲得・再挑戦可能）
+              </label>
+              <div v-if="currentRoom.lootModifier !== undefined" style="margin-top: 8px; display: flex; gap: 10px; align-items: center;">
+                <label style="font-size: 0.85rem;">宝物表の出目修正 (lootModifier):</label>
+                <input 
+                  v-model.number="currentRoom.lootModifier" 
+                  type="number" 
+                  min="0" 
+                  max="10" 
+                  class="input-ink" 
+                  style="width: 70px;" 
+                />
+                <span style="font-size: 0.75rem; color: var(--ink-light);">※解除成功、またはトラップ作動後に宝物表ロールを行います</span>
+              </div>
+            </div>
           </div>
 
           <!-- Type: Treasure Editor -->
@@ -886,13 +961,29 @@ function getRoomTypeBadge(type: string) {
 
           <!-- Type: NPC Editor -->
           <div v-if="currentRoom.type === 'npc'" class="type-detail-box">
-            <b>🛒 NPCの種類:</b>
-            <select v-model="currentRoom.npcType" class="input-ink" style="margin-top: 8px;">
-              <option value="merchant">行商人 (武器・防具・聖水の販売)</option>
-              <option value="priest">司祭 (治療または聖水の譲渡)</option>
-              <option value="mercenary">負傷した傭兵 (治療で剣士雇用)</option>
-              <option value="bribe">通行税の徴収人 (ワイロ交渉)</option>
-            </select>
+            <b>🛒 NPCの設定:</b>
+            <div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;">
+              <div class="form-group" style="flex: 1.5; min-width: 180px;">
+                <label>NPCの種類</label>
+                <select v-model="currentRoom.npcType" class="input-ink">
+                  <option value="merchant">行商人 / 交易 (武器・防具・物資の取引)</option>
+                  <option value="priest">司祭 (治療または聖水の譲渡)</option>
+                  <option value="mercenary">負傷した傭兵 / 冒険者 (治療や勧誘で従者雇用)</option>
+                  <option value="bribe">通行税の徴収人 (ワイロ交渉)</option>
+                  <option value="quest">依頼人 (素材納品・クエスト)</option>
+                  <option value="neutral">中立・里人・旅人 (情報提供・対話・道案内)</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex: 1; min-width: 140px;">
+                <label>初期反応プリセット</label>
+                <select v-model="currentRoom.reactionType" class="input-ink">
+                  <option :value="undefined">🎲 通常 (設定なし)</option>
+                  <option value="friendly">😊 友好的 (手助け・好意)</option>
+                  <option value="neutral">🤝 中立 (見逃す・会話)</option>
+                  <option value="always_hostile">⚔️ 敵対的 (威嚇・戦闘)</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       </div>

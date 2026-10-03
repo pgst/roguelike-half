@@ -125,10 +125,10 @@ export function useCustomScenarios() {
     // 部屋数を安全な範囲（3〜50）にクランプ
     const clampedRooms = Math.max(3, Math.min(50, totalRooms));
 
-    // IDの検証・安全プレフィックス付与
-    let scenarioId = typeof data.id === 'string' && data.id.trim() ? data.id.trim() : '';
-    if (!scenarioId.startsWith('custom_')) {
-      scenarioId = `custom_${scenarioId || generateId()}`;
+    // IDの検証・サニタイズ（英数字・アンダースコア・ハイフンを許可。未指定時はcustom_プレフィックス付きIDを生成）
+    let scenarioId = typeof data.id === 'string' ? data.id.trim().replace(/[^a-zA-Z0-9_-]/g, '') : '';
+    if (!scenarioId) {
+      scenarioId = `custom_${generateId()}`;
     }
 
     // ボスイベントの検証
