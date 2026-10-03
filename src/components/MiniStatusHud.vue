@@ -17,8 +17,6 @@ const {
   activeScenario
 } = useGameState();
 
-const isLinearMode = computed(() => activeScenario.value?.explorationMode === 'linear');
-
 const showRecordModal = ref(false);
 const activeRecordTab = ref<'status' | 'logbook'>('status');
 
@@ -75,8 +73,8 @@ const livingFollowers = computed(() => followers.value.filter(f => f.lifeCurrent
         </span>
         <span v-if="currentScreen === 'explore' || currentScreen === 'combat'" class="depth-badge">
           🧭 <b>第 {{ dungeonDepth }} / {{ totalRoomsToClear }} 部屋</b>
-          <span class="hud-mode-pill" :class="isLinearMode ? 'pill-linear' : 'pill-tile'" :title="isLinearMode ? '一本道モード（逃走時に部屋数維持）' : '固定マップ/通常モード（逃走時に1部屋後退）'">
-            {{ isLinearMode ? '🚶 一本道' : '🗺️ 通常' }}
+          <span v-if="activeScenario?.explorationMode === 'mapping'" class="hud-mode-pill pill-tile" title="マッピングモード">
+            🗺️ マッピング
           </span>
         </span>
       </div>

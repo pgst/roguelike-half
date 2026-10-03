@@ -352,8 +352,8 @@ async function handleFileSelected(event: Event) {
               </div>
               <div class="detail-badges-row" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                 <span class="detail-rooms-badge">🧭 全 {{ selectedOfficialScenario.totalRoomsToClear }} 部屋 + 決戦</span>
-                <span class="mode-badge" :class="selectedOfficialScenario.explorationMode === 'linear' ? 'mode-linear' : 'mode-tile'">
-                  {{ selectedOfficialScenario.explorationMode === 'linear' ? '🚶 一本道' : '🗺️ 固定マップ / 通常' }}
+                <span v-if="selectedOfficialScenario.explorationMode === 'mapping'" class="mode-badge mode-tile">
+                  🗺️ マッピング
                 </span>
                 <span v-if="selectedOfficialScenario.bossPhases && selectedOfficialScenario.bossPhases.length > 0" class="mode-badge" style="background: #8c1c1c; color: white;">
                   👑 全 {{ selectedOfficialScenario.bossPhases.length }} 周回
@@ -430,8 +430,8 @@ async function handleFileSelected(event: Event) {
           <div class="scenario-footer custom-footer">
             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
               <span class="scenario-length">🧭 全 {{ scenario.totalRoomsToClear }} 部屋 + 決戦</span>
-              <span class="mode-badge" :class="scenario.explorationMode === 'linear' ? 'mode-linear' : 'mode-tile'">
-                {{ scenario.explorationMode === 'linear' ? '🚶 一本道' : '🗺️ 通常' }}
+              <span v-if="scenario.explorationMode === 'mapping'" class="mode-badge mode-tile">
+                🗺️ マッピング
               </span>
               <span v-if="scenario.bossPhases && scenario.bossPhases.length > 0" class="mode-badge" style="background: #8c1c1c; color: white;">
                 👑 全 {{ scenario.bossPhases.length }} 周

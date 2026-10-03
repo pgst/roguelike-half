@@ -186,12 +186,7 @@ export function useCombat() {
       combatState.isOver = true;
       combatState.resultType = 'escaped';
       (combatState as any).activeAttacks = [];
-      const isLinear = activeScenario.value?.explorationMode === 'linear';
-      if (isLinear) {
-        addLog('🏃 敵の追撃を耐え抜き、逃走に成功しました！ 一本道のためその場にとどまり、再度探索を行います。(Rule 42)', 'success');
-      } else {
-        addLog('🏃 敵の追撃を耐え抜き、逃亡に成功しました！「結果を承認」して1つ前の部屋に戻ってください。', 'success');
-      }
+      addLog('🏃 敵の追撃を耐え抜き、逃走に成功しました！ 一本道のためその場にとどまり、再度探索を行います。(Rule 42)', 'success');
     }
   }
 
@@ -1049,16 +1044,9 @@ export function useCombat() {
         transitionToExplore();
       }
     } else {
-      // 逃走時 (Escaped)
-      const isLinear = activeScenario.value?.explorationMode === 'linear';
-      if (isLinear) {
-        // 一本道モード：冒険を進めたことにならず、部屋数は維持（ver.5.1 Rule 42）
-        addLog('🚶 一本道モードのため部屋カウントは進まず、現在位置で再探索を行います。(Rule 42)', 'info');
-      } else {
-        // 固定マップ / 通常モード：手前の部屋へ後退
-        dungeonDepth.value = Math.max(0, dungeonDepth.value - 1);
-        addLog('🗺️ 固定マップ/通常モード：ひとつ手前の部屋へ後退しました。(Rule 42)', 'info');
-      }
+      // 逃走時 (Escaped: Rule 42)
+      // 一本道モード：冒険を進めたことにならず、部屋数は維持（ver.5.1 Rule 42）
+      addLog('🚶 一本道モードのため部屋カウントは進まず、現在位置で再探索を行います。(Rule 42)', 'info');
       transitionToExplore();
     }
   }

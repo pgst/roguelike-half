@@ -435,7 +435,7 @@ function closeRangedRound() {
             </div>
             <div v-else-if="combatState.resultType === 'escaped'">
               <button @click="confirmCombatResult" class="btn-ink btn-large btn-primary-ink" style="width: 100%;">
-                🚪 結果を承認して1つ前の部屋に戻る
+                🚪 結果を承認して再探索する
               </button>
             </div>
             <div v-else>

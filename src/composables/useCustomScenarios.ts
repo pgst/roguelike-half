@@ -242,7 +242,7 @@ export function useCustomScenarios() {
       }
     } : undefined;
 
-    const sanitizedExplorationMode: ExplorationMode = data.explorationMode === 'linear' ? 'linear' : 'tile_map';
+    const sanitizedExplorationMode: ExplorationMode = data.explorationMode === 'mapping' ? 'mapping' : 'linear';
 
     let sanitizedBossPhases: BossPhaseConfig[] | undefined = undefined;
     if (Array.isArray(data.bossPhases) && data.bossPhases.length > 0) {
@@ -504,7 +504,7 @@ export function useCustomScenarios() {
       description: '新たに発見された未開の迷宮。未知の脅威とお宝が眠る。',
       recommendedLevel: calculateRecommendedLevel({ totalRoomsToClear: 8, d66EventTable: eventTable, bossEvent }),
       totalRoomsToClear: 8,
-      explorationMode: 'tile_map',
+      explorationMode: 'linear',
       d66EventTable: eventTable,
       bossEvent
     };

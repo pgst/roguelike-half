@@ -178,11 +178,11 @@ test.describe('基本ルール ver.5.1: 遭遇・戦闘・逃走・察知・ダ�
     await fleeBtn.click();
     await page.waitForTimeout(500);
 
-    // ログの検証：逃亡に成功したこと
+    // ログの検証：逃走に成功したこと
     const logbook = page.locator('.logbook-entries');
-    await expect(logbook).toContainText('逃亡に成功しました！', { timeout: 5000 });
+    await expect(logbook).toContainText('逃走に成功しました！', { timeout: 5000 });
 
-    // 戦闘終了画面となり「結果を承認して1つ前の部屋に戻る」等のボタンが出現すること
+    // 戦闘終了画面となり「結果を承認して再探索する」等のボタンが出現すること
     const returnBtn = page.locator('button:has-text("結果を承認")');
     await expect(returnBtn).toBeVisible({ timeout: 5000 });
   });

@@ -153,7 +153,7 @@ export interface StatusEffectRule {
   preventsCover?: boolean;   // かばう行動不可
 }
 
-export type ExplorationMode = 'tile_map' | 'linear';
+export type ExplorationMode = 'linear' | 'mapping' | 'tile_map';
 
 export interface BossPhaseConfig {
   phaseNumber: number;          // 1, 2, 3...
@@ -168,7 +168,7 @@ export interface Scenario {
   description: string;
   recommendedLevel: string;
   totalRoomsToClear: number;
-  explorationMode?: ExplorationMode; // 'tile_map' (標準: 逃走時1部屋後退) | 'linear' (一本道: 逃走時その場維持)
+  explorationMode?: ExplorationMode; // 'linear' (標準の一本道モード) | 'mapping' (将来のマッピングモード)
   d66EventTable: Record<string, DungeonEvent>;
   bossEvent: DungeonEvent;
   bossPhases?: BossPhaseConfig[]; // 【追加】 複数回クリア（周回）でボスや物語が変化する設定

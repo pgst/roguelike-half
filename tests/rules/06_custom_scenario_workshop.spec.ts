@@ -346,9 +346,8 @@ test.describe('シナリオエディタ & 拡張機能 (中間イベント・探
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
-    // HUDに「一本道」バッジが表示されていることを確認
-    const hudBadge = page.locator('.hud-mode-pill');
-    await expect(hudBadge).toContainText('一本道');
+    // HUDに進行度バッジが表示されていることを確認
+    await expect(page.locator('.depth-badge')).toBeVisible();
 
     // 5. 第1部屋：安らぎの泉（d66=11）に入り、休息を解決して次の小部屋へ進み、踏破部屋数を 1 に進める
     await setupMockRandom(page, 11);

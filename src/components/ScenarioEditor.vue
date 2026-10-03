@@ -23,7 +23,7 @@ const draft = reactive<Scenario>(
     : createDefaultTemplate()
 );
 if (!draft.explorationMode) {
-  draft.explorationMode = 'tile_map';
+  draft.explorationMode = 'linear';
 }
 
 // リアルタイム推奨適正レベルの算出
@@ -443,29 +443,7 @@ function getRoomTypeBadge(type: string) {
           </div>
         </div>
 
-        <div class="form-group" style="margin-top: 15px;">
-          <label>ダンジョン探索モード (公式ルール ver.5.1 Rule 42)</label>
-          <div class="exploration-mode-selector" style="display: flex; gap: 12px; margin-top: 6px;">
-            <label class="mode-radio-card" :class="{ 'selected': (draft.explorationMode || 'tile_map') === 'tile_map' }" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; display: flex; align-items: flex-start; gap: 8px; background: rgba(0,0,0,0.02);">
-              <input type="radio" value="tile_map" v-model="draft.explorationMode" style="margin-top: 3px;" />
-              <div>
-                <div style="font-weight: bold;">🗺️ 固定マップ / 通常モード (標準)</div>
-                <small style="color: var(--ink-light); display: block; margin-top: 2px;">
-                  戦闘から【逃走】した際、ひとつ手前の部屋に戻ります（部屋カウント -1）。
-                </small>
-              </div>
-            </label>
-            <label class="mode-radio-card" :class="{ 'selected': draft.explorationMode === 'linear' }" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; display: flex; align-items: flex-start; gap: 8px; background: rgba(0,0,0,0.02);">
-              <input type="radio" value="linear" v-model="draft.explorationMode" style="margin-top: 3px;" />
-              <div>
-                <div style="font-weight: bold;">🚶 一本道モード</div>
-                <small style="color: var(--ink-light); display: block; margin-top: 2px;">
-                  戦闘から【逃走】しても部屋数は戻らず、その場にとどまって再探索します（部屋カウント維持）。
-                </small>
-              </div>
-            </label>
-          </div>
-        </div>
+
 
         <!-- Midpoint Event Section -->
         <div class="paper-sheet" style="margin-top: 20px; padding: 15px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.02);">
