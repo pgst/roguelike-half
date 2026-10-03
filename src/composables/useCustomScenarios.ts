@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import type { Scenario, DungeonEvent, ExplorationMode } from '../types';
+import type { Scenario, DungeonEvent, ExplorationMode, BossPhaseConfig } from '../types';
 import { generateId } from '../domain/random';
 import { db } from '../firebase/config';
 import { doc, setDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
@@ -244,6 +244,47 @@ export function useCustomScenarios() {
 
     const sanitizedExplorationMode: ExplorationMode = data.explorationMode === 'linear' ? 'linear' : 'tile_map';
 
+    let sanitizedBossPhases: BossPhaseConfig[] | undefined = undefined;
+    if (Array.isArray(data.bossPhases) && data.bossPhases.length > 0) {
+      sanitizedBossPhases = data.bossPhases.map((phase: any, pIdx: number) => {
+        const pEnemies = Array.isArray(phase.bossEvent?.enemies) ? phase.bossEvent.enemies.map((e: any) => ({
+          name: String(e.name || `ボス (第${pIdx + 1}周)`),
+          level: Math.max(1, Math.min(20, Number(e.level) || 5)),
+          lifeMax: Math.max(1, Math.min(100, Number(e.lifeMax) || 10)),
+          lifeCurrent: Math.max(1, Math.min(100, Number(e.lifeMax) || 10)),
+          attackCount: Math.max(1, Math.min(5, Number(e.attackCount) || 1)),
+          tags: Array.isArray(e.tags) ? e.tags : ['strong'],
+          count: 1,
+          weaponAttribute: e.weaponAttribute || 'strike',
+          selfDestructDamage: e.selfDestructDamage !== undefined ? Number(e.selfDestructDamage) : undefined
+        })) : [{
+          name: `ボス (第${pIdx + 1}周)`,
+          level: 5,
+          lifeMax: 10,
+          lifeCurrent: 10,
+          attackCount: 1,
+          tags: ['strong'],
+          count: 1,
+          weaponAttribute: 'strike'
+        }];
+
+        return {
+          phaseNumber: pIdx + 1,
+          phaseTitle: phase.phaseTitle ? String(phase.phaseTitle) : undefined,
+          bossEvent: {
+            title: String(phase.bossEvent?.title || `第${pIdx + 1}周 決戦`),
+            d66Code: 'boss',
+            description: String(phase.bossEvent?.description || '最深部に待ち受ける決戦です。'),
+            type: 'encounter',
+            enemies: pEnemies
+          },
+          clearMessage: phase.clearMessage ? String(phase.clearMessage) : undefined
+        };
+      });
+    }
+
+    const sanitizedCompleteClearMessage = data.completeClearMessage ? String(data.completeClearMessage) : undefined;
+
     const sanitizedScenario: Scenario = {
       id: scenarioId,
       title: data.title.trim(),
@@ -253,6 +294,8 @@ export function useCustomScenarios() {
       explorationMode: sanitizedExplorationMode,
       d66EventTable: safeEventTable,
       bossEvent: safeBossEvent,
+      bossPhases: sanitizedBossPhases,
+      completeClearMessage: sanitizedCompleteClearMessage,
       midpointEvent: sanitizedMidpoint
     };
 

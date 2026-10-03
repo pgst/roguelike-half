@@ -73,6 +73,7 @@ export interface Character {
   equippedShield: Shield | null;
   hasActiveLantern: boolean;
   statusEffects?: string[]; // 【追加】 呪い、石化、麻痺などの状態異常を保持
+  scenarioProgress?: Record<string, { clearCount: number; isCompleted: boolean }>; // 【追加】 シナリオごとの周回クリア進捗
 }
 
 export interface Follower {
@@ -154,6 +155,13 @@ export interface StatusEffectRule {
 
 export type ExplorationMode = 'tile_map' | 'linear';
 
+export interface BossPhaseConfig {
+  phaseNumber: number;          // 1, 2, 3...
+  phaseTitle?: string;          // 周回名（例: "第1の変容：黄昏の騎士"）
+  bossEvent: DungeonEvent;      // その周回専用のボスイベント（敵・描写文）
+  clearMessage?: string;        // 周回クリア時の物語テキスト（例: "不死者と化した黄昏の騎士が村に現れる..."）
+}
+
 export interface Scenario {
   id: string;
   title: string;
@@ -163,6 +171,8 @@ export interface Scenario {
   explorationMode?: ExplorationMode; // 'tile_map' (標準: 逃走時1部屋後退) | 'linear' (一本道: 逃走時その場維持)
   d66EventTable: Record<string, DungeonEvent>;
   bossEvent: DungeonEvent;
+  bossPhases?: BossPhaseConfig[]; // 【追加】 複数回クリア（周回）でボスや物語が変化する設定
+  completeClearMessage?: string;   // 【追加】 全フェーズ完全制覇時のエピローグテキスト
   midpointEvent?: { roomNumber: number; event: DungeonEvent }; // 【追加】 中間地点イベント
   statusEffectRules?: Record<string, StatusEffectRule>; // 【追加】 シナリオ固有の状態異常ルール定義
   runCountMax?: number;

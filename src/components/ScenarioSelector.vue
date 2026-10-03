@@ -19,7 +19,8 @@ const {
   hasSavedSession, 
   loadSession, 
   skipAllMessages,
-  resetSessionForNewCharacter
+  resetSessionForNewCharacter,
+  resetScenarioProgress
 } = useGameState();
 const { initAuth, userDisplayName, userPhotoURL } = useAuth();
 const avatarLoadError = ref(false);
@@ -65,6 +66,15 @@ function getSubStatIcon(subType: string): string {
     case 'luck': return '✨ 幸運導師';
     default: return '冒険者';
   }
+}
+
+function handleResetProgress(scenarioId: string) {
+  const sc = officialScenarios.value.find(s => s.id === scenarioId) || customScenarios.value.find(s => s.id === scenarioId);
+  const name = sc ? `「${sc.title}」` : 'このシナリオ';
+  if (!confirm(`${name}の周回進捗をリセットして第1周目からやり直しますか？`)) {
+    return;
+  }
+  resetScenarioProgress(scenarioId);
 }
 
 function handleStartNewCharacter() {
@@ -345,6 +355,23 @@ async function handleFileSelected(event: Event) {
                 <span class="mode-badge" :class="selectedOfficialScenario.explorationMode === 'linear' ? 'mode-linear' : 'mode-tile'">
                   {{ selectedOfficialScenario.explorationMode === 'linear' ? '🚶 一本道' : '🗺️ 固定マップ / 通常' }}
                 </span>
+                <span v-if="selectedOfficialScenario.bossPhases && selectedOfficialScenario.bossPhases.length > 0" class="mode-badge" style="background: #8c1c1c; color: white;">
+                  👑 全 {{ selectedOfficialScenario.bossPhases.length }} 周回
+                </span>
+                <span v-if="selectedOfficialScenario.bossPhases && character.scenarioProgress?.[selectedOfficialScenario.id]" class="mode-badge" style="background: #2b5c8f; color: white;">
+                  進捗: {{ character.scenarioProgress[selectedOfficialScenario.id].clearCount }} / {{ selectedOfficialScenario.bossPhases.length }} 周
+                  {{ character.scenarioProgress[selectedOfficialScenario.id].isCompleted ? ' (制覇)' : '' }}
+                </span>
+                <button
+                  v-if="selectedOfficialScenario.bossPhases && character.scenarioProgress?.[selectedOfficialScenario.id]?.clearCount"
+                  type="button"
+                  @click="handleResetProgress(selectedOfficialScenario.id)"
+                  class="btn-ink btn-mini"
+                  style="font-size: 0.75rem; padding: 2px 6px;"
+                  title="周回進捗を初期化して第1周から再挑戦"
+                >
+                  🔄 進捗リセット
+                </button>
               </div>
             </div>
 
@@ -406,6 +433,22 @@ async function handleFileSelected(event: Event) {
               <span class="mode-badge" :class="scenario.explorationMode === 'linear' ? 'mode-linear' : 'mode-tile'">
                 {{ scenario.explorationMode === 'linear' ? '🚶 一本道' : '🗺️ 通常' }}
               </span>
+              <span v-if="scenario.bossPhases && scenario.bossPhases.length > 0" class="mode-badge" style="background: #8c1c1c; color: white;">
+                👑 全 {{ scenario.bossPhases.length }} 周
+              </span>
+              <span v-if="scenario.bossPhases && character.scenarioProgress?.[scenario.id]" class="mode-badge character-progress-badge" style="background: #2b5c8f; color: white;">
+                進捗: {{ character.scenarioProgress[scenario.id].clearCount }} / {{ scenario.bossPhases.length }} 周
+              </span>
+              <button
+                v-if="scenario.bossPhases && character.scenarioProgress?.[scenario.id]?.clearCount"
+                type="button"
+                @click.stop="handleResetProgress(scenario.id)"
+                class="btn-ink btn-mini btn-reset-progress"
+                style="font-size: 0.75rem; padding: 2px 6px;"
+                title="周回進捗を初期化して第1周から再挑戦"
+              >
+                🔄 進捗リセット
+              </button>
             </div>
             <div class="card-action-buttons">
               <button 

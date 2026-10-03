@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import type { Scenario, DungeonEvent } from '../types';
 import { ALL_D66_CODES, useCustomScenarios } from '../composables/useCustomScenarios';
 import { useGameState } from '../composables/useGameState';
@@ -71,6 +71,133 @@ const bossEnemy = computed(() => {
     }];
   }
   return draft.bossEvent.enemies[0]!;
+});
+
+// マルチフェーズボス設定
+const hasMultiPhaseBoss = ref(!!(draft.bossPhases && draft.bossPhases.length > 0));
+const activePhaseIdx = ref(0);
+
+watch(hasMultiPhaseBoss, (val) => {
+  if (val) {
+    if (!draft.bossPhases || draft.bossPhases.length === 0) {
+      draft.bossPhases = [
+        {
+          phaseNumber: 1,
+          phaseTitle: '第1の戦い',
+          bossEvent: JSON.parse(JSON.stringify(draft.bossEvent)),
+          clearMessage: '最深部の主を倒したが、迷宮の奥底から不穏な魔力の胎動が伝わってくる…'
+        },
+        {
+          phaseNumber: 2,
+          phaseTitle: '第2の変容',
+          bossEvent: {
+            title: '蘇りし深奥の主（第2周）',
+            d66Code: 'boss',
+            description: '倒したはずの主が邪悪な変貌を遂げて再び立ちはだかった！',
+            type: 'encounter',
+            enemies: [
+              {
+                name: '変容の主',
+                level: 6,
+                lifeMax: 12,
+                lifeCurrent: 12,
+                attackCount: 2,
+                tags: ['strong', 'undead'],
+                count: 1,
+                weaponAttribute: 'slash'
+              }
+            ]
+          },
+          clearMessage: '主はついに塵へと帰った。だが、黒いローブの魔術師が現れ、宣戦を布告する！'
+        },
+        {
+          phaseNumber: 3,
+          phaseTitle: '真の黒幕との決戦',
+          bossEvent: {
+            title: '黒幕の魔術師（最終決戦）',
+            d66Code: 'boss',
+            description: '全てを操っていた真の黒幕が、邪悪な呪文を構えて待ち受ける！',
+            type: 'encounter',
+            enemies: [
+              {
+                name: '黒幕の魔術師',
+                level: 6,
+                lifeMax: 10,
+                lifeCurrent: 10,
+                attackCount: 3,
+                tags: ['strong', 'fight_to_death'],
+                count: 1,
+                weaponAttribute: 'strike'
+              }
+            ]
+          },
+          clearMessage: '黒幕を完全に滅ぼした！ 村人は歓喜し、君を英雄として称える。'
+        }
+      ];
+    }
+    if (!draft.completeClearMessage) {
+      draft.completeClearMessage = '三度の激闘を乗り越え、この地を脅かす闇は完全に消滅した。街には宴が鳴り響き、少女から感謝の野の花が手渡される。冒険は完全な成功を収めた！';
+    }
+  }
+});
+
+function addBossPhase() {
+  if (!draft.bossPhases) draft.bossPhases = [];
+  if (draft.bossPhases.length >= 5) return;
+  const nextNum = draft.bossPhases.length + 1;
+  draft.bossPhases.push({
+    phaseNumber: nextNum,
+    phaseTitle: `第${nextNum}の試練`,
+    bossEvent: {
+      title: `第${nextNum}周 決戦`,
+      d66Code: 'boss',
+      description: '更なる強敵が姿を現した！',
+      type: 'encounter',
+      enemies: [
+        {
+          name: `強大なボス (第${nextNum}周)`,
+          level: 6,
+          lifeMax: 12,
+          lifeCurrent: 12,
+          attackCount: 2,
+          tags: ['strong'],
+          count: 1,
+          weaponAttribute: 'strike'
+        }
+      ]
+    },
+    clearMessage: `第${nextNum}周をクリアした！`
+  });
+  activePhaseIdx.value = draft.bossPhases.length - 1;
+}
+
+function removeBossPhase(idx: number) {
+  if (!draft.bossPhases || draft.bossPhases.length <= 2) return;
+  draft.bossPhases.splice(idx, 1);
+  draft.bossPhases.forEach((p, i) => p.phaseNumber = i + 1);
+  if (activePhaseIdx.value >= draft.bossPhases.length) {
+    activePhaseIdx.value = draft.bossPhases.length - 1;
+  }
+}
+
+const currentPhaseBossEnemy = computed(() => {
+  if (!hasMultiPhaseBoss.value || !draft.bossPhases || !draft.bossPhases[activePhaseIdx.value]) {
+    return bossEnemy.value;
+  }
+  const currentP = draft.bossPhases[activePhaseIdx.value];
+  if (!currentP.bossEvent.enemies || currentP.bossEvent.enemies.length === 0) {
+    currentP.bossEvent.enemies = [{
+      name: `ボス (第${activePhaseIdx.value + 1}周)`,
+      level: 5,
+      lifeMax: 10,
+      lifeCurrent: 10,
+      attackCount: 1,
+      tags: ['strong'],
+      count: 1,
+      weaponAttribute: 'strike'
+    }];
+  }
+  return currentP.bossEvent.enemies[0]!;
 });
 
 // テンプレートの複製
@@ -180,6 +307,12 @@ function removeMidpointEnemy(idx: number) {
 // 保存処理
 async function handleSave() {
   saveError.value = null;
+  if (hasMultiPhaseBoss.value && draft.bossPhases && draft.bossPhases.length > 0) {
+    draft.bossEvent = JSON.parse(JSON.stringify(draft.bossPhases[0].bossEvent));
+  } else {
+    delete draft.bossPhases;
+    delete draft.completeClearMessage;
+  }
   const res = await saveCustomScenario(draft);
   if (res.success) {
     emit('saved', draft);
@@ -412,63 +545,187 @@ function getRoomTypeBadge(type: string) {
 
       <!-- TAB 2: Boss Settings -->
       <div v-if="activeTab === 'boss'" class="tab-content">
-        <h3 class="section-title">👑 最深部の決戦ボス</h3>
-        <p style="font-size: 0.85rem; color: var(--ink-light); margin-bottom: 15px;">
-          規定の部屋数を踏破した後に発生する、最終決戦のイベントとボスのステータスです。
-        </p>
-
-        <div class="form-group">
-          <label>ボス決戦イベント名</label>
-          <input v-model="draft.bossEvent.title" type="text" class="input-ink" placeholder="例: 迷宮深奥の玉座（ボス戦）" />
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h3 class="section-title" style="margin: 0;">👑 最深部の決戦ボス</h3>
+            <p style="font-size: 0.85rem; color: var(--ink-light); margin: 4px 0 0 0;">
+              規定の部屋数を踏破した後に発生する、最終決戦のイベントとボスのステータスです。
+            </p>
+          </div>
+          <label style="display: inline-flex; align-items: center; gap: 8px; font-weight: bold; cursor: pointer; background: rgba(0,0,0,0.03); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+            <input type="checkbox" v-model="hasMultiPhaseBoss" />
+            👑 段階的ボス（マルチフェーズ）を有効化
+          </label>
         </div>
 
-        <div class="form-group">
-          <label>決戦突入時の描写テキスト</label>
-          <textarea v-model="draft.bossEvent.description" rows="2" class="input-ink"></textarea>
-        </div>
+        <!-- 段階的ボス（マルチフェーズ）設定UI -->
+        <template v-if="hasMultiPhaseBoss && draft.bossPhases">
+          <!-- Phase tabs -->
+          <div class="phase-tabs-row" style="display: flex; gap: 8px; align-items: center; margin-bottom: 15px; overflow-x: auto; padding-bottom: 4px;">
+            <button
+              v-for="(phase, pIdx) in draft.bossPhases"
+              :key="pIdx"
+              type="button"
+              class="btn-ink btn-mini"
+              :style="activePhaseIdx === pIdx ? 'background: #8c1c1c; color: white; font-weight: bold;' : ''"
+              @click="activePhaseIdx = pIdx"
+            >
+              第 {{ phase.phaseNumber }} 周目 {{ phase.phaseTitle ? `(${phase.phaseTitle})` : '' }}
+            </button>
+            <button 
+              v-if="draft.bossPhases.length < 5" 
+              type="button" 
+              class="btn-ink btn-mini" 
+              @click="addBossPhase" 
+              title="最大5周まで追加可能"
+            >
+              ➕ 周回追加
+            </button>
+            <button 
+              v-if="draft.bossPhases.length > 2" 
+              type="button" 
+              class="btn-ink btn-mini btn-del" 
+              @click="removeBossPhase(activePhaseIdx)" 
+              title="この周回を削除"
+            >
+              ✕ 削除
+            </button>
+          </div>
 
-        <div class="boss-card paper-sheet" style="padding: 15px; border: 2px dashed #8c1c1c; background: #fffcf8; margin-top: 15px;">
-          <h4 style="margin: 0 0 10px 0; color: #8c1c1c;">👾 ボスクリーチャーデータ</h4>
-          
-          <div class="form-row" style="display: flex; gap: 15px; flex-wrap: wrap;">
-            <div class="form-group" style="flex: 2; min-width: 180px;">
-              <label>ボス名 *</label>
-              <input v-model="bossEnemy.name" type="text" class="input-ink" />
+          <div v-if="draft.bossPhases[activePhaseIdx]" class="phase-detail-card">
+            <div class="form-row" style="display: flex; gap: 12px;">
+              <div class="form-group" style="flex: 1;">
+                <label>周回サブタイトル（任意）</label>
+                <input v-model="draft.bossPhases[activePhaseIdx].phaseTitle" type="text" class="input-ink" placeholder="例: 薄暮の魔術師セグラス" />
+              </div>
+              <div class="form-group" style="flex: 2;">
+                <label>決戦イベント名</label>
+                <input v-model="draft.bossPhases[activePhaseIdx].bossEvent.title" type="text" class="input-ink" placeholder="例: 闇の回廊の決戦" />
+              </div>
             </div>
 
-            <div class="form-group" style="flex: 1; min-width: 90px;">
-              <label>レベル (目標値)</label>
-              <input v-model.number="bossEnemy.level" type="number" min="1" max="20" class="input-ink" />
+            <div class="form-group">
+              <label>決戦突入時の描写テキスト</label>
+              <textarea v-model="draft.bossPhases[activePhaseIdx].bossEvent.description" rows="2" class="input-ink"></textarea>
             </div>
 
-            <div class="form-group" style="flex: 1; min-width: 90px;">
-              <label>生命力 (HP)</label>
-              <input v-model.number="bossEnemy.lifeMax" @input="bossEnemy.lifeCurrent = bossEnemy.lifeMax" type="number" min="1" max="100" class="input-ink" />
+            <!-- Boss Creature Data -->
+            <div class="boss-card paper-sheet" style="padding: 15px; border: 2px dashed #8c1c1c; background: #fffcf8; margin-top: 15px;">
+              <h4 style="margin: 0 0 10px 0; color: #8c1c1c;">👾 第 {{ draft.bossPhases[activePhaseIdx].phaseNumber }} 周目 ボスクリーチャーデータ</h4>
+              
+              <div class="form-row" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 2; min-width: 180px;">
+                  <label>ボス名 *</label>
+                  <input v-model="currentPhaseBossEnemy.name" type="text" class="input-ink" />
+                </div>
+
+                <div class="form-group" style="flex: 1; min-width: 90px;">
+                  <label>レベル (目標値)</label>
+                  <input v-model.number="currentPhaseBossEnemy.level" type="number" min="1" max="20" class="input-ink" />
+                </div>
+
+                <div class="form-group" style="flex: 1; min-width: 90px;">
+                  <label>生命力 (HP)</label>
+                  <input v-model.number="currentPhaseBossEnemy.lifeMax" @input="currentPhaseBossEnemy.lifeCurrent = currentPhaseBossEnemy.lifeMax" type="number" min="1" max="100" class="input-ink" />
+                </div>
+
+                <div class="form-group" style="flex: 1; min-width: 90px;">
+                  <label>攻撃回数 / R</label>
+                  <input v-model.number="currentPhaseBossEnemy.attackCount" type="number" min="1" max="5" class="input-ink" />
+                </div>
+
+                <div class="form-group" style="flex: 1; min-width: 120px;">
+                  <label>攻撃属性</label>
+                  <select v-model="currentPhaseBossEnemy.weaponAttribute" class="input-ink">
+                    <option value="strike">打撃 (strike)</option>
+                    <option value="slash">斬撃 (slash)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top: 10px;">
+                <label>特殊タグ</label>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 5px;">
+                  <label><input type="checkbox" value="undead" v-model="currentPhaseBossEnemy.tags" /> 💀 アンデッド (聖水・招天有効)</label>
+                  <label><input type="checkbox" value="golem" v-model="currentPhaseBossEnemy.tags" /> 🤖 ゴーレム (気絶無効)</label>
+                  <label><input type="checkbox" value="demon" v-model="currentPhaseBossEnemy.tags" /> 😈 悪魔</label>
+                  <label><input type="checkbox" value="fight_to_death" v-model="currentPhaseBossEnemy.tags" /> 💀 死ぬまで戦う</label>
+                  <label><input type="checkbox" value="preemptive" v-model="currentPhaseBossEnemy.tags" /> ⚡ 先制攻撃</label>
+                </div>
+              </div>
             </div>
 
-            <div class="form-group" style="flex: 1; min-width: 90px;">
-              <label>攻撃回数 / R</label>
-              <input v-model.number="bossEnemy.attackCount" type="number" min="1" max="5" class="input-ink" />
-            </div>
-
-            <div class="form-group" style="flex: 1; min-width: 120px;">
-              <label>攻撃属性</label>
-              <select v-model="bossEnemy.weaponAttribute" class="input-ink">
-                <option value="strike">打撃 (strike)</option>
-                <option value="slash">斬撃 (slash)</option>
-              </select>
+            <!-- Clear message for this phase -->
+            <div class="form-group" style="margin-top: 15px;">
+              <label>第 {{ draft.bossPhases[activePhaseIdx].phaseNumber }} 周 クリア時の物語テキスト（次の周回への伏線・描写）</label>
+              <textarea v-model="draft.bossPhases[activePhaseIdx].clearMessage" rows="2" class="input-ink" placeholder="例: 騎士は倒れたが、数日後、不死者となって村に現れる…"></textarea>
             </div>
           </div>
 
-          <div class="form-group" style="margin-top: 10px;">
-            <label>特殊タグ</label>
-            <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 5px;">
-              <label><input type="checkbox" value="undead" v-model="bossEnemy.tags" /> 💀 アンデッド (聖水・招天有効)</label>
-              <label><input type="checkbox" value="golem" v-model="bossEnemy.tags" /> 🤖 ゴーレム (気絶無効)</label>
-              <label><input type="checkbox" value="demon" v-model="bossEnemy.tags" /> 😈 悪魔</label>
+          <!-- Overall Complete Clear Message -->
+          <div class="form-group" style="margin-top: 20px; padding-top: 15px; border-top: 2px solid var(--border-color);">
+            <label style="font-weight: bold; color: #b8860b;">👑 全周回完全制覇時のエピローグテキスト（任務完了・真のエンディング）</label>
+            <textarea v-model="draft.completeClearMessage" rows="3" class="input-ink" placeholder="例: 最終イベントを三度クリアした場合、この地を守るという君の任務は完全に達成される。村人は安堵して君を称える。冒険は成功だ！"></textarea>
+          </div>
+        </template>
+
+        <!-- 単一ボス設定 (標準) -->
+        <template v-else>
+          <div class="form-group">
+            <label>ボス決戦イベント名</label>
+            <input v-model="draft.bossEvent.title" type="text" class="input-ink" placeholder="例: 迷宮深奥の玉座（ボス戦）" />
+          </div>
+
+          <div class="form-group">
+            <label>決戦突入時の描写テキスト</label>
+            <textarea v-model="draft.bossEvent.description" rows="2" class="input-ink"></textarea>
+          </div>
+
+          <div class="boss-card paper-sheet" style="padding: 15px; border: 2px dashed #8c1c1c; background: #fffcf8; margin-top: 15px;">
+            <h4 style="margin: 0 0 10px 0; color: #8c1c1c;">👾 ボスクリーチャーデータ</h4>
+            
+            <div class="form-row" style="display: flex; gap: 15px; flex-wrap: wrap;">
+              <div class="form-group" style="flex: 2; min-width: 180px;">
+                <label>ボス名 *</label>
+                <input v-model="bossEnemy.name" type="text" class="input-ink" />
+              </div>
+
+              <div class="form-group" style="flex: 1; min-width: 90px;">
+                <label>レベル (目標値)</label>
+                <input v-model.number="bossEnemy.level" type="number" min="1" max="20" class="input-ink" />
+              </div>
+
+              <div class="form-group" style="flex: 1; min-width: 90px;">
+                <label>生命力 (HP)</label>
+                <input v-model.number="bossEnemy.lifeMax" @input="bossEnemy.lifeCurrent = bossEnemy.lifeMax" type="number" min="1" max="100" class="input-ink" />
+              </div>
+
+              <div class="form-group" style="flex: 1; min-width: 90px;">
+                <label>攻撃回数 / R</label>
+                <input v-model.number="bossEnemy.attackCount" type="number" min="1" max="5" class="input-ink" />
+              </div>
+
+              <div class="form-group" style="flex: 1; min-width: 120px;">
+                <label>攻撃属性</label>
+                <select v-model="bossEnemy.weaponAttribute" class="input-ink">
+                  <option value="strike">打撃 (strike)</option>
+                  <option value="slash">斬撃 (slash)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 10px;">
+              <label>特殊タグ</label>
+              <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 5px;">
+                <label><input type="checkbox" value="undead" v-model="bossEnemy.tags" /> 💀 アンデッド (聖水・招天有効)</label>
+                <label><input type="checkbox" value="golem" v-model="bossEnemy.tags" /> 🤖 ゴーレム (気絶無効)</label>
+                <label><input type="checkbox" value="demon" v-model="bossEnemy.tags" /> 😈 悪魔</label>
+                <label><input type="checkbox" value="fight_to_death" v-model="bossEnemy.tags" /> 💀 死ぬまで戦う</label>
+                <label><input type="checkbox" value="preemptive" v-model="bossEnemy.tags" /> ⚡ 先制攻撃</label>
+              </div>
             </div>
           </div>
-        </div>
+        </template>
       </div>
 
       <!-- TAB 3: 36 Rooms Grid -->

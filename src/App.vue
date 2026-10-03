@@ -41,7 +41,8 @@ const {
   transitionToSuccess,
   transitionToExplore,
   triggerGameOver,
-  retrySession
+  retrySession,
+  lastClearResult
 } = useGameState();
 
 const ALL_SPELLS = [
@@ -614,10 +615,32 @@ function startAdventure() {
 
         <!-- VICTORY SUCCESS SCREEN -->
         <div v-else-if="currentScreen === 'success'" class="victory-card paper-sheet">
-          <h2 class="victory-title">🏆 迷宮踏破！ 冒険成功！</h2>
-          <p class="victory-desc">最深部のボスを打ち倒し、迷宮の生ける宝物を抱えて地上へと生還しました！</p>
+          <template v-if="lastClearResult && lastClearResult.isMultiPhase">
+            <div v-if="lastClearResult.isCompleted" class="multi-phase-complete-box">
+              <h2 class="victory-title" style="color: #b8860b;">👑 迷宮完全制覇！ 冒険成功！</h2>
+              <span class="phase-badge" style="background: #b8860b; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85rem;">
+                全 {{ lastClearResult.totalPhases }} 周回クリア達成
+              </span>
+              <p class="victory-desc" style="margin-top: 12px; font-size: 1.05rem; line-height: 1.6; white-space: pre-line;">
+                {{ lastClearResult.completeClearMessage || '全ての変容を打ち倒し、この地に真の平和をもたらしました。君の任務は完全に達成された！' }}
+              </p>
+            </div>
+            <div v-else class="multi-phase-progress-box">
+              <h2 class="victory-title">🏆 第 {{ lastClearResult.clearCount }} / {{ lastClearResult.totalPhases }} 周回クリア！</h2>
+              <span class="phase-badge" style="background: #2b5c8f; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85rem;">
+                第 {{ lastClearResult.clearCount }} 段階突破
+              </span>
+              <p class="victory-desc" style="margin-top: 12px; font-size: 1rem; line-height: 1.6; white-space: pre-line;">
+                {{ lastClearResult.phaseClearMessage || '最深部のボスを打ち倒したが、何やら不穏な気配が漂っている…' }}
+              </p>
+            </div>
+          </template>
+          <template v-else>
+            <h2 class="victory-title">🏆 迷宮踏破！ 冒険成功！</h2>
+            <p class="victory-desc">最深部のボスを打ち倒し、迷宮の生ける宝物を抱えて地上へと生還しました！</p>
+          </template>
           
-          <div class="victory-stats">
+          <div class="victory-stats" style="margin-top: 15px;">
             <p>獲得経験値: <b>+1 点</b></p>
             <p>生命力・技量・副能力値: <b>最大値まで全回復！</b></p>
           </div>
@@ -626,7 +649,7 @@ function startAdventure() {
 
           <div class="actions">
             <button @click="proceedToNextAdventure" class="btn-ink btn-large btn-success-next">
-              📜 経験点分配 ＆ 次の冒険へ旅立つ
+              📜 経験点分配 ＆ {{ (lastClearResult?.isMultiPhase && !lastClearResult?.isCompleted) ? '次の周回へ挑む' : '次の冒険へ旅立つ' }}
             </button>
           </div>
         </div>

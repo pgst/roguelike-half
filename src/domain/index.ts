@@ -71,6 +71,7 @@ export class PlayerCharacter implements Character {
   public equippedShield: Shield | null;
   public hasActiveLantern: boolean;
   public statusEffects: string[];
+  public scenarioProgress: Record<string, { clearCount: number; isCompleted: boolean }>;
 
   constructor(data?: Partial<Character>) {
     this.name = data?.name || '無名の冒険者';
@@ -96,6 +97,7 @@ export class PlayerCharacter implements Character {
     this.equippedShield = data?.equippedShield || null;
     this.hasActiveLantern = data?.hasActiveLantern ?? true;
     this.statusEffects = data?.statusEffects ? [...data.statusEffects] : [];
+    this.scenarioProgress = data?.scenarioProgress ? { ...data.scenarioProgress } : {};
 
     const armorBonus = this.equippedArmor?.modLife || 0;
     const shieldBonus = this.equippedShield?.modLife || 0;
@@ -228,6 +230,7 @@ export class PlayerCharacter implements Character {
       equippedShield: this.equippedShield,
       hasActiveLantern: this.hasActiveLantern,
       statusEffects: this.statusEffects,
+      scenarioProgress: this.scenarioProgress || {},
     };
   }
 }

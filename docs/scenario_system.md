@@ -22,6 +22,8 @@ export interface Scenario {
   theme?: string;                  // ダンジョンの雰囲気・テーマ
   d66EventTable: Record<string, DungeonEvent>; // d66 (11〜66) の部屋イベント辞書
   bossEvent: DungeonEvent;         // 最終部屋で発生する決戦ボスイベント
+  bossPhases?: BossPhaseConfig[];  // 周回・段階的ボス設定（複数回クリアでボスや物語が変化）
+  completeClearMessage?: string;   // 全周回完全制覇時のエピローグテキスト
 }
 ```
 

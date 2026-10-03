@@ -70,8 +70,23 @@ export function useDungeon() {
     // Default room exploration for other scenarios
     if (dungeonDepth.value >= totalRoomsToClear.value) {
       // Final Boss Room
-      activeEvent.value = JSON.parse(JSON.stringify(activeScenario.value.bossEvent));
-      addLog('最後の部屋に到達しました！ ボスとの死闘が始まります。', 'error');
+      let bossToTrigger = activeScenario.value.bossEvent;
+      if (activeScenario.value.bossPhases && activeScenario.value.bossPhases.length > 0) {
+        const clears = character.value?.scenarioProgress?.[activeScenario.value.id]?.clearCount || 0;
+        const phaseIdx = Math.min(clears, activeScenario.value.bossPhases.length - 1);
+        const currentPhase = activeScenario.value.bossPhases[phaseIdx];
+        if (currentPhase && currentPhase.bossEvent) {
+          bossToTrigger = currentPhase.bossEvent;
+          const phaseName = currentPhase.phaseTitle || `第 ${phaseIdx + 1} 周 決戦`;
+          addLog(`最後の部屋に到達しました！ 【${phaseName}】が始まります。`, 'error');
+        } else {
+          addLog('最後の部屋に到達しました！ ボスとの死闘が始まります。', 'error');
+        }
+      } else {
+        addLog('最後の部屋に到達しました！ ボスとの死闘が始まります。', 'error');
+      }
+
+      activeEvent.value = JSON.parse(JSON.stringify(bossToTrigger));
       startEncounter();
       return;
     }

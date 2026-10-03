@@ -397,4 +397,178 @@ test.describe('シナリオエディタ & 拡張機能 (中間イベント・探
     await expect(logbook).toContainText('一本道モードのため部屋カウントは進まず、現在位置で再探索を行います');
   });
 
+  test('【周回・段階的ボス（マルチフェーズ）】クリア回数に応じたボス変化・周回クリア物語および進捗リセットの検証', async ({ page }) => {
+    const multiPhaseScenario = {
+      id: 'custom_multiphase_test',
+      title: '三変容の古代遺跡',
+      description: '周回ごとにボスの変容と物語が進行するマルチフェーズ検証用シナリオです。',
+      recommendedLevel: '10-11',
+      totalRoomsToClear: 1, // 1部屋でボス部屋到達
+      bossEvent: {
+        title: '初期の主との戦い',
+        d66Code: 'boss',
+        description: '初期の主が現れた。',
+        type: 'encounter',
+        enemies: [{ name: '第1の騎士', level: 1, lifeMax: 1, lifeCurrent: 1, attackCount: 1, tags: ['weak'], count: 1, weaponAttribute: 'strike' }]
+      },
+      bossPhases: [
+        {
+          phaseNumber: 1,
+          phaseTitle: '第1の戦い',
+          bossEvent: {
+            title: '第1の戦い：黄昏の騎士',
+            d66Code: 'boss',
+            description: '第1周目のボス戦です。',
+            type: 'encounter',
+            enemies: [{ name: '黄昏の騎士', level: 1, lifeMax: 1, lifeCurrent: 1, attackCount: 1, tags: ['weak'], count: 1, weaponAttribute: 'strike' }]
+          },
+          clearMessage: '騎士は倒れたが、数日後、不死者となって村に現れる…'
+        },
+        {
+          phaseNumber: 2,
+          phaseTitle: '第2の変容',
+          bossEvent: {
+            title: '第2の変容：不死の騎士',
+            d66Code: 'boss',
+            description: '第2周目のボス戦です。',
+            type: 'encounter',
+            enemies: [{ name: '不死の騎士', level: 1, lifeMax: 1, lifeCurrent: 1, attackCount: 1, tags: ['weak'], count: 1, weaponAttribute: 'slash' }]
+          },
+          clearMessage: '騎士は葬られたが、黒幕の魔術師セグラスが現れる！'
+        },
+        {
+          phaseNumber: 3,
+          phaseTitle: '最終決戦',
+          bossEvent: {
+            title: '最終決戦：魔術師セグラス',
+            d66Code: 'boss',
+            description: '第3周目のボス戦です。',
+            type: 'encounter',
+            enemies: [{ name: '魔術師セグラス', level: 1, lifeMax: 1, lifeCurrent: 1, attackCount: 1, tags: ['weak'], count: 1, weaponAttribute: 'strike' }]
+          },
+          clearMessage: '魔術師セグラスを討ち破った！'
+        }
+      ],
+      completeClearMessage: '三度の冒険を成し遂げ、村に真の平和が訪れた。少女から野の花を受け取る。完全制覇おめでとう！',
+      d66EventTable: {
+        '11': {
+          title: '静かな小部屋',
+          d66Code: '11',
+          description: '安全な小部屋です。',
+          type: 'rest'
+        }
+      }
+    };
+
+    await page.addInitScript((sc) => {
+      localStorage.setItem('roguelike_half_custom_scenarios', JSON.stringify([sc]));
+    }, multiPhaseScenario);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+
+    // シナリオ選択画面でマルチフェーズバッジが表示されていることを確認
+    const card = page.locator('.custom-card:has-text("三変容の古代遺跡")');
+    await expect(card).toBeVisible({ timeout: 5000 });
+    await expect(card).toContainText('全 3 周');
+
+    // シナリオを選択
+    await selectScenarioInUI(page, '三変容の古代遺跡');
+
+    // キャラクター作成
+    await page.fill('#char-name', 'フェーズ検証者');
+    await page.locator('.archetype-card').nth(0).click({ force: true });
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // 第1部屋目：休息部屋（d66=11）
+    await setupMockRandom(page, 11);
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    // 休息して怪我を癒やす
+    const restBtn = page.locator('button:has-text("怪我を癒やす")');
+    await expect(restBtn).toBeVisible({ timeout: 5000 });
+    await restBtn.click();
+    await page.waitForTimeout(500);
+
+    // 解決済みの小部屋を退出
+    const proceedBtn = page.locator('button:has-text("次の小部屋へ進む")');
+    await expect(proceedBtn).toBeVisible({ timeout: 5000 });
+    await proceedBtn.click();
+    await page.waitForTimeout(500);
+
+    // 最深部（ボス部屋）へ突入
+    const exploreBossBtn = page.locator('.btn-explore');
+    await expect(exploreBossBtn).toBeVisible({ timeout: 5000 });
+    await exploreBossBtn.click();
+    await page.waitForTimeout(500);
+
+    // 戦闘画面へ遷移
+    await page.waitForSelector('.combat-card', { state: 'visible', timeout: 5000 });
+
+    // ボス遭遇ログに「第1の戦い」が表示され、戦闘画面に「黄昏の騎士」が出現していることを検証
+    const logbook = page.locator('.logbook-entries');
+    await expect(logbook).toContainText('第1の戦い');
+    await expect(page.locator('.combat-card')).toContainText('黄昏の騎士');
+
+    // 接近戦へ移行
+    await transitionToMelee(page);
+
+    // 命中出目6で通常攻撃 -> ボス（HP 1）討伐
+    await page.evaluate(() => {
+      (window as any).__mockRolls = [6, 6];
+      (window as any).__mockRollsFallback = 6;
+      window.Math.random = () => (6 - 1) / 6 + 0.01;
+    });
+    await clickButtonByText(page, '通常攻撃', 800);
+    await page.waitForTimeout(500);
+
+    // 戦闘勝利後、宝箱を開けて戦利品を獲得
+    const lootBtn = page.locator('button:has-text("宝箱を開ける")');
+    await expect(lootBtn).toBeVisible({ timeout: 5000 });
+    await lootBtn.click();
+    await page.waitForTimeout(500);
+
+    // 戦闘結果を承認
+    const victoryConfirmBtn = page.locator('button:has-text("結果を承認")');
+    await expect(victoryConfirmBtn).toBeVisible({ timeout: 5000 });
+    await victoryConfirmBtn.click();
+    await page.waitForTimeout(500);
+
+    // リザルト画面で第1周クリア物語テキストとボタンが表示されることを検証！
+    const victoryCard = page.locator('.victory-card');
+    await expect(victoryCard).toBeVisible({ timeout: 5000 });
+    await expect(victoryCard).toContainText('第 1 / 3 周回クリア！');
+    await expect(victoryCard).toContainText('騎士は倒れたが、数日後、不死者となって村に現れる…');
+    await expect(victoryCard).toContainText('次の周回へ挑む');
+
+    // 次の周回へ旅立つ（街・レベルアップ画面へ）
+    await clickButtonByText(page, '次の周回へ挑む');
+    await page.waitForTimeout(500);
+
+    // レベルアップ画面からシナリオ選択画面へ戻る
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+    const toSelectorBtn = page.locator('.btn-select-scenario');
+    await expect(toSelectorBtn).toBeVisible({ timeout: 5000 });
+    await toSelectorBtn.click();
+    await page.waitForTimeout(500);
+
+    // シナリオ選択画面で「進捗: 1 / 3 周」が表示されていることを検証！
+    const targetCard = page.locator('.custom-card:has-text("三変容の古代遺跡")');
+    await expect(targetCard).toContainText('1 / 3 周');
+
+    // 進捗リセットボタンの動作検証
+    const resetBtn = targetCard.locator('.btn-reset-progress');
+    await expect(resetBtn).toBeVisible();
+    await resetBtn.click();
+    await page.waitForTimeout(500);
+
+    // リセット後は進捗バッジが非表示になることを検証
+    await expect(targetCard.locator('.character-progress-badge')).not.toBeVisible();
+  });
+
 });
+

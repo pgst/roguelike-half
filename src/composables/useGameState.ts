@@ -84,6 +84,7 @@ function createDefaultCharacter(name = '無名の冒険者', subStat: Character[
     equippedShield: null,
     hasActiveLantern: true,
     statusEffects: [],
+    scenarioProgress: {},
   };
 }
 
@@ -244,6 +245,17 @@ const diceTray = new Proxy({} as ReturnType<typeof createDefaultDiceTray>, {
   }
 });
 
+export interface LastClearResult {
+  scenarioId: string;
+  clearCount: number;
+  totalPhases: number;
+  isCompleted: boolean;
+  phaseClearMessage?: string;
+  completeClearMessage?: string;
+  isMultiPhase: boolean;
+}
+
+const lastClearResult = ref<LastClearResult | null>(null);
 
 // Initial Weapons and Items
 export const DEFAULT_WEAPONS = {
@@ -1448,6 +1460,42 @@ function transitionToCombat() {
 
 function transitionToSuccess() {
   skipAllMessages();
+
+  if (activeScenario.value) {
+    const scId = activeScenario.value.id;
+    if (!character.value.scenarioProgress) {
+      character.value.scenarioProgress = {};
+    }
+    const currentProgress = character.value.scenarioProgress[scId] || { clearCount: 0, isCompleted: false };
+    const prevClearCount = currentProgress.clearCount;
+    currentProgress.clearCount += 1;
+
+    const hasPhases = !!(activeScenario.value.bossPhases && activeScenario.value.bossPhases.length > 0);
+    const totalPhases = hasPhases ? activeScenario.value.bossPhases!.length : 1;
+
+    if (currentProgress.clearCount >= totalPhases) {
+      currentProgress.isCompleted = true;
+    }
+    character.value.scenarioProgress[scId] = currentProgress;
+
+    let phaseClearMessage: string | undefined = undefined;
+    if (hasPhases) {
+      const clearedPhaseIdx = Math.min(prevClearCount, totalPhases - 1);
+      const phaseConfig = activeScenario.value.bossPhases![clearedPhaseIdx];
+      phaseClearMessage = phaseConfig?.clearMessage;
+    }
+
+    lastClearResult.value = {
+      scenarioId: scId,
+      clearCount: currentProgress.clearCount,
+      totalPhases,
+      isCompleted: currentProgress.isCompleted,
+      phaseClearMessage,
+      completeClearMessage: activeScenario.value.completeClearMessage,
+      isMultiPhase: hasPhases
+    };
+  }
+
   transitionTo('success');
   try {
     if (activeScenario.value) {
@@ -1458,6 +1506,12 @@ function transitionToSuccess() {
     saveToCloud(activeSession.value, true);
   } catch (e) {
     // Offline silent
+  }
+}
+
+function resetScenarioProgress(scenarioId: string) {
+  if (character.value?.scenarioProgress && character.value.scenarioProgress[scenarioId]) {
+    delete character.value.scenarioProgress[scenarioId];
   }
 }
 
@@ -1674,5 +1728,9 @@ export function useGameState() {
     clearSavedSession,
     resetSessionForNewCharacter,
     hasSavedSession,
+
+    // Multi-Phase Boss Progression
+    lastClearResult,
+    resetScenarioProgress,
   };
 }
