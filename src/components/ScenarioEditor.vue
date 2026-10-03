@@ -325,7 +325,7 @@ function getRoomTypeBadge(type: string) {
             <label class="mode-radio-card" :class="{ 'selected': draft.explorationMode === 'linear' }" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; display: flex; align-items: flex-start; gap: 8px; background: rgba(0,0,0,0.02);">
               <input type="radio" value="linear" v-model="draft.explorationMode" style="margin-top: 3px;" />
               <div>
-                <div style="font-weight: bold;">🚶 一本道モード (黄昏の騎士形式)</div>
+                <div style="font-weight: bold;">🚶 一本道モード</div>
                 <small style="color: var(--ink-light); display: block; margin-top: 2px;">
                   戦闘から【逃走】しても部屋数は戻らず、その場にとどまって再探索します（部屋カウント維持）。
                 </small>
@@ -346,7 +346,7 @@ function getRoomTypeBadge(type: string) {
             </span>
           </div>
           <p style="font-size: 0.8rem; color: var(--ink-light); margin: 6px 0 0 0;">
-            「黄昏の騎士」の盗賊の頭など、特定の部屋数（例: 4部屋目）を踏破した瞬間に強制発生する固定イベントです。戦闘時は逃走不可となります。
+            中ボスなど、特定の部屋数（例: 4部屋目）を踏破した瞬間に強制発生する固定イベントです。戦闘時は逃走不可となります。
           </p>
 
           <div v-if="hasMidpointEvent && draft.midpointEvent" style="margin-top: 15px; padding-top: 12px; border-top: 1px dashed var(--border-color);">
