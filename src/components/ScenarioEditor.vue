@@ -77,7 +77,7 @@ const bossEnemy = computed(() => {
 function handleCloneFromOfficial(scenarioId: string) {
   const target = availableScenarios.value.find(s => s.id === scenarioId);
   if (!target) return;
-  if (!confirm(`公式シナリオ「${target.title}」を複製してエディタに読み込みますか？（現在の編集内容は上書きされます）`)) {
+  if (!confirm(`既存シナリオ「${target.title}」を複製してエディタに読み込みますか？（現在の編集内容は上書きされます）`)) {
     return;
   }
   const cloned = cloneFromExisting(target);
@@ -212,7 +212,7 @@ function getRoomTypeBadge(type: string) {
       <!-- Header -->
       <div class="editor-header">
         <div class="header-left">
-          <h2>🛠️ シナリオ工房</h2>
+          <h2>🛠️ シナリオエディタ</h2>
           <span class="editing-id-badge">ID: {{ draft.id }}</span>
         </div>
         
@@ -220,7 +220,7 @@ function getRoomTypeBadge(type: string) {
           <!-- Template Helpers -->
           <div class="helper-dropdown">
             <select @change="(e: any) => e.target.value && handleCloneFromOfficial(e.target.value)" class="select-tpl">
-              <option value="">📋 公式シナリオから複製...</option>
+              <option value="">📋 既存シナリオから複製...</option>
               <option v-for="s in availableScenarios.filter(s => !s.id.startsWith('custom_'))" :key="s.id" :value="s.id">
                 {{ s.title }}
               </option>

@@ -52,7 +52,7 @@ export async function selectScenarioInUI(page: any, scenarioTitle: string): Prom
   // カスタムシナリオの場合はクリック時点で直接キャラクター作成画面へ遷移する
   const isCreatorShown = await page.locator('#char-name, .character-creator').isVisible({ timeout: 1000 }).catch(() => false);
   if (!isCreatorShown) {
-    // 詳細パネルが選択したシナリオを表示するまで確実に待機（公式シナリオ用）
+    // 詳細パネルが選択したシナリオを表示するまで確実に待機（既存シナリオ用）
     const detailHeader = page.locator(`.scenario-detail-panel .detail-title:has-text("${scenarioTitle}")`);
     try {
       await detailHeader.waitFor({ state: 'visible', timeout: 3000 });

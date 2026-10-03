@@ -374,7 +374,7 @@ async function handleFileSelected(event: Event) {
           <span class="custom-badge-count">{{ customScenarios.length }} 件</span>
         </div>
         <div class="custom-header-actions">
-          <button @click="handleOpenNewScenario" class="btn-ink btn-mini btn-workshop-create" title="シナリオ工房を開いて新規作成">
+          <button @click="handleOpenNewScenario" class="btn-ink btn-mini btn-workshop-create" title="シナリオエディタを開いて新規作成">
             ➕ 新規作成
           </button>
           <button @click="handleTriggerImport" class="btn-ink btn-mini btn-workshop-import">

@@ -32,7 +32,7 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
   { id: 'combat', label: '戦闘コマンド', icon: '⚔️' },
   { id: 'growth', label: '成長と装備', icon: '🛡️' },
   { id: 'sync', label: 'セーブと設定', icon: '☁️' },
-  { id: 'workshop', label: 'シナリオ工房', icon: '🛠️' }
+  { id: 'workshop', label: 'シナリオエディタ', icon: '🛠️' }
 ];
 </script>
 
@@ -360,10 +360,10 @@ const helpTabs: { id: HelpTab; label: string; icon: string }[] = [
               </div>
             </div>
 
-            <!-- 6. シナリオ工房 -->
+            <!-- 6. シナリオエディタ -->
             <div v-else-if="activeHelpTab === 'workshop'" class="tab-content animate-fade-in">
               <div class="help-section">
-                <h3>🛠️ シナリオ工房</h3>
+                <h3>🛠️ シナリオエディタ</h3>
                 <p>
                   シナリオ選択画面の「＋ 新規カスタムシナリオ作成」から、独自のイベントテーブルやボスを設定したカスタムシナリオを作成・プレイ・JSONエクスポートできます。
                 </p>

@@ -27,7 +27,7 @@ src/
 │   ├── index.ts                 # カプセル化されたドメインモデル（PlayerCharacter, GameSession）
 │   └── random.ts                # 暗号論的/疑似乱数ユーティリティ
 ├── data/
-│   └── scenarios/               # ビルトイン公式シナリオJSONデータ群
+│   └── scenarios/               # ビルトイン既存シナリオJSONデータ群
 │       ├── public/              # 一般公開シナリオ（死者のカタコンベ等）
 │       └── mock/                # 特殊ギミック検証用シナリオ（ピラミッド等）
 ├── composables/
@@ -44,7 +44,7 @@ src/
 │       └── pyramidPlugin.ts     # ピラミッド固有ギミック（クロノヴァルスの咆哮等）
 ├── components/
 │   ├── ScenarioSelector.vue     # シナリオ選択、自作シナリオ一覧、二次創作ガイドライン表示
-│   ├── ScenarioEditor.vue       # シナリオ工房（ブラウザ上でのダンジョン作成・編集）
+│   ├── ScenarioEditor.vue       # シナリオエディタ（ブラウザ上でのダンジョン作成・編集）
 │   ├── CharacterCreator.vue     # キャラクター初期作成画面UI
 │   ├── DungeonExplorer.vue      # ダンジョン部屋探索、イベント分岐、トラップ判定UI
 │   ├── CombatSimulator.vue      # ターン制戦闘シミュレーターUI（通常攻撃、魔法、道具、逃走）

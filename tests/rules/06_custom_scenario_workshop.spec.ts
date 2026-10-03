@@ -11,7 +11,7 @@ import {
   closeAdventureSheet
 } from '../helpers/test-utils';
 
-test.describe('シナリオ工房 & 拡張機能 (中間イベント・探索部屋・特殊敵特性)', () => {
+test.describe('シナリオエディタ & 拡張機能 (中間イベント・探索部屋・特殊敵特性)', () => {
 
   test.beforeEach(async ({ page }) => {
     page.on('dialog', dialog => dialog.accept());

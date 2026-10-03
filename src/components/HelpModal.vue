@@ -15,7 +15,7 @@ const tabs: { id: HelpTab; label: string; icon: string }[] = [
   { id: 'combat', label: '戦闘コマンド', icon: '⚔️' },
   { id: 'growth', label: '成長と装備', icon: '🛡️' },
   { id: 'sync', label: 'セーブと設定', icon: '☁️' },
-  { id: 'workshop', label: 'シナリオ工房', icon: '🛠️' }
+  { id: 'workshop', label: 'シナリオエディタ', icon: '🛠️' }
 ];
 </script>
 
@@ -222,12 +222,12 @@ const tabs: { id: HelpTab; label: string; icon: string }[] = [
           </div>
         </div>
 
-        <!-- 6. シナリオ工房 -->
+        <!-- 6. シナリオエディタ -->
         <div v-if="activeTab === 'workshop'" class="tab-content animate-fade-in">
           <div class="help-section">
-            <h3>🛠️ シナリオ工房</h3>
+            <h3>🛠️ シナリオエディタ</h3>
             <p>
-              タイトル画面の「🛠️ カスタムシナリオ」エリアの「＋ 新規カスタムシナリオ作成」から、シナリオ工房でオリジナルのダンジョンを自由自在に創作できます。
+              タイトル画面の「🛠️ カスタムシナリオ」エリアの「＋ 新規カスタムシナリオ作成」から、シナリオエディタでオリジナルのダンジョンを自由自在に創作できます。
             </p>
           </div>
 
