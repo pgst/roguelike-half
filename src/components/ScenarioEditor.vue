@@ -323,6 +323,7 @@ function cleanDraft() {
       delete room.trapStat;
       delete room.trapTarget;
       delete room.trapDamage;
+      delete room.trapNextRoomTensDigit;
     }
     if (room.type !== 'search') {
       delete room.searchStat;
@@ -918,7 +919,26 @@ function getRoomTypeBadge(type: string) {
               </div>
               <div class="form-group" style="flex: 1;">
                 <label>失敗時ダメージ</label>
-                <input v-model.number="currentRoom.trapDamage" type="number" min="1" max="10" class="input-ink" />
+                <input v-model.number="currentRoom.trapDamage" type="number" min="0" max="10" class="input-ink" />
+              </div>
+              <div class="form-group" style="flex: 1.2;">
+                <label>失敗時: 次回部屋の十の位固定</label>
+                <select 
+                  :value="currentRoom.trapNextRoomTensDigit ?? ''" 
+                  @change="(e) => {
+                    const val = (e.target as HTMLSelectElement).value;
+                    currentRoom.trapNextRoomTensDigit = val === '' ? undefined : parseInt(val, 10);
+                  }"
+                  class="select-ink"
+                >
+                  <option value="">指定なし (通常ランダム)</option>
+                  <option value="1">1 (11〜16番台)</option>
+                  <option value="2">2 (21〜26番台)</option>
+                  <option value="3">3 (31〜36番台)</option>
+                  <option value="4">4 (41〜46番台)</option>
+                  <option value="5">5 (51〜56番台・弱い敵/警報等)</option>
+                  <option value="6">6 (61〜66番台・強敵)</option>
+                </select>
               </div>
             </div>
 

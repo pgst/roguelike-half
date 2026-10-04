@@ -202,6 +202,7 @@ export function useCustomScenarios() {
           trapTarget: room.trapTarget !== undefined ? Number(room.trapTarget) : undefined,
           trapDamage: room.trapDamage !== undefined ? Number(room.trapDamage) : undefined,
           lootModifier: room.lootModifier !== undefined ? Number(room.lootModifier) : undefined,
+          trapNextRoomTensDigit: room.trapNextRoomTensDigit !== undefined ? Number(room.trapNextRoomTensDigit) : undefined,
           npcType: room.npcType,
           searchStat: room.searchStat,
           searchTarget: room.searchTarget !== undefined ? Number(room.searchTarget) : undefined,

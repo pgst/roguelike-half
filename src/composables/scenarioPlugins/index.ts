@@ -33,6 +33,7 @@ export interface ScenarioPluginContext {
   activateRoomEvent?: (event: any) => void;
   startEncounter?: () => void;
   handleDeath?: () => void;
+  nextRoomTensDigitOverride?: Ref<number | null>;
 }
 
 export interface ScenarioPlugin {
@@ -69,6 +70,9 @@ export interface ScenarioPlugin {
 }
 
 const plugins: Record<string, ScenarioPlugin> = {};
+
+import { twilightKnightPlugin } from './twilightKnightPlugin';
+plugins[twilightKnightPlugin.id] = twilightKnightPlugin;
 
 if (import.meta.env.DEV) {
   const { pyramidPlugin } = await import('./pyramidPlugin');

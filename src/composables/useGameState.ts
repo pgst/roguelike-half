@@ -1440,6 +1440,7 @@ function transitionTo(screen: 'scenario_select' | 'creator' | 'explore' | 'comba
 
 function triggerGameOver() {
   skipAllMessages();
+  nextRoomTensDigitOverride.value = null;
   transitionTo('gameover');
 }
 

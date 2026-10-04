@@ -126,6 +126,7 @@ export interface DungeonEvent {
   trapTarget?: number;
   trapDamage?: number;
   lootModifier?: number;
+  trapNextRoomTensDigit?: number; // 【追加】 罠失敗時に次回部屋の十の位を固定する値 (1〜6)
   npcType?: 'merchant' | 'bribe' | 'priest' | 'mercenary' | 'quest' | 'neutral' | 'captive' | 'final2_choice' | 'desert_crocodile' | 'alan' | 'dread_painting' | 'heracles_right' | 'heracles_left' | 'jill_mega';
   isResolved?: boolean;
   resolutionText?: string;

@@ -69,8 +69,11 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
     for (const code of ['41', '42', '43', '44', '45', '46']) {
       const room = twilightScenario.d66EventTable[code];
       expect(room.type).toBe('trap');
-      expect(room.trapDamage).toBeGreaterThanOrEqual(1);
+      expect(room.trapDamage).toBeGreaterThanOrEqual(0);
     }
+    // 出目45: 警報（trapDamage: 0, trapNextRoomTensDigit: 5）
+    expect(twilightScenario.d66EventTable['45'].trapDamage).toBe(0);
+    expect(twilightScenario.d66EventTable['45'].trapNextRoomTensDigit).toBe(5);
 
     // 51〜56: 弱いクリーチャー
     for (const code of ['51', '52', '53', '54', '55', '56']) {
@@ -167,6 +170,11 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
     await expect(trapChestCheckbox).toBeChecked();
     const lootModInput = page.locator('.room-editor-pane input[type="number"]').last();
     await expect(lootModInput).toHaveValue('1');
+
+    // 出目45（警報: trapかつdamage 0, 次回十の位固定 5）の確認
+    const cell45 = page.locator('.grid-cell:has-text("45")');
+    await cell45.click();
+    await expect(page.locator('.room-editor-pane select').last()).toHaveValue('5');
 
     // エディタを閉じる
     await clickButtonByText(page, 'キャンセル');
@@ -278,8 +286,127 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
     // 4. 出目51（ゴブリン突撃兵）の自爆ダメージが維持されていること
     expect(saved.d66EventTable['51'].enemies[0].selfDestructDamage).toBe(2);
 
-    // 5. 決戦ボスのフェーズ数と完全クリアメッセージが維持されていること
+    // 5. 出目45（警報）のtrapDamage: 0およびtrapNextRoomTensDigit: 5が維持されていること
+    expect(saved.d66EventTable['45'].trapDamage).toBe(0);
+    expect(saved.d66EventTable['45'].trapNextRoomTensDigit).toBe(5);
+
+    // 6. 決戦ボスのフェーズ数と完全クリアメッセージが維持されていること
     expect(saved.bossPhases).toHaveLength(3);
     expect(saved.completeClearMessage).toContain('三度クリア');
   });
+
+  test('【実機プレイ検証】出目45『警報』で罠失敗時、生命力ダメージを受けず次回十の位が5に固定され、次回の部屋が50番台になること', async ({ page }) => {
+    // 警報テストシナリオ
+    const alarmTestScenario = {
+      ...twilightScenario,
+      id: 'twilight_knight', // プラグイン動作のためIDを維持
+      totalRoomsToClear: 5
+    };
+
+    await page.addInitScript((sc) => {
+      localStorage.setItem('roguelike_half_custom_scenarios', JSON.stringify([sc]));
+    }, alarmTestScenario);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+
+    await selectScenarioInUI(page, '黄昏の騎士');
+
+    // キャラクター作成
+    await page.fill('#char-name', '警報テスター');
+    await page.locator('.archetype-card').first().click({ force: true });
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // 初期生命力を記憶 (10)
+    // 部屋45（警報）に進み、判定で出目1（ファンブル失敗）
+    // 次回の部屋探索で出目2が出た場合、十の位が5固定されているため「52」（巨大ネズミ）になることを検証！
+    await setupMockRandom(page, 45, [1, 2]);
+
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    // 部屋タイトルが「警報」
+    await expect(page.locator('.event-title')).toContainText('警報');
+
+    // 罠判定ボタンをクリック
+    const trapBtn = page.locator('button:has-text("で挑戦")').or(page.locator('button:has-text("判定ロールに挑戦する")')).first();
+    await expect(trapBtn).toBeVisible({ timeout: 5000 });
+    await trapBtn.click();
+
+    // 判定失敗（出目1）
+    // ログに十の位固定のメッセージが含まれること
+    const logbook = page.locator('.logbook-entries');
+    await expect(logbook).toContainText('次回の部屋探索の十の位が [ 5 ] に固定されます', { timeout: 5000 });
+
+    // 「次の小部屋へ進む」ボタンをクリックして次の部屋へ
+    await page.waitForTimeout(500);
+    const nextRoomBtn = page.locator('button:has-text("次の小部屋へ進む")');
+    await nextRoomBtn.click();
+
+    // 次回のダイスロール（一の位は2の予定）
+    // 察知等があればスキップ
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    // 次の部屋が50番台（出目52: 巨大ネズミ）との戦闘画面になっていることを検証！
+    await expect(page.locator('h2:has-text("戦闘シーン")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.combat-card, .enemies-list, [data-v-b65f3f98]').first()).toContainText('巨大ネズミ', { timeout: 5000 });
+  });
+
+  test('【実機プレイ検証】出目34『迷宮の野営地』で出目1の休息失敗時、次回十の位が5に固定されること', async ({ page }) => {
+    const campTestScenario = {
+      ...twilightScenario,
+      id: 'twilight_knight',
+      totalRoomsToClear: 5
+    };
+
+    await page.addInitScript((sc) => {
+      localStorage.setItem('roguelike_half_custom_scenarios', JSON.stringify([sc]));
+    }, campTestScenario);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+
+    await selectScenarioInUI(page, '黄昏の騎士');
+
+    await page.fill('#char-name', '野営テスター');
+    await page.locator('.archetype-card').first().click({ force: true });
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // 部屋34（迷宮の野営地）に進む。小休止ロールで出目1（失敗）。次回ダイスで一の位1（-> 51 ゴブリン突撃兵）
+    await setupMockRandom(page, 34, [1, 1]);
+
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    await expect(page.locator('.event-title')).toContainText('迷宮の野営地');
+
+    // プラグインで注入された「小休止を取る (1d6ロール)」ボタンをクリック
+    const restBtn = page.locator('button:has-text("小休止を取る")');
+    await expect(restBtn).toBeVisible({ timeout: 5000 });
+    await restBtn.click();
+
+    // ログに十の位5固定が記録されていること
+    const campLogbook = page.locator('.logbook-entries');
+    await expect(campLogbook).toContainText('次回の部屋探索の十の位が [ 5 ] に固定されます', { timeout: 5000 });
+
+    // 「次の小部屋へ進む」をクリック
+    await page.waitForTimeout(500);
+    await page.locator('button:has-text("次の小部屋へ進む")').click();
+
+    // 次回部屋に進む
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    // 次の部屋が50番台（出目51: ゴブリンの突撃兵）との戦闘画面になっていること！
+    await expect(page.locator('h2:has-text("戦闘シーン")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.combat-card, .enemies-list, [data-v-b65f3f98]').first()).toContainText('ゴブリンの突撃兵', { timeout: 5000 });
+  });
+
 });

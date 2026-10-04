@@ -28,7 +28,8 @@ export function useDungeon() {
     triggerGameOver,
     triggerLevelUp,
     transitionToSuccess,
-    transitionToExplore
+    transitionToExplore,
+    nextRoomTensDigitOverride
   } = useGameState();
 
   // Action: Explore next room
@@ -59,7 +60,8 @@ export function useDungeon() {
       rollD6,
       rollD66,
       activateRoomEvent,
-      startEncounter
+      startEncounter,
+      nextRoomTensDigitOverride
     };
 
     const handled = await runScenarioHook(activeScenario.value?.id, 'onExploreRoomOverride', context);
@@ -69,7 +71,8 @@ export function useDungeon() {
 
     // Default room exploration for other scenarios
     if (dungeonDepth.value >= totalRoomsToClear.value) {
-      // Final Boss Room
+      // Final Boss Room: 固定イベント優先のため十の位指定は破棄・リセット
+      nextRoomTensDigitOverride.value = null;
       let bossToTrigger = activeScenario.value.bossEvent;
       if (activeScenario.value.bossPhases && activeScenario.value.bossPhases.length > 0) {
         const clears = character.value?.scenarioProgress?.[activeScenario.value.id]?.clearCount || 0;
@@ -96,6 +99,8 @@ export function useDungeon() {
       activeScenario.value.midpointEvent &&
       dungeonDepth.value + 1 === activeScenario.value.midpointEvent.roomNumber
     ) {
+      // 中間地点: 固定イベント優先のため十の位指定は破棄・リセット
+      nextRoomTensDigitOverride.value = null;
       const midEvent = JSON.parse(JSON.stringify(activeScenario.value.midpointEvent.event));
       midEvent.d66Code = 'midpoint';
       addLog(`【中間地点】${midEvent.title} が発生しました！`, 'error');
@@ -157,7 +162,8 @@ export function useDungeon() {
       rollD6,
       rollD66,
       activateRoomEvent,
-      startEncounter
+      startEncounter,
+      nextRoomTensDigitOverride
     };
     runScenarioHook(activeScenario.value?.id, 'onExploreRoom', context);
 
@@ -305,6 +311,22 @@ export function useDungeon() {
     runScenarioHook(activeScenario.value?.id, 'onCombatStart', context);
   }
 
+  function applyTrapNextRoomOverride() {
+    if (activeEvent.value && activeEvent.value.trapNextRoomTensDigit) {
+      const digit = Math.min(6, Math.max(1, Math.floor(activeEvent.value.trapNextRoomTensDigit)));
+      nextRoomTensDigitOverride.value = digit;
+      addLog(`🚨 罠の発動により、次回の部屋探索の十の位が [ ${digit} ] に固定されます！`, 'error');
+    }
+  }
+
+  function getTrapTensDigitNotice(): string {
+    if (activeEvent.value && activeEvent.value.trapNextRoomTensDigit) {
+      const digit = Math.min(6, Math.max(1, Math.floor(activeEvent.value.trapNextRoomTensDigit)));
+      return `\n• 罠の作動音/警報により、次回部屋探索の十の位の出目が [ ${digit} ] に固定されます。`;
+    }
+    return '';
+  }
+
   // Handle Trap Roll Resolution
   async function resolveTrapCheck(useSubStat = true): Promise<boolean> {
     if (!activeEvent.value || activeEvent.value.type !== 'trap') return false;
@@ -409,6 +431,7 @@ export function useDungeon() {
       return true;
     } else {
       addLog(`💥 トラップ判定に失敗しました！ (ロール計: ${roll === 1 ? 'ファンブル' : total} < 目標: ${target})`, 'error');
+      applyTrapNextRoomOverride();
 
       const scope = getTrapTargetScope(activeEvent.value);
       const validFollowers = followers.value.filter(f => f.lifeCurrent > 0 && f.name !== 'ウォー・ドール');
@@ -447,7 +470,7 @@ export function useDungeon() {
 判定能力: ${stat.toUpperCase()} (目標値: ${target})
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
-全体トラップが発動し、主人公と生存しているすべての従者がダメージを受けました。`;
+全体トラップが発動し、主人公と生存しているすべての従者がダメージを受けました。${getTrapTensDigitNotice()}`;
         }
         return false;
       } else if (scope === 'random') {
@@ -491,7 +514,7 @@ export function useDungeon() {
 判定能力: ${stat.toUpperCase()} (目標値: ${target})
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
-ランダム選択の罠により、${targetName} がダメージを受けました。`;
+ランダム選択の罠により、${targetName} がダメージを受けました。${getTrapTensDigitNotice()}`;
         }
         return false;
       } else if (scope === 'non_combatants') {
@@ -548,7 +571,7 @@ export function useDungeon() {
 判定能力: ${stat.toUpperCase()} (目標値: ${target})
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
-非戦闘員優先の罠により、${targetName} がダメージを受けました。`;
+非戦闘員優先の罠により、${targetName} がダメージを受けました。${getTrapTensDigitNotice()}`;
         }
         return false;
       } else if (scope === 'choose_1d3') {
@@ -666,14 +689,14 @@ export function useDungeon() {
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 罠を発動させてしまい、${damageTaken > 0 ? `生命力に ${damageTaken} 点のダメージを受けました！` : ''}${effectApplied ? `さらに状態異常【${effectApplied}】を受けました！` : ''}${damageTaken === 0 && !effectApplied ? '何も起こりませんでした。' : ''} (残り生命力: ${character.value.lifeCurrent})
-宝箱はまだ開いていません。もう一度開錠を試みる（再挑戦）か、諦めて先へ進むかを選択できます。`;
+宝箱はまだ開いていません。もう一度開錠を試みる（再挑戦）か、諦めて先へ進むかを選択できます。${getTrapTensDigitNotice()}`;
             } else {
               (activeEvent.value as any).isResolved = true;
               (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
 判定能力: ${stat.toUpperCase()} (目標値: ${target})
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
-罠を発動させてしまい、${damageTaken > 0 ? `生命力に ${damageTaken} 点のダメージを受けました！` : ''}${effectApplied ? `さらに状態異常【${effectApplied}】を受けました！` : ''}${damageTaken === 0 && !effectApplied ? '何も起こりませんでした。' : ''} (残り生命力: ${character.value.lifeCurrent})`;
+罠を発動させてしまい、${damageTaken > 0 ? `生命力に ${damageTaken} 点のダメージを受けました！` : ''}${effectApplied ? `さらに状態異常【${effectApplied}】を受けました！` : ''}${damageTaken === 0 && !effectApplied ? '何も起こりませんでした。' : ''} (残り生命力: ${character.value.lifeCurrent})${getTrapTensDigitNotice()}`;
             }
           }
           return false;
@@ -791,14 +814,14 @@ export function useDungeon() {
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${total - roll} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 罠を発動させてしまい、${resolutionNames.join('、')} がダメージを受けました！
-宝箱はまだ開いていません。もう一度開錠を試みる（再挑戦）か、諦めて先へ進むかを選択できます。`;
+宝箱はまだ開いていません。もう一度開錠を試みる（再挑戦）か、諦めて先へ進むかを選択できます。${getTrapTensDigitNotice()}`;
     } else {
       (activeEvent.value as any).isResolved = true;
       (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
 判定能力: ${stat.toUpperCase()} (目標値: ${target})
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${total - roll} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
-罠を発動させてしまい、${resolutionNames.join('、')} がダメージを受けました！`;
+罠を発動させてしまい、${resolutionNames.join('、')} がダメージを受けました！${getTrapTensDigitNotice()}`;
     }
   }
 

@@ -220,7 +220,8 @@
       "type": "trap",
       "trapStat": "dexterity",
       "trapTarget": 4,
-      "trapDamage": 1
+      "trapDamage": 0,
+      "trapNextRoomTensDigit": 5
     },
     "46": {
       "title": "毒ガス",

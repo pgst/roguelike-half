@@ -31,7 +31,8 @@ export function useCombat() {
     triggerLevelUp,
     triggerGameOver,
     savePyramidBossSnapshot,
-    diceTray
+    diceTray,
+    nextRoomTensDigitOverride
   } = useGameState();
 
   const context = {
@@ -58,7 +59,8 @@ export function useCombat() {
     triggerGameOver,
     rollSpellResistance,
     endCombat,
-    savePyramidBossSnapshot
+    savePyramidBossSnapshot,
+    nextRoomTensDigitOverride
   };
 
   // Helper: check if enemy group is Undead, Golem, etc.
