@@ -7,6 +7,7 @@ import { useCombat } from '../composables/useCombat';
 import { DEFAULT_ITEMS, DEFAULT_WEAPONS, DEFAULT_SHIELDS, DEFAULT_ARMORS } from '../composables/useGameState';
 import type { Weapon, Armor, Shield, GeneralItem } from '../types';
 import MessageWindow from './MessageWindow.vue';
+import FormattedScenarioText from './FormattedScenarioText.vue';
 import { runScenarioHook, type ScenarioPluginContext } from '../composables/scenarioPlugins';
 
 const {
@@ -933,9 +934,11 @@ function resolveSkeletonEvent() {
         <h3 class="event-title resolved-title" style="border-bottom: 1px dashed rgba(92, 75, 61, 0.3); padding-bottom: 8px; margin-bottom: 15px; color: var(--ink-light); font-size: 1.1rem; opacity: 0.8;">
           📜 解決済: {{ activeEvent.title }}
         </h3>
-        <p class="event-description resolved-desc" style="white-space: pre-line; background: rgba(225, 218, 205, 0.4); padding: 15px; border-radius: 4px; border: 1px dashed rgba(92, 75, 61, 0.4); font-size: 0.95rem; color: var(--ink-light); line-height: 1.6; text-align: left; opacity: 0.9;">
-          {{ (activeEvent as any).resolutionText }}
-        </p>
+        <FormattedScenarioText 
+          :text="(activeEvent as any).resolutionText" 
+          class="event-description resolved-desc" 
+          style="white-space: pre-line; background: rgba(225, 218, 205, 0.4); padding: 15px; border-radius: 4px; border: 1px dashed rgba(92, 75, 61, 0.4); font-size: 0.95rem; color: var(--ink-light); line-height: 1.6; text-align: left; opacity: 0.9;" 
+        />
         <div v-if="isBackpackOverLimit" class="overlimit-warning-banner" style="background: rgba(140, 28, 28, 0.1); border: 1px solid #8c1c1c; padding: 12px; border-radius: 4px; color: #8c1c1c; font-size: 0.9rem; margin-top: 10px; margin-bottom: 10px; text-align: left;">
           <div style="font-weight: bold; margin-bottom: 4px;">⚠️ 背負い袋の容量制限を超過しています！</div>
           <div style="margin-bottom: 8px;">画面上部の［📜 ステータス詳細］、または下の［📜 荷物を整理する］ボタンから、不要な武器・道具を「捨てる」か、装備を変更して空きを作ってください。（整理が完了するまで次の部屋に進めません）</div>
@@ -956,7 +959,7 @@ function resolveSkeletonEvent() {
           <span v-if="activeEvent.d66Code === 'midpoint'" style="margin-left: 6px; font-weight: bold; color: #f39c12;">【中間イベント】</span>
         </div>
         <h3 class="event-title">{{ activeEvent.title }}</h3>
-        <p class="event-description">{{ activeEvent.description }}</p>
+        <FormattedScenarioText :text="activeEvent.description" class="event-description" />
 
         <div class="event-actions">
         <!-- Scenario Plugin Custom Choices (Dynamic Choices) -->

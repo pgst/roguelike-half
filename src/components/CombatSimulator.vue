@@ -5,6 +5,9 @@ import { useCombat } from '../composables/useCombat';
 import { useSettings } from '../composables/useSettings';
 import { randomInt } from '../domain/random';
 import MessageWindow from './MessageWindow.vue';
+import FormattedScenarioText from './FormattedScenarioText.vue';
+
+const showNarrative = ref(true);
 
 const {
   character,
@@ -260,6 +263,21 @@ function closeRangedRound() {
       <h2>⚔️ 戦闘シーン</h2>
       <div class="badge-round">
         {{ combatState.round === 0 ? '第 0 ラウンド (遠距離戦)' : `第 ${combatState.round} ラウンド (接近戦)` }}
+      </div>
+    </div>
+
+    <!-- 遭遇クリーチャーの情景描写 & フレーバーテキスト -->
+    <div v-if="activeEvent && activeEvent.description" class="encounter-narrative" style="margin-bottom: 12px; background: rgba(247, 243, 233, 0.6); border: 1px dashed rgba(92, 75, 61, 0.3); border-radius: 4px; padding: 10px 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" @click="showNarrative = !showNarrative">
+        <span style="font-size: 0.88rem; font-weight: bold; color: var(--ink-dark); font-family: 'Noto Serif JP', serif;">
+          📜 {{ activeEvent.title || '遭遇した敵の情景' }}
+        </span>
+        <button class="btn-ink btn-mini" style="font-size: 0.72rem; padding: 1px 6px;">
+          {{ showNarrative ? '▲ 閉じる' : '▼ 情景・フレーバーを読む' }}
+        </button>
+      </div>
+      <div v-show="showNarrative" style="margin-top: 8px; border-top: 1px dashed rgba(92, 75, 61, 0.2); padding-top: 8px;">
+        <FormattedScenarioText :text="activeEvent.description" class="event-description" />
       </div>
     </div>
 

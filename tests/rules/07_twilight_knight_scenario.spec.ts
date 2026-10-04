@@ -558,4 +558,39 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
     await expect(logbook).toContainText('【剣士】を引き抜いて雇用しました', { timeout: 5000 });
   });
 
+  test('【テキスト装飾表示】シナリオ説明文の『{斜体}〜{/斜体}』がパースされ、blockquote.flavor-quoteとしてスタイリング表示され、生のタグが画面に露出しないこと', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+
+    await selectScenarioInUI(page, '黄昏の騎士');
+
+    await page.fill('#char-name', '読書家');
+    await page.locator('.archetype-card').first().click({ force: true });
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // 部屋55（カルネーの愛猫: 公式シナリオで元々フレーバーテキストが付いている遭遇）に進む
+    await setupMockRandom(page, 55, []);
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    // 戦闘画面でエンカウンターの情景描写が表示されること
+    const eventDesc = page.locator('.event-description').first();
+    await expect(eventDesc).toBeVisible({ timeout: 5000 });
+
+    // 生のタグ「{斜体}」や「{/斜体}」が画面のテキストに含まれていないこと
+    const rawText = await eventDesc.innerText();
+    expect(rawText).not.toContain('{斜体}');
+    expect(rawText).not.toContain('{/斜体}');
+    expect(rawText).not.toContain('{/斜線}');
+
+    // .flavor-quote 要素として引用ブロックがレンダリングされていること
+    const flavorQuote = eventDesc.locator('.flavor-quote');
+    await expect(flavorQuote).toBeVisible();
+    await expect(flavorQuote).toContainText('猛獣っていうのは、かわいいもんなんです');
+  });
+
 });
+
