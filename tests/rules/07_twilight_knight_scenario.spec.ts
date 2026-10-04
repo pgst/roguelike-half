@@ -559,6 +559,16 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
   });
 
   test('【テキスト装飾表示】シナリオ説明文の『{斜体}〜{/斜体}』がパースされ、blockquote.flavor-quoteとしてスタイリング表示され、生のタグが画面に露出しないこと', async ({ page }) => {
+    const textTestScenario = {
+      ...twilightScenario,
+      id: 'twilight_knight',
+      totalRoomsToClear: 5
+    };
+
+    await page.addInitScript((sc) => {
+      localStorage.setItem('roguelike_half_custom_scenarios', JSON.stringify([sc]));
+    }, textTestScenario);
+
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await disableAnimations(page);
 
