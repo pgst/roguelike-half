@@ -80,6 +80,27 @@ const isMidpointRoom = computed(() => {
 });
 const canEscape = computed(() => !isBossRoom.value && !isMidpointRoom.value);
 
+const isReactionDisabled = computed(() => {
+  return combatState.hasReactionChecked ||
+    !!combatState.reactionResult ||
+    combatState.hasRangedFired ||
+    isBossRoom.value ||
+    isMidpointRoom.value ||
+    activeEvent.value?.reactionType === 'always_fight_to_death' ||
+    activeEvent.value?.reactionType === 'always_hostile';
+});
+
+const reactionDisabledReason = computed(() => {
+  if (isBossRoom.value) return 'ボス戦では反応表を振ることはできません（交渉不可）';
+  if (isMidpointRoom.value) return '中間イベントでは反応表を振ることはできません（交渉不可）';
+  if (activeEvent.value?.reactionType === 'always_fight_to_death') return 'この敵は命を顧みず死ぬまで戦うため、反応判定はありません';
+  if (activeEvent.value?.reactionType === 'always_hostile') return 'この敵は常に敵対的なため、反応判定はありません';
+  if (combatState.hasRangedFired) return '遠距離武器で射撃を行った後は反応表を振ることはできません';
+  if (combatState.reactionResult) return 'すでに反応判定の結果が出ています';
+  if (combatState.hasReactionChecked) return 'この遭遇ではすでに反応判定を行いました';
+  return '';
+});
+
 const showShireenClueAction = computed(() => {
   const hasShireen = combatState.enemies.some((e: any) => e.name === '異端者シーリーン');
   const clueSpent = (combatState as any).shireenClueSpent;
@@ -629,6 +650,7 @@ function closeRangedRound() {
                   @click="playerAttack(targetEnemy?.id)" 
                   class="btn-ink cmd-btn" 
                   :disabled="!isRangedAvailable || combatState.hasRangedFired"
+                  :title="!isRangedAvailable ? '射撃武器が装備されていません' : (combatState.hasRangedFired ? '射撃はラウンド0に1回のみ行えます' : '射撃攻撃を行います')"
                 >
                   🎯 弓・スリングで射撃攻撃
                 </button>
@@ -637,13 +659,15 @@ function closeRangedRound() {
                   @click="playerAttack(targetEnemy?.id, true)" 
                   class="btn-ink cmd-btn btn-strength" 
                   :disabled="!isRangedAvailable || combatState.hasRangedFired"
+                  :title="!isRangedAvailable ? '射撃武器が装備されていません' : (combatState.hasRangedFired ? '射撃はラウンド0に1回のみ行えます' : '技量点を1消費して全力射撃を行います')"
                 >
                   🎯 全力射撃
                 </button>
                 <button 
                   @click="rollReactionCheck" 
                   class="btn-ink cmd-btn" 
-                  :disabled="combatState.hasReactionChecked || combatState.hasRangedFired || isBossRoom || isMidpointRoom"
+                  :disabled="isReactionDisabled"
+                  :title="reactionDisabledReason || '敵の反応を確認します（1d6）'"
                 >
                   🎲 反応表を振る
                 </button>
@@ -651,6 +675,7 @@ function closeRangedRound() {
                   @click="payBribe(false)" 
                   class="btn-ink cmd-btn btn-secondary" 
                   :disabled="!combatState.isBribeAllowed || character.gold < 5"
+                  :title="!combatState.isBribeAllowed ? 'ワイロが要求されている時のみ支払えます' : (character.gold < 5 ? '金貨が足りません (必要: 5枚)' : '金貨5枚を支払って戦闘を回避します')"
                 >
                   🪙 ワイロ
                 </button>
@@ -662,6 +687,12 @@ function closeRangedRound() {
                 >
                   🔮 じゅもん
                 </button>
+              </div>
+
+              <!-- 反応表が無効な場合の理由表示ガイド (タッチデバイスやプレイヤー向け案内) -->
+              <div v-if="reactionDisabledReason" class="reaction-disabled-hint" style="font-size: 0.78rem; color: #795548; margin-top: 6px; padding: 4px 8px; background: rgba(121, 85, 72, 0.08); border-left: 3px solid #8d6e63; border-radius: 2px; display: flex; align-items: center; gap: 4px;">
+                <span>ℹ️</span>
+                <span>反応表: {{ reactionDisabledReason }}</span>
               </div>
               <button @click="closeRangedRound" class="btn-ink btn-mini btn-melee-shift" style="width: 100%; margin-top: 6px;">
                 ⚔️ 接近戦へ移行する

@@ -555,16 +555,22 @@ export const twilightKnightPlugin: ScenarioPlugin = {
       }
     }
 
-    // --- 出目 63: 闇エルフの狙撃手 (不意打ち先制射撃) ---
+    // --- 出目 63: 闇エルフの狙撃手 (不意打ち先制射撃 & 反応表不可) ---
     if (event.d66Code === '63' || combatState.enemies.some((e: Enemy) => e.name.includes('闇エルフ'))) {
-      addLog('🎯 暗闇から闇エルフの狙撃手が不意打ちの矢を放ってきた！', 'error');
       if (rollD6) {
-        const defRoll = await rollD6(true);
-        if (defRoll >= 4 || defRoll === 6) {
-          addLog(`🛡️ 矢の飛来を察知し、間一髪で見事に回避した！ (防御ロール: [ ${defRoll} ] >= 4)`, 'success');
+        const ambushRoll = await rollD6(false);
+        if (ambushRoll <= 5) {
+          combatState.hasReactionChecked = true;
+          addLog(`🎯 暗闇から闇エルフの狙撃手が不意打ちの矢を放ってきた！ (出目: [ ${ambushRoll} ] <= 5 / 反応判定不可)`, 'error');
+          const defRoll = await rollD6(true);
+          if (defRoll >= 4 || defRoll === 6) {
+            addLog(`🛡️ 矢の飛来を察知し、間一髪で見事に回避した！ (防御ロール: [ ${defRoll} ] >= 4)`, 'success');
+          } else {
+            character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
+            addLog(`💥 不意打ちの矢が肩を射抜いた！ 1点のダメージを受けた！ (防御ロール: [ ${defRoll} ] < 4 / 残り生命力: ${character.value.lifeCurrent})`, 'damage');
+          }
         } else {
-          character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
-          addLog(`💥 不意打ちの矢が肩を射抜いた！ 1点のダメージを受けた！ (防御ロール: [ ${defRoll} ] < 4 / 残り生命力: ${character.value.lifeCurrent})`, 'damage');
+          addLog(`👀 闇エルフの狙撃手はこちらの接近に気づいて身構えた！ (出目: [ ${ambushRoll} ] = 6 / 不意打ちは失敗し、通常遭遇となります)`, 'info');
         }
       }
     }

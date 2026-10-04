@@ -66,15 +66,21 @@ export function useCombatEnemy(deps: CombatEnemyDependencies) {
     }
   }
 
+  let isRollingReaction = false;
+
   // Combat reaction roll before fighting (Rule 35)
   async function rollReactionCheck() {
+    if (isRollingReaction) return;
     if (dungeonDepth.value >= totalRoomsToClear.value || activeEvent.value?.d66Code === 'midpoint') {
       addLog('⚠️ ボス戦および中間イベントでは反応チェックを行えません。', 'error');
       return;
     }
-    if (combatState.hasReactionChecked) return;
-    combatState.hasReactionChecked = true;
-    combatState.isBribeAllowed = false;
+    if (combatState.hasReactionChecked || combatState.reactionResult) return;
+    
+    isRollingReaction = true;
+    try {
+      combatState.hasReactionChecked = true;
+      combatState.isBribeAllowed = false;
 
     // Check reactionType preset
     const preset = activeEvent.value?.reactionType;
@@ -150,6 +156,9 @@ export function useCombatEnemy(deps: CombatEnemyDependencies) {
       text,
       actionType
     };
+    } finally {
+      isRollingReaction = false;
+    }
   }
 
   // 魔術【友情】による出目調整 (Rule 19)
