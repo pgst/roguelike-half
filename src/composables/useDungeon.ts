@@ -32,16 +32,8 @@ export function useDungeon() {
     nextRoomTensDigitOverride
   } = useGameState();
 
-  // Action: Explore next room
-  async function exploreNextRoom() {
-    if (currentScreen.value !== 'explore') return;
-    if (!activeScenario.value) {
-      addLog('シナリオが選択されていません。', 'error');
-      return;
-    }
-    clearDiceTray();
-
-    const context = {
+  function getScenarioContext() {
+    return {
       character,
       followers,
       combatState,
@@ -63,6 +55,18 @@ export function useDungeon() {
       startEncounter,
       nextRoomTensDigitOverride
     };
+  }
+
+  // Action: Explore next room
+  async function exploreNextRoom() {
+    if (currentScreen.value !== 'explore') return;
+    if (!activeScenario.value) {
+      addLog('シナリオが選択されていません。', 'error');
+      return;
+    }
+    clearDiceTray();
+
+    const context = getScenarioContext();
 
     const handled = await runScenarioHook(activeScenario.value?.id, 'onExploreRoomOverride', context);
     if (handled) {
@@ -428,6 +432,7 @@ export function useDungeon() {
 無事に罠を感知・回避し、無傷で先へ進むことができます！`;
         }
       }
+      await runScenarioHook(activeScenario.value?.id, 'onTrapResolve', getScenarioContext(), { success: true, roll });
       return true;
     } else {
       addLog(`💥 トラップ判定に失敗しました！ (ロール計: ${roll === 1 ? 'ファンブル' : total} < 目標: ${target})`, 'error');
@@ -699,6 +704,7 @@ export function useDungeon() {
 罠を発動させてしまい、${damageTaken > 0 ? `生命力に ${damageTaken} 点のダメージを受けました！` : ''}${effectApplied ? `さらに状態異常【${effectApplied}】を受けました！` : ''}${damageTaken === 0 && !effectApplied ? '何も起こりませんでした。' : ''} (残り生命力: ${character.value.lifeCurrent})${getTrapTensDigitNotice()}`;
             }
           }
+          await runScenarioHook(activeScenario.value?.id, 'onTrapResolve', getScenarioContext(), { success: false, roll });
           return false;
         }
       }
@@ -948,15 +954,41 @@ export function useDungeon() {
         rewardText += ` 金貨 ${rewardGold} 枚`;
       }
       if (rewardItemName) {
+        let itemType: any = 'consumable';
+        let itemDesc = `探索で発見したアイテム`;
+        let charges: number | undefined = undefined;
+
+        if (rewardItemName === 'カチカチになったチーズ') {
+          charges = 3;
+          itemDesc = 'カチカチのチーズ塊。クリーチャーへのワイロ用食料ポイント（3pt分）として使用可能。';
+        } else if (rewardItemName === '認識票') {
+          charges = 1;
+          itemDesc = 'ダンジョン内クリーチャーの認識票。人間型やラミア遭遇時に提示すると友好的になる（1回限り）。';
+        } else if (rewardItemName === '囮の風船') {
+          charges = 1;
+          itemDesc = '実物大の人形風船。戦わない従者がダメージを受ける時、身代わりとなって破裂する（1回限り）。';
+        } else if (rewardItemName === 'エール酒の大瓶') {
+          charges = Math.max(2, randomInt(1, 6));
+          itemDesc = `芳醇なエール酒の大瓶（${charges}回分）。人間型クリーチャーへのワイロ支払いを軽減する。`;
+        } else if (rewardItemName === '迷宮の地図') {
+          charges = 1;
+          itemDesc = '迷宮の一部の構造を記した地図。d66を2回振って好きな結果を選択できる（1回限り）。';
+        } else if (rewardItemName === '治療のポーション') {
+          itemType = 'healingpotion';
+          charges = 1;
+          itemDesc = '生命力を最大値まで回復する薬瓶（冒険中1回のみ使用可能）。';
+        }
+
         character.value.items.push({
           id: generateId(),
           name: rewardItemName,
-          type: 'consumable',
+          type: itemType,
+          charges,
           goldCost: 0,
           value: 0,
-          description: `探索で発見したアイテム`
+          description: itemDesc
         });
-        rewardText += (rewardText ? '、' : ' ') + `【${rewardItemName}】`;
+        rewardText += (rewardText ? '、' : ' ') + `【${rewardItemName}${charges ? ` (${charges}回分)` : ''}】`;
       }
 
       addLog(`🎉 探索判定に成功しました！${rewardText ? `(報酬獲得:${rewardText})` : ''} (出目: ${roll})`, 'success');

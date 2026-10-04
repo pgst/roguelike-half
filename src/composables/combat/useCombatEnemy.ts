@@ -247,6 +247,42 @@ export function useCombatEnemy(deps: CombatEnemyDependencies) {
       addLog('🔮 魔法【友情】を発動！ 魔術点1を消費し、ワイロの額を金貨1枚に減額しました。', 'success');
     }
 
+    // エール酒の大瓶による人間型クリーチャーへのワイロ減額 (最低1枚)
+    const aleItem = character.value.items.find(it => it.name === 'エール酒の大瓶');
+    const isHumanEvent = ['21', '22', '23', '24', '25', '26', '51', '53', '63', '64', '65'].includes(activeEvent.value?.d66Code || '') ||
+      ['里人', '末裔', '冒険者', '行商人', 'ホブゴブリン', 'コビット', '突撃兵', 'ゴートマン', '狙撃手', '警備隊長', 'ウォー・ジェスター'].some(k => activeEvent.value?.title.includes(k) || activeEvent.value?.description.includes(k));
+
+    if (aleItem && isHumanEvent && cost > 1) {
+      const discount = Math.min(cost - 1, aleItem.charges || 1);
+      if (discount > 0) {
+        cost -= discount;
+        if (aleItem.charges !== undefined) {
+          aleItem.charges -= discount;
+          if (aleItem.charges <= 0) {
+            character.value.items = character.value.items.filter(it => it.id !== aleItem.id);
+            addLog(`🍺 【エール酒の大瓶】を振る舞い、ワイロ額を金貨 ${cost} 枚に減額しました！ (エール酒を使い果たしました)`, 'success');
+          } else {
+            addLog(`🍺 【エール酒の大瓶】を ${discount} 回分振る舞い、ワイロ額を金貨 ${cost} 枚に減額しました！ (残り: ${aleItem.charges}回分)`, 'success');
+          }
+        }
+      }
+    }
+
+    // カチカチのチーズによる食料ポイントでのワイロ提供
+    const cheeseItem = character.value.items.find(it => it.name === 'カチカチになったチーズ');
+    if (cheeseItem && character.value.gold < cost && (cheeseItem.charges || 0) >= cost) {
+      cheeseItem.charges = (cheeseItem.charges || 0) - cost;
+      if (cheeseItem.charges <= 0) {
+        character.value.items = character.value.items.filter(it => it.id !== cheeseItem.id);
+        addLog(`🧀 【カチカチになったチーズ】をワイロとして差し出しました！ (チーズを使い果たしました)`, 'success');
+      } else {
+        addLog(`🧀 【カチカチになったチーズ】をワイロとして ${cost} pt分差し出しました！ (残り: ${cheeseItem.charges}pt)`, 'success');
+      }
+      combatState.reactionResult = null;
+      endCombatPeaceful(`ワイロ：カチカチのチーズを差し出し、安全に見逃してもらいました。`);
+      return;
+    }
+
     if (character.value.gold < cost) {
       addLog('金貨が足りないため、ワイロを支払えません！', 'error');
       return;

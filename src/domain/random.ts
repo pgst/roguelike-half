@@ -99,12 +99,15 @@ export function randomFloat(): number {
  * min以上max以下の整数（ダイスロールなど）を取得します。
  */
 export function randomInt(min: number, max: number): number {
+  if (min >= max) return min;
   if (typeof window !== 'undefined' && (window as any).__mockRolls) {
     if ((window as any).__mockRolls.length > 0) {
-      return (window as any).__mockRolls.shift();
+      const val = (window as any).__mockRolls.shift();
+      return Math.min(max, Math.max(min, val));
     }
     if (typeof (window as any).__mockRollsFallback === 'number') {
-      return (window as any).__mockRollsFallback;
+      const val = (window as any).__mockRollsFallback;
+      return Math.min(max, Math.max(min, val));
     }
   }
   if (activePrng) {

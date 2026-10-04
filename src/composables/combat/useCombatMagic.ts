@@ -166,6 +166,9 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
           if (hits > 0 && spellTotal >= e.level) {
             if (e.name.includes('キャットゴーレム')) {
               addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
+            } else if (e.id === 'goblin_assault' || e.name.includes('突撃兵')) {
+              e.lifeCurrent = 0;
+              addLog(`💥 炎球の爆風が【${e.name}】の爆弾に引火・誘爆！ 木っ端みじんに吹き飛んだ！`, 'success');
             } else {
               e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
               addLog(`🔥 ${e.name} に従者の炎球が炸裂！ 1点ダメージ！`, 'success');
@@ -185,6 +188,9 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
               const e = enemies[i];
               if (e.name.includes('キャットゴーレム')) {
                 addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
+              } else if (e.id === 'goblin_assault' || e.name.includes('突撃兵')) {
+                e.lifeCurrent = 0;
+                addLog(`💥 炎球の爆風が【${e.name}】の爆弾に引火・誘爆！ 木っ端みじんに吹き飛んだ！`, 'success');
               } else {
                 e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
                 addLog(`🔥 ${e.name} に炎球が直撃！ 1点ダメージ！`, 'success');
@@ -315,7 +321,10 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
       if (isNarrow) {
         let hits = 1;
         enemies.forEach((e: Enemy) => {
-          if (hits > 0 && total >= e.level) {
+          if (e.id === 'goblin_assault' || e.name.includes('突撃兵')) {
+            e.lifeCurrent = 0;
+            addLog(`💥 炎球の爆風が【${e.name}】の爆弾に引火・誘爆！ 木っ端みじんに吹き飛んだ！`, 'success');
+          } else if (hits > 0 && total >= e.level) {
             if (e.name.includes('キャットゴーレム')) {
               addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
             } else {
@@ -327,7 +336,10 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
         });
       } else {
         enemies.forEach((e: Enemy) => {
-          if (total >= e.level) {
+          if (e.id === 'goblin_assault' || e.name.includes('突撃兵')) {
+            e.lifeCurrent = 0;
+            addLog(`💥 炎球の爆風が【${e.name}】の爆弾に引火・誘爆！ 木っ端みじんに吹き飛んだ！`, 'success');
+          } else if (total >= e.level) {
             if (e.name.includes('キャットゴーレム')) {
               addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
             } else {

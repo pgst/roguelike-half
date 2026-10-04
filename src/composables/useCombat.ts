@@ -224,7 +224,21 @@ export function useCombat() {
       return;
     }
 
-    addLog(`⚔️ ${enemy.name} への攻撃ロール！`, 'combat');
+    // ゴブリンの突撃兵（近接攻撃不可、射撃または魔法のみ）
+    if ((enemy.id === 'goblin_assault' || enemy.name.includes('突撃兵')) && character.value.equippedWeapon?.type !== 'ranged') {
+      addLog('💣 ゴブリンの突撃兵は爆弾を抱えて突撃してくるため、近接攻撃を仕掛けることができません！（射撃武器または魔法が必要です）', 'error');
+      return;
+    }
+
+    // 警備隊長をかばう警備ゴブリン
+    let targetEnemy = enemy;
+    const guard = combatState.enemies.find((e: Enemy) => (e.id.includes('guard') || e.name.includes('警備ゴブリン')) && e.lifeCurrent > 0);
+    if ((enemy.id === 'captain' || enemy.name.includes('警備隊長')) && guard) {
+      addLog(`🛡️ 【${guard.name}】が身を挺して警備隊長をかばった！ 攻撃対象が護衛に変更されます！`, 'error');
+      targetEnemy = guard;
+    }
+
+    addLog(`⚔️ ${targetEnemy.name} への攻撃ロール！`, 'combat');
     
     // Choose stat
     let attackStat = character.value.skillCurrent;
@@ -249,6 +263,12 @@ export function useCombat() {
     const roll = await rollD6(true);
     let modifier = 0;
 
+    // 触手獣に対する斬撃特効 (+2)
+    if ((targetEnemy.id === 'tentacle_beast' || targetEnemy.name.includes('触手')) && character.value.equippedWeapon?.attribute === 'slash') {
+      modifier += 2;
+      addLog(`⚔️ 触手獣に対する【斬撃】特効ボーナス：攻撃ロール +2！`, 'success');
+    }
+
     // Alan Duel Bonus in round 1
     if (combatState.round === 1 && (combatState as any).alanDuel) {
       modifier += 1;
@@ -263,16 +283,16 @@ export function useCombat() {
     }
 
     // Apply enemy resistances for player
-    if (enemy.resistances && character.value.equippedWeapon) {
+    if (targetEnemy.resistances && character.value.equippedWeapon) {
       const weaponAttr = character.value.equippedWeapon.type === 'ranged' ? 'ranged' : character.value.equippedWeapon.attribute;
       const isMagic = character.value.equippedWeapon.isMagic;
-      enemy.resistances.forEach(res => {
+      targetEnemy.resistances.forEach(res => {
         if (res.attribute === weaponAttr) {
           if (res.ignoreIfMagic && isMagic) {
             // ignore
           } else {
             modifier += res.modifier;
-            addLog(`🤖 ${enemy.name} に対する【${res.attribute === 'slash' ? '斬撃' : res.attribute === 'strike' ? '打撃' : '射撃'}】武器修正 ${res.modifier >= 0 ? '+' : ''}${res.modifier}！`, res.modifier >= 0 ? 'success' : 'error');
+            addLog(`🤖 ${targetEnemy.name} に対する【${res.attribute === 'slash' ? '斬撃' : res.attribute === 'strike' ? '打撃' : '射撃'}】武器修正 ${res.modifier >= 0 ? '+' : ''}${res.modifier}！`, res.modifier >= 0 ? 'success' : 'error');
           }
         }
       });
@@ -340,17 +360,24 @@ export function useCombat() {
       addLog('魔法の武器の初撃ボーナス +1！', 'success');
     }
 
-    const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + attackStat + modifier;
-    let hit = roll === 6 || (roll !== 1 && total >= enemy.level);
+    const fumbleThreshold = Math.max(1, ...playerActiveStatusEffectRules.value.map(r => r.attackFumbleThreshold || 1));
+    const isFumble = roll <= fumbleThreshold;
+    const isCritical = roll === 6;
+    if (isFumble && roll > 1) {
+      addLog(`⚠️ 状態異常（ファンブル閾値: ${fumbleThreshold}以下）により、出目 [ ${roll} ] はファンブルとなりました！`, 'error');
+    }
+
+    const total = isCritical ? 99 : isFumble ? -99 : roll + attackStat + modifier;
+    let hit = isCritical || (!isFumble && total >= targetEnemy.level);
 
     // Apply evasion rules
-    if (enemy.evasionRule === 'shireen_future_sight') {
+    if (targetEnemy.evasionRule === 'shireen_future_sight') {
       const isMagicWeapon = character.value.equippedWeapon?.isMagic;
       const isCritical = roll === 6;
       const canHit = isMagicWeapon || isCritical || (combatState as any).shireenClueSpent;
       if (!canHit && hit) {
         hit = false;
-        addLog(`🔮 ${enemy.name} は未来を垣間見てあなたの通常攻撃を軽々と回避した！`, 'error');
+        addLog(`🔮 ${targetEnemy.name} は未来を垣間見てあなたの通常攻撃を軽々と回避した！`, 'error');
       }
     }
 
@@ -386,14 +413,14 @@ export function useCombat() {
       if (character.value.equippedWeapon && character.value.equippedWeapon.tagDamageModifiers) {
         const weapon = character.value.equippedWeapon;
         Object.keys(weapon.tagDamageModifiers!).forEach(tag => {
-          if (enemy.tags.includes(tag as any)) {
+          if (targetEnemy.tags.includes(tag as any)) {
             const tagBonus = weapon.tagDamageModifiers![tag];
             damage += tagBonus;
             addLog(`⚔️ ${weapon.name}の特効ボーナス：ダメージ ${tagBonus >= 0 ? '+' : ''}${tagBonus}！`, 'success');
           }
         });
       }
-      if ((character.value as any).heraclesRightBuff && enemy.tags.includes('demon')) {
+      if ((character.value as any).heraclesRightBuff && targetEnemy.tags.includes('demon')) {
         damage += 1;
         addLog('✊ 怪力王の右腕の魂：悪魔へのダメージ +1！', 'success');
       }
@@ -418,7 +445,7 @@ export function useCombat() {
           }
         };
 
-        if (enemy.tags.includes('demon') || enemy.tags.includes('undead')) {
+        if (targetEnemy.tags.includes('demon') || targetEnemy.tags.includes('undead')) {
           if (silverArrow) {
             consumeArrowLocal(silverArrow);
             damage += 1;
@@ -440,13 +467,16 @@ export function useCombat() {
         }
       }
 
-      enemy.lifeCurrent = Math.max(0, enemy.lifeCurrent - damage);
-      addLog(`🎯 命中！ ${enemy.name} に ${damage} 点のダメージを与えた！ (ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${enemy.level})`, 'success');
+      targetEnemy.lifeCurrent = Math.max(0, targetEnemy.lifeCurrent - damage);
+      addLog(`🎯 命中！ ${targetEnemy.name} に ${damage} 点のダメージを与えた！ (ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${targetEnemy.level})`, 'success');
       
       // Check if enemy died (Move before critical double attack)
-      if (enemy.lifeCurrent <= 0) {
-        addLog(`💀 ${enemy.name} を撃破しました！`, 'success');
-        combatState.enemies.splice(enemyIndex, 1);
+      if (targetEnemy.lifeCurrent <= 0) {
+        addLog(`💀 ${targetEnemy.name} を撃破しました！`, 'success');
+        const tIndex = combatState.enemies.indexOf(targetEnemy);
+        if (tIndex !== -1) {
+          combatState.enemies.splice(tIndex, 1);
+        }
       }
 
       // --- CUSTOM LOGIC: Ancient Dragon's Rib-Sword Shockwave ---

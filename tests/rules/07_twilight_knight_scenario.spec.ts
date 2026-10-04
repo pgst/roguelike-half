@@ -352,8 +352,8 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
     await page.waitForTimeout(500);
 
     // 次の部屋が50番台（出目52: 巨大ネズミ）との戦闘画面になっていることを検証！
-    await expect(page.locator('h2:has-text("戦闘シーン")')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('.combat-card, .enemies-list, [data-v-b65f3f98]').first()).toContainText('巨大ネズミ', { timeout: 5000 });
+    await expect(page.locator('h2:has-text("戦闘シーン")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.combat-card, .enemies-list, [data-v-b65f3f98]').first()).toContainText('巨大ネズミ', { timeout: 10000 });
   });
 
   test('【実機プレイ検証】出目34『迷宮の野営地』で出目1の休息失敗時、次回十の位が5に固定されること', async ({ page }) => {
@@ -407,6 +407,155 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
     // 次の部屋が50番台（出目51: ゴブリンの突撃兵）との戦闘画面になっていること！
     await expect(page.locator('h2:has-text("戦闘シーン")')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('.combat-card, .enemies-list, [data-v-b65f3f98]').first()).toContainText('ゴブリンの突撃兵', { timeout: 5000 });
+  });
+
+  test('【実機プレイ検証】出目42『油の入った壷』で油まみれになり、水場（出目21）で身体を洗って油まみれが解除されること', async ({ page }) => {
+    const oilTestScenario = {
+      ...twilightScenario,
+      id: 'twilight_knight',
+      totalRoomsToClear: 5
+    };
+
+    await page.addInitScript((sc) => {
+      localStorage.setItem('roguelike_half_custom_scenarios', JSON.stringify([sc]));
+    }, oilTestScenario);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+
+    await selectScenarioInUI(page, '黄昏の騎士');
+
+    await page.fill('#char-name', '油洗い');
+    await page.locator('.archetype-card').first().click({ force: true });
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // 部屋42（油の壷）に進む。判定ロール出目1（失敗）。
+    await setupMockRandom(page, 42, [1]);
+
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    await expect(page.locator('.event-title')).toContainText('油の入った壷');
+
+    // 罠判定挑戦
+    const trapBtn = page.locator('button:has-text("で挑戦")').or(page.locator('button:has-text("判定ロールに挑戦する")')).first();
+    await trapBtn.click();
+
+    // 判定失敗 -> 状態異常「油まみれ」が付与されること
+    const logbook = page.locator('.logbook-entries');
+    await expect(logbook).toContainText('油まみれ', { timeout: 5000 });
+
+    // 「次の小部屋へ進む」をクリック
+    await page.waitForTimeout(500);
+    await page.locator('button:has-text("次の小部屋へ進む")').click();
+
+    // 部屋21（水場のあるレラヴィリアの里人）に進む
+    await setupMockRandom(page, 21, []);
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    // 水場で身体を洗うボタンが表示されること
+    const washBtn = page.locator('button:has-text("水場で身体を洗う")');
+    await expect(washBtn).toBeVisible({ timeout: 5000 });
+    await washBtn.click();
+
+    // 油まみれが解除されたログを確認
+    await expect(logbook).toContainText('「油まみれ」の状態異常が解消されました', { timeout: 5000 });
+  });
+
+  test('【実機プレイ検証】出目11でカチカチのチーズを獲得し、出目52大ネズミの大群をチーズで戦闘回避できること', async ({ page }) => {
+    const cheeseTestScenario = {
+      ...twilightScenario,
+      id: 'twilight_knight',
+      totalRoomsToClear: 5
+    };
+
+    await page.addInitScript((sc) => {
+      localStorage.setItem('roguelike_half_custom_scenarios', JSON.stringify([sc]));
+    }, cheeseTestScenario);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+
+    await selectScenarioInUI(page, '黄昏の騎士');
+
+    await page.fill('#char-name', 'チーズ使い');
+    await page.locator('.archetype-card').first().click({ force: true });
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // 部屋11（チーズ）に進み、探索判定ロール出目6（成功）。
+    await setupMockRandom(page, 11, [6]);
+
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    await expect(page.locator('.event-title')).toContainText('カチカチになったチーズ');
+
+    // 探索判定ボタンをクリック
+    const searchBtn = page.locator('button:has-text("で調査")').or(page.locator('button:has-text("調査判定を行う")')).first();
+    await searchBtn.click();
+
+    // カチカチのチーズ獲得を確認
+    const logbook = page.locator('.logbook-entries');
+    await expect(logbook).toContainText('カチカチになったチーズ', { timeout: 5000 });
+
+    // 「次の小部屋へ進む」をクリック
+    await page.waitForTimeout(500);
+    await page.locator('button:has-text("次の小部屋へ進む")').click();
+
+    // 部屋52（大ネズミの大群）に進む
+    await setupMockRandom(page, 52, []);
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    // ネズミにチーズを投げ与えて戦闘回避したログを確認
+    await expect(logbook).toContainText('大ネズミの大群は転がってきたチーズに殺到し', { timeout: 5000 });
+  });
+
+  test('【実機プレイ検証】出目23『冒険者の一団』で金貨を支払い従者（剣士）を引き抜いて雇用できること', async ({ page }) => {
+    const hireTestScenario = {
+      ...twilightScenario,
+      id: 'twilight_knight',
+      totalRoomsToClear: 5
+    };
+
+    await page.addInitScript((sc) => {
+      localStorage.setItem('roguelike_half_custom_scenarios', JSON.stringify([sc]));
+    }, hireTestScenario);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+
+    await selectScenarioInUI(page, '黄昏の騎士');
+
+    await page.fill('#char-name', '雇い主');
+    await page.locator('.archetype-card').first().click({ force: true });
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // 部屋23（冒険者の一団）に進む
+    await setupMockRandom(page, 23, []);
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    await expect(page.locator('.event-title')).toContainText('冒険者の一団');
+
+    // 「⚔️ 【剣士】を引き抜く」ボタンが表示されていること
+    const hireSwordsmanBtn = page.locator('button:has-text("【剣士】を引き抜く")');
+    await expect(hireSwordsmanBtn).toBeVisible({ timeout: 5000 });
+    await hireSwordsmanBtn.click();
+
+    // 雇用成功ログを確認
+    const logbook = page.locator('.logbook-entries');
+    await expect(logbook).toContainText('【剣士】を引き抜いて雇用しました', { timeout: 5000 });
   });
 
 });

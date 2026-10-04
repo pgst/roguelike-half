@@ -148,6 +148,7 @@ export interface StatusEffectRule {
   modAttack?: number;   // 攻撃判定へのペナルティ (例: -1)
   modDefense?: number;  // 防御判定へのペナルティ (例: -1)
   modSkill?: number;    // スキル/能力値判定へのペナルティ (例: -1)
+  attackFumbleThreshold?: number; // 攻撃ロールのファンブル閾値 (例: 2なら2以下でファンブル)
   preventsAttack?: boolean;  // 戦闘時に攻撃不可
   preventsDefense?: boolean; // 戦闘時に防御判定自動失敗
   preventsMagic?: boolean;   // 魔法・奇跡の詠唱不可
