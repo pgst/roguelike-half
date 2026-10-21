@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from "vue";
 
 interface Props {
   text?: string;
@@ -7,17 +7,17 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  text: '',
-  tag: 'div'
+  text: "",
+  tag: "div",
 });
 
 interface TextToken {
-  type: 'normal' | 'italic';
+  type: "normal" | "italic";
   text: string;
 }
 
 const tokens = computed<TextToken[]>(() => {
-  const content = props.text || '';
+  const content = props.text || "";
   if (!content) return [];
 
   // Match {斜体}...{/斜体} or {/斜線}
@@ -31,14 +31,14 @@ const tokens = computed<TextToken[]>(() => {
     while ((match = regex.exec(content)) !== null) {
       if (match.index > lastIndex) {
         result.push({
-          type: 'normal',
-          text: content.slice(lastIndex, match.index)
+          type: "normal",
+          text: content.slice(lastIndex, match.index),
         });
       }
       if (match[1]) {
         result.push({
-          type: 'italic',
-          text: match[1].trim()
+          type: "italic",
+          text: match[1].trim(),
         });
       }
       lastIndex = regex.lastIndex;
@@ -46,13 +46,13 @@ const tokens = computed<TextToken[]>(() => {
 
     if (lastIndex < content.length) {
       result.push({
-        type: 'normal',
-        text: content.slice(lastIndex)
+        type: "normal",
+        text: content.slice(lastIndex),
       });
     }
   } catch {
     // Fail-safe: if regex parsing ever throws, fallback to raw text
-    return [{ type: 'normal', text: content }];
+    return [{ type: "normal", text: content }];
   }
 
   return result;
@@ -87,7 +87,7 @@ const tokens = computed<TextToken[]>(() => {
   background: rgba(176, 141, 87, 0.08);
   border-radius: 0 4px 4px 0;
   font-style: italic;
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   color: #4a3728;
   font-size: 0.92rem;
   line-height: 1.6;
