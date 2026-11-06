@@ -1,15 +1,33 @@
-import { ref, computed, watch } from 'vue';
-import type { Character, Follower, Enemy, Weapon, Armor, Shield, GeneralItem, DungeonEvent, Scenario, StatusEffectRule, LogEntry, LogType } from '../types';
-import { GameSession, PlayerCharacter } from '../domain';
-import { generateId, setGlobalSeed, randomInt } from '../domain/random';
-import { useCloudSync } from './useCloudSync';
-import { useHallOfFame } from './useHallOfFame';
-import { useCustomScenarios } from './useCustomScenarios';
+import { ref, computed, watch } from "vue";
+import type {
+  Character,
+  Follower,
+  Enemy,
+  Weapon,
+  Armor,
+  Shield,
+  GeneralItem,
+  DungeonEvent,
+  Scenario,
+  StatusEffectRule,
+  LogEntry,
+  LogType,
+} from "../types";
+import { GameSession, PlayerCharacter } from "../domain";
+import { generateId, setGlobalSeed, randomInt } from "../domain/random";
+import { useCloudSync } from "./useCloudSync";
+import { useHallOfFame } from "./useHallOfFame";
+import { useCustomScenarios } from "./useCustomScenarios";
 
 // Load Scenarios: 公開用シナリオは常時バンドル、開発検証用モックはDEV環境のみバンドル
-const publicModules = import.meta.glob<{ default: any }>('../data/scenarios/public/*.json', { eager: true });
+const publicModules = import.meta.glob<{ default: any }>(
+  "../data/scenarios/public/*.json",
+  { eager: true },
+);
 const mockModules = import.meta.env.DEV
-  ? import.meta.glob<{ default: any }>('../data/scenarios/mock/*.json', { eager: true })
+  ? import.meta.glob<{ default: any }>("../data/scenarios/mock/*.json", {
+      eager: true,
+    })
   : {};
 const scenarioModules = { ...publicModules, ...mockModules };
 function getStartLevel(recommendedLevel: string): number {
@@ -25,12 +43,12 @@ const availableScenarios = computed<Scenario[]>(() => {
     const data = mod.default || mod;
     if (data && data.id) {
       // 本番環境（PROD）では著作権・TOS遵守のため「刻の悪魔のピラミッド」を除外
-      if (!isDev && data.id === 'pyramid_of_chronodemon') {
+      if (!isDev && data.id === "pyramid_of_chronodemon") {
         continue;
       }
 
       const scenarioData: Scenario = { ...(data as Scenario) };
-      if (isDev && scenarioData.id === 'pyramid_of_chronodemon') {
+      if (isDev && scenarioData.id === "pyramid_of_chronodemon") {
         scenarioData.title = `${scenarioData.title} 【開発検証用】`;
       }
 
@@ -39,15 +57,15 @@ const availableScenarios = computed<Scenario[]>(() => {
   }
 
   list.sort((a, b) => {
-    const levelA = getStartLevel(a.scenario.recommendedLevel || '');
-    const levelB = getStartLevel(b.scenario.recommendedLevel || '');
+    const levelA = getStartLevel(a.scenario.recommendedLevel || "");
+    const levelB = getStartLevel(b.scenario.recommendedLevel || "");
     if (levelA !== levelB) {
       return levelA - levelB;
     }
     return a.path.localeCompare(b.path);
   });
 
-  const officialList = list.map(item => item.scenario);
+  const officialList = list.map((item) => item.scenario);
   try {
     const { customScenarios } = useCustomScenarios();
     return [...officialList, ...customScenarios.value];
@@ -57,9 +75,12 @@ const availableScenarios = computed<Scenario[]>(() => {
 });
 
 // Factories for state initialization
-function createDefaultCharacter(name = '無名の冒険者', subStat: Character['subStatType'] = 'magic'): Character {
+function createDefaultCharacter(
+  name = "無名の冒険者",
+  subStat: Character["subStatType"] = "magic",
+): Character {
   return {
-    name: name || '無名の冒険者',
+    name: name || "無名の冒険者",
     level: 10,
     exp: 10,
     gold: 10,
@@ -94,7 +115,7 @@ function createDefaultDiceTray() {
     d1: 0,
     d2: 0,
     sides: 6,
-    resultText: '',
+    resultText: "",
     isCritical: false,
     isFumble: false,
   };
@@ -105,7 +126,7 @@ function createDefaultCombatState() {
     active: false,
     enemies: [] as Enemy[],
     round: 0,
-    pendingRoarCheck: null as 'start' | 'death' | null,
+    pendingRoarCheck: null as "start" | "death" | null,
     roarCheckedThisCombat: false,
     shireenClueSpent: false,
     chronovalsWindPenalty: false,
@@ -133,7 +154,11 @@ function createDefaultCombatState() {
       hasHero: boolean;
     } | null,
     pendingHolyArrow: 0,
-    pendingDeflect: null as { attackId: string; defenderId: string; enemy: any } | null,
+    pendingDeflect: null as {
+      attackId: string;
+      defenderId: string;
+      enemy: any;
+    } | null,
     hasRangedFired: false,
     playerHasFiredRanged: false,
     archerHasFiredRanged: false,
@@ -142,9 +167,9 @@ function createDefaultCombatState() {
       damageIgnoreCount: 0,
     },
     isEscaping: false,
-    combatType: 'melee' as 'melee' | 'ranged_only',
+    combatType: "melee" as "melee" | "ranged_only",
     isOver: false,
-    resultType: null as 'victory' | 'escaped' | 'peaceful' | null,
+    resultType: null as "victory" | "escaped" | "peaceful" | null,
     lootText: null as string | null,
     lootRolled: false,
     pendingDexLootChoice: null as { baseRoll: number } | null,
@@ -154,7 +179,14 @@ function createDefaultCombatState() {
     reactionResult: null as {
       roll: number;
       text: string;
-      actionType: 'hostile' | 'bribe' | 'flee' | 'neutral' | 'hospitable' | 'outnumbered_flee' | 'outnumbered_hostile';
+      actionType:
+        | "hostile"
+        | "bribe"
+        | "flee"
+        | "neutral"
+        | "hospitable"
+        | "outnumbered_flee"
+        | "outnumbered_hostile";
     } | null,
     peacefulText: null as string | null,
     pendingTrapDamage: null as {
@@ -194,55 +226,93 @@ function createDefaultActiveEvent(): DungeonEvent | null {
   return null;
 }
 
-function createDefaultLogs(): { id: string; text: string; type: 'info' | 'roll' | 'combat' | 'error' | 'success' | 'damage' }[] {
+function createDefaultLogs(): {
+  id: string;
+  text: string;
+  type: "info" | "roll" | "combat" | "error" | "success" | "damage";
+}[] {
   return [];
 }
 
 const activeSession = ref<GameSession>(new GameSession());
-watch(() => activeSession.value.seed, (newSeed) => {
-  if (newSeed) {
-    setGlobalSeed(newSeed);
-  }
-}, { immediate: true });
+watch(
+  () => activeSession.value.seed,
+  (newSeed) => {
+    if (newSeed) {
+      setGlobalSeed(newSeed);
+    }
+  },
+  { immediate: true },
+);
 
 // Bridge reactive properties
 const activeScenario = computed<Scenario | null>({
   get: () => activeSession.value.activeScenario,
-  set: (val) => { activeSession.value.activeScenario = val; }
+  set: (val) => {
+    activeSession.value.activeScenario = val;
+  },
 });
 
 // Central State
-const currentScreen = computed<'scenario_select' | 'creator' | 'explore' | 'combat' | 'levelup' | 'gameover' | 'success'>({
+const currentScreen = computed<
+  | "scenario_select"
+  | "creator"
+  | "explore"
+  | "combat"
+  | "levelup"
+  | "gameover"
+  | "success"
+>({
   get: () => activeSession.value.currentScreen,
-  set: (val) => { activeSession.value.currentScreen = val; }
+  set: (val) => {
+    activeSession.value.currentScreen = val;
+  },
 });
 const isCharacterCreated = computed<boolean>({
   get: () => activeSession.value.isCharacterCreated,
-  set: (val) => { activeSession.value.isCharacterCreated = val; }
+  set: (val) => {
+    activeSession.value.isCharacterCreated = val;
+  },
 });
 const nextRoomTensDigitOverride = computed<number | null>({
   get: () => activeSession.value.nextRoomTensDigitOverride,
-  set: (val) => { activeSession.value.nextRoomTensDigitOverride = val; }
+  set: (val) => {
+    activeSession.value.nextRoomTensDigitOverride = val;
+  },
 });
 const dungeonDepth = computed<number>({
   get: () => activeSession.value.dungeonDepth,
-  set: (val) => { activeSession.value.dungeonDepth = val; }
+  set: (val) => {
+    activeSession.value.dungeonDepth = val;
+  },
 });
-const totalRoomsToClear = computed(() => activeScenario.value ? activeScenario.value.totalRoomsToClear : 8);
-const logs = computed<{ id: string; text: string; type: 'info' | 'roll' | 'combat' | 'error' | 'success' | 'damage' }[]>({
+const totalRoomsToClear = computed(() =>
+  activeScenario.value ? activeScenario.value.totalRoomsToClear : 8,
+);
+const logs = computed<
+  {
+    id: string;
+    text: string;
+    type: "info" | "roll" | "combat" | "error" | "success" | "damage";
+  }[]
+>({
   get: () => activeSession.value.logs,
-  set: (val) => { activeSession.value.logs = val; }
+  set: (val) => {
+    activeSession.value.logs = val;
+  },
 });
 
 // Dice Tray State for animation
 const diceTray = new Proxy({} as ReturnType<typeof createDefaultDiceTray>, {
   get(_target, prop) {
-    return activeSession.value.diceTray[prop as keyof typeof activeSession.value.diceTray];
+    return activeSession.value.diceTray[
+      prop as keyof typeof activeSession.value.diceTray
+    ];
   },
   set(_target, prop, value) {
     (activeSession.value.diceTray as any)[prop] = value;
     return true;
-  }
+  },
 });
 
 export interface LastClearResult {
@@ -259,59 +329,258 @@ const lastClearResult = ref<LastClearResult | null>(null);
 
 // Initial Weapons and Items
 export const DEFAULT_WEAPONS = {
-  light: { name: '軽い武器 (短剣等)', type: 'light', modAttack: -1, attribute: 'strike', goldCost: 2, isMagic: false, description: '攻撃力-1。素早く扱いやすい武器。特性は打撃/斬撃から購入時に選択。' } as Weapon,
-  oneHanded: { name: '片手武器 (長剣/メイス)', type: 'one-handed', modAttack: 0, attribute: 'slash', goldCost: 5, isMagic: false, description: '標準的な片手用近接武器。盾やランタンと併用可能。' } as Weapon,
-  twoHanded: { name: '両手武器 (大剣/戦斧)', type: 'two-handed', modAttack: 1, attribute: 'slash', goldCost: 15, isMagic: false, description: '攻撃力+1。両手が必要なため盾やランタンは装備不可。' } as Weapon,
-  sling: { name: 'スリング (投石器)', type: 'ranged', modAttack: -1, attribute: 'strike', goldCost: 3, isMagic: false, description: '射撃用の飛び道具。攻撃力-1。戦闘開始時(第0ラウンド)のみ使用可能。' } as Weapon,
-  bow: { name: '弓と十分な矢', type: 'ranged', modAttack: 0, attribute: 'slash', goldCost: 18, isMagic: false, description: '射撃用の飛び道具。第0ラウンドのみ使用可能。' } as Weapon,
+  light: {
+    name: "軽い武器 (短剣等)",
+    type: "light",
+    modAttack: -1,
+    attribute: "strike",
+    goldCost: 2,
+    isMagic: false,
+    description:
+      "攻撃力-1。素早く扱いやすい武器。特性は打撃/斬撃から購入時に選択。",
+  } as Weapon,
+  oneHanded: {
+    name: "片手武器 (長剣/メイス)",
+    type: "one-handed",
+    modAttack: 0,
+    attribute: "slash",
+    goldCost: 5,
+    isMagic: false,
+    description: "標準的な片手用近接武器。盾やランタンと併用可能。",
+  } as Weapon,
+  twoHanded: {
+    name: "両手武器 (大剣/戦斧)",
+    type: "two-handed",
+    modAttack: 1,
+    attribute: "slash",
+    goldCost: 15,
+    isMagic: false,
+    description: "攻撃力+1。両手が必要なため盾やランタンは装備不可。",
+  } as Weapon,
+  sling: {
+    name: "スリング (投石器)",
+    type: "ranged",
+    modAttack: -1,
+    attribute: "strike",
+    goldCost: 3,
+    isMagic: false,
+    description:
+      "射撃用の飛び道具。攻撃力-1。戦闘開始時(第0ラウンド)のみ使用可能。",
+  } as Weapon,
+  bow: {
+    name: "弓と十分な矢",
+    type: "ranged",
+    modAttack: 0,
+    attribute: "slash",
+    goldCost: 18,
+    isMagic: false,
+    description: "射撃用の飛び道具。第0ラウンドのみ使用可能。",
+  } as Weapon,
   // 魔法の武器 (ルール28: 通常の5倍の価格。戦闘最初の攻撃ロールに+1)
-  magicLight: { name: '魔法の軽い武器', type: 'light', modAttack: -1, attribute: 'strike', goldCost: 10, isMagic: true, description: '攻撃力-1。魔法の力により戦闘最初の攻撃ロールに+1。' } as Weapon,
-  magicOneHanded: { name: '魔法の片手武器', type: 'one-handed', modAttack: 0, attribute: 'slash', goldCost: 25, isMagic: true, description: '標準的な片手武器。魔法の力により戦闘最初の攻撃ロールに+1。' } as Weapon,
-  magicTwoHanded: { name: '魔法の両手武器', type: 'two-handed', modAttack: 1, attribute: 'slash', goldCost: 75, isMagic: true, description: '攻撃力+1。魔法の力により戦闘最初の攻撃ロールに+1。' } as Weapon,
+  magicLight: {
+    name: "魔法の軽い武器",
+    type: "light",
+    modAttack: -1,
+    attribute: "strike",
+    goldCost: 10,
+    isMagic: true,
+    description: "攻撃力-1。魔法の力により戦闘最初の攻撃ロールに+1。",
+  } as Weapon,
+  magicOneHanded: {
+    name: "魔法の片手武器",
+    type: "one-handed",
+    modAttack: 0,
+    attribute: "slash",
+    goldCost: 25,
+    isMagic: true,
+    description: "標準的な片手武器。魔法の力により戦闘最初の攻撃ロールに+1。",
+  } as Weapon,
+  magicTwoHanded: {
+    name: "魔法の両手武器",
+    type: "two-handed",
+    modAttack: 1,
+    attribute: "slash",
+    goldCost: 75,
+    isMagic: true,
+    description: "攻撃力+1。魔法の力により戦闘最初の攻撃ロールに+1。",
+  } as Weapon,
 };
 
 export const DEFAULT_ARMORS = {
-  cloth: { name: '布鎧', type: 'cloth', modLife: 1, modDex: 1, modDef: 0, goldCost: 4, description: '生命力最大値+1、器用ロール+1。身軽に動ける防具。' } as Armor,
-  leather: { name: '革鎧', type: 'leather', modLife: 2, modDex: 1, modDef: 0, goldCost: 10, description: '生命力最大値+2、器用ロール+1。静かで身軽な防具。' } as Armor,
-  chain: { name: '鎖鎧', type: 'chain', modLife: 1, modDex: 0, modDef: 1, goldCost: 30, description: '生命力最大値+1、防御ロール+1。防御性能の高い防具。' } as Armor,
-  plate: { name: '板金鎧', type: 'plate', modLife: 2, modDex: 0, modDef: 1, goldCost: 50, description: '生命力最大値+2、防御ロール+1。最も堅牢な金属防具。' } as Armor,
+  cloth: {
+    name: "布鎧",
+    type: "cloth",
+    modLife: 1,
+    modDex: 1,
+    modDef: 0,
+    goldCost: 4,
+    description: "生命力最大値+1、器用ロール+1。身軽に動ける防具。",
+  } as Armor,
+  leather: {
+    name: "革鎧",
+    type: "leather",
+    modLife: 2,
+    modDex: 1,
+    modDef: 0,
+    goldCost: 10,
+    description: "生命力最大値+2、器用ロール+1。静かで身軽な防具。",
+  } as Armor,
+  chain: {
+    name: "鎖鎧",
+    type: "chain",
+    modLife: 1,
+    modDex: 0,
+    modDef: 1,
+    goldCost: 30,
+    description: "生命力最大値+1、防御ロール+1。防御性能の高い防具。",
+  } as Armor,
+  plate: {
+    name: "板金鎧",
+    type: "plate",
+    modLife: 2,
+    modDex: 0,
+    modDef: 1,
+    goldCost: 50,
+    description: "生命力最大値+2、防御ロール+1。最も堅牢な金属防具。",
+  } as Armor,
   // 魔法の鎧 (ルール28: 通常の5倍の価格。生命点最大値にさらに+1)
-  magicCloth: { name: '魔法の布鎧', type: 'cloth', modLife: 2, modDex: 1, modDef: 0, goldCost: 20, isMagic: true, description: '魔法の加護を受けた布鎧。生命力最大値+2、器用ロール+1。' } as Armor,
-  magicLeather: { name: '魔法の革鎧', type: 'leather', modLife: 3, modDex: 1, modDef: 0, goldCost: 50, isMagic: true, description: '魔法の加護を受けた革鎧。生命力最大値+3、器用ロール+1。' } as Armor,
-  magicChain: { name: '魔法の鎖鎧', type: 'chain', modLife: 2, modDex: 0, modDef: 1, goldCost: 150, isMagic: true, description: '魔法の加護を受けた鎖鎧。生命力最大値+2、防御ロール+1。' } as Armor,
-  magicPlate: { name: '魔法の板金鎧', type: 'plate', modLife: 3, modDex: 0, modDef: 1, goldCost: 250, isMagic: true, description: '魔法の加護を受けた板金鎧。生命力最大値+3、防御ロール+1。' } as Armor,
+  magicCloth: {
+    name: "魔法の布鎧",
+    type: "cloth",
+    modLife: 2,
+    modDex: 1,
+    modDef: 0,
+    goldCost: 20,
+    isMagic: true,
+    description: "魔法の加護を受けた布鎧。生命力最大値+2、器用ロール+1。",
+  } as Armor,
+  magicLeather: {
+    name: "魔法の革鎧",
+    type: "leather",
+    modLife: 3,
+    modDex: 1,
+    modDef: 0,
+    goldCost: 50,
+    isMagic: true,
+    description: "魔法の加護を受けた革鎧。生命力最大値+3、器用ロール+1。",
+  } as Armor,
+  magicChain: {
+    name: "魔法の鎖鎧",
+    type: "chain",
+    modLife: 2,
+    modDex: 0,
+    modDef: 1,
+    goldCost: 150,
+    isMagic: true,
+    description: "魔法の加護を受けた鎖鎧。生命力最大値+2、防御ロール+1。",
+  } as Armor,
+  magicPlate: {
+    name: "魔法の板金鎧",
+    type: "plate",
+    modLife: 3,
+    modDex: 0,
+    modDef: 1,
+    goldCost: 250,
+    isMagic: true,
+    description: "魔法の加護を受けた板金鎧。生命力最大値+3、防御ロール+1。",
+  } as Armor,
 };
 
 export const DEFAULT_SHIELDS = {
-  wood: { name: '木盾', type: 'wood', modLife: 1, modDefRanged: 0, goldCost: 5, description: '生命力最大値+1。軽量な木製防盾。' } as Shield,
-  round: { name: '丸盾', type: 'round', modLife: 2, modDefRanged: 0, goldCost: 15, description: '生命力最大値+2。しっかり防げる丸盾。' } as Shield,
+  wood: {
+    name: "木盾",
+    type: "wood",
+    modLife: 1,
+    modDefRanged: 0,
+    goldCost: 5,
+    description: "生命力最大値+1。軽量な木製防盾。",
+  } as Shield,
+  round: {
+    name: "丸盾",
+    type: "round",
+    modLife: 2,
+    modDefRanged: 0,
+    goldCost: 15,
+    description: "生命力最大値+2。しっかり防げる丸盾。",
+  } as Shield,
   // 魔法の盾 (ルール28: 通常の10倍の価格。飛び道具に対する防御ロールに+1)
-  magicWood: { name: '魔法の木盾', type: 'wood', modLife: 1, modDefRanged: 1, goldCost: 50, isMagic: true, description: '魔法の木盾。生命力最大値+1、飛び道具に対する防御ロール+1。' } as Shield,
-  magicRound: { name: '魔法の丸盾', type: 'round', modLife: 2, modDefRanged: 1, goldCost: 150, isMagic: true, description: '魔法の丸盾。生命力最大値+2、飛び道具に対する防御ロール+1。' } as Shield,
+  magicWood: {
+    name: "魔法の木盾",
+    type: "wood",
+    modLife: 1,
+    modDefRanged: 1,
+    goldCost: 50,
+    isMagic: true,
+    description: "魔法の木盾。生命力最大値+1、飛び道具に対する防御ロール+1。",
+  } as Shield,
+  magicRound: {
+    name: "魔法の丸盾",
+    type: "round",
+    modLife: 2,
+    modDefRanged: 1,
+    goldCost: 150,
+    isMagic: true,
+    description: "魔法の丸盾。生命力最大値+2、飛び道具に対する防御ロール+1。",
+  } as Shield,
 };
 
 export const DEFAULT_ITEMS = {
-  lantern: { id: 'lantern', name: 'ランタン', type: 'lantern', goldCost: 2, value: 0, description: '暗闇を照らす。手元に明かりがない（ランタンを手に持っていない、かつランタン持ちの従者がいない）と全判定に-2の修正を受ける。使用する（手に持つ）場合は片手が塞がる。' } as Omit<GeneralItem, 'id'>,
-  rope: { id: 'rope', name: 'ロープ', type: 'rope', goldCost: 3, value: 0, description: '気絶した弱い敵を【捕虜】として拘束するのに使用する。' } as Omit<GeneralItem, 'id'>,
-  holywater: { id: 'holywater', name: '聖水', type: 'holywater', goldCost: 10, value: 0, description: 'アンデッドや強い敵に2ダメージ、弱い敵なら2体を一撃で倒す消耗品。' } as Omit<GeneralItem, 'id'>,
-  potion: { id: 'potion', name: '治療のポーション', type: 'healingpotion', goldCost: 50, value: 0, description: '生命力を最大値まで回復する。1回の冒険で1個のみ使用可能。' } as Omit<GeneralItem, 'id'>,
+  lantern: {
+    id: "lantern",
+    name: "ランタン",
+    type: "lantern",
+    goldCost: 2,
+    value: 0,
+    description:
+      "暗闇を照らす。手元に明かりがない（ランタンを手に持っていない、かつランタン持ちの従者がいない）と全判定に-2の修正を受ける。使用する（手に持つ）場合は片手が塞がる。",
+  } as Omit<GeneralItem, "id">,
+  rope: {
+    id: "rope",
+    name: "ロープ",
+    type: "rope",
+    goldCost: 3,
+    value: 0,
+    description: "気絶した弱い敵を【捕虜】として拘束するのに使用する。",
+  } as Omit<GeneralItem, "id">,
+  holywater: {
+    id: "holywater",
+    name: "聖水",
+    type: "holywater",
+    goldCost: 10,
+    value: 0,
+    description:
+      "アンデッドや強い敵に2ダメージ、弱い敵なら2体を一撃で倒す消耗品。",
+  } as Omit<GeneralItem, "id">,
+  potion: {
+    id: "potion",
+    name: "治療のポーション",
+    type: "healingpotion",
+    goldCost: 50,
+    value: 0,
+    description: "生命力を最大値まで回復する。1回の冒険で1個のみ使用可能。",
+  } as Omit<GeneralItem, "id">,
 };
 
 // Initial empty Character
 const character = computed<Character>({
   get: () => activeSession.value.character,
   set: (val) => {
-    activeSession.value.character = val instanceof PlayerCharacter ? val : new PlayerCharacter(val);
-  }
+    activeSession.value.character =
+      val instanceof PlayerCharacter ? val : new PlayerCharacter(val);
+  },
 });
 
 const followers = computed<Follower[]>({
   get: () => activeSession.value.followers,
-  set: (val) => { activeSession.value.followers = val; }
+  set: (val) => {
+    activeSession.value.followers = val;
+  },
 });
 const activeEvent = computed<DungeonEvent | null>({
   get: () => activeSession.value.activeEvent,
-  set: (val) => { activeSession.value.activeEvent = val; }
+  set: (val) => {
+    activeSession.value.activeEvent = val;
+  },
 });
 
 // Level-up stats checkpoints (to support refund/undo of allocation before finalization)
@@ -325,7 +594,7 @@ const checkpointSpells = ref<string[]>([]);
 const checkpointMiracles = ref<string[]>([]);
 
 watch(currentScreen, (newScreen) => {
-  if (newScreen === 'levelup') {
+  if (newScreen === "levelup") {
     checkpointSkillMax.value = character.value.skillMax;
     checkpointLifeMax.value = character.value.lifeMax;
     checkpointBaseLifeMax.value = character.value.baseLifeMax ?? 4;
@@ -338,29 +607,42 @@ watch(currentScreen, (newScreen) => {
 });
 
 // Combat state
-const combatState = new Proxy({} as ReturnType<typeof createDefaultCombatState>, {
-  get(_target, prop) {
-    return activeSession.value.combatState[prop as keyof typeof activeSession.value.combatState];
+const combatState = new Proxy(
+  {} as ReturnType<typeof createDefaultCombatState>,
+  {
+    get(_target, prop) {
+      return activeSession.value.combatState[
+        prop as keyof typeof activeSession.value.combatState
+      ];
+    },
+    set(_target, prop, value) {
+      (activeSession.value.combatState as any)[prop] = value;
+      return true;
+    },
   },
-  set(_target, prop, value) {
-    (activeSession.value.combatState as any)[prop] = value;
-    return true;
-  }
-});
+);
 
 // Chronodemon Scenario State
 const pyramidRunCount = computed<number>({
   get: () => activeSession.value.pyramidRunCount,
-  set: (val) => { activeSession.value.pyramidRunCount = val; }
+  set: (val) => {
+    activeSession.value.pyramidRunCount = val;
+  },
 });
 const pyramidBossSnapshot = computed<any>({
   get: () => activeSession.value.pyramidBossSnapshot,
-  set: (val) => { activeSession.value.pyramidBossSnapshot = val; }
+  set: (val) => {
+    activeSession.value.pyramidBossSnapshot = val;
+  },
 });
 
 // Session Management & Autosave logic
 function saveSession() {
-  if (isCharacterCreated.value && currentScreen.value !== 'scenario_select' && activeScenario.value !== null) {
+  if (
+    isCharacterCreated.value &&
+    currentScreen.value !== "scenario_select" &&
+    activeScenario.value !== null
+  ) {
     activeSession.value.saveToLocalStorage();
     try {
       const { saveToCloud } = useCloudSync();
@@ -377,12 +659,15 @@ function loadSession(): boolean {
   const saved = GameSession.loadFromLocalStorage();
   if (saved) {
     // 本番環境で「刻の悪魔のピラミッド」のセーブデータが残っている場合は再開不可としてクリア
-    if (!import.meta.env.DEV && saved.activeScenario?.id === 'pyramid_of_chronodemon') {
+    if (
+      !import.meta.env.DEV &&
+      saved.activeScenario?.id === "pyramid_of_chronodemon"
+    ) {
       GameSession.clearLocalStorage();
       return false;
     }
     if (saved.followers && Array.isArray(saved.followers)) {
-      saved.followers = saved.followers.filter(f => f.lifeCurrent > 0);
+      saved.followers = saved.followers.filter((f) => f.lifeCurrent > 0);
     }
     activeSession.value = saved;
     return true;
@@ -397,19 +682,27 @@ function clearSavedSession() {
 function resetSessionForNewCharacter() {
   clearSavedSession();
   activeSession.value = new GameSession();
-  activeSession.value.currentScreen = 'creator';
+  activeSession.value.currentScreen = "creator";
   activeSession.value.isCharacterCreated = false;
-  activeSession.value.character.name = '';
+  activeSession.value.character.name = "";
 }
 
 function hasSavedSession(): boolean {
   try {
-    const jsonStr = localStorage.getItem('roguelike_half_saved_session');
+    const jsonStr = localStorage.getItem("roguelike_half_saved_session");
     if (jsonStr) {
       const data = JSON.parse(jsonStr);
-      if (!data.isCharacterCreated || !data.activeScenario || data.currentScreen === 'scenario_select') return false;
+      if (
+        !data.isCharacterCreated ||
+        !data.activeScenario ||
+        data.currentScreen === "scenario_select"
+      )
+        return false;
       // 本番環境で「刻の悪魔のピラミッド」のセーブデータがある場合は再開バナーを出さない
-      if (!import.meta.env.DEV && data.activeScenario.id === 'pyramid_of_chronodemon') {
+      if (
+        !import.meta.env.DEV &&
+        data.activeScenario.id === "pyramid_of_chronodemon"
+      ) {
         return false;
       }
       return true;
@@ -421,36 +714,54 @@ function hasSavedSession(): boolean {
 }
 
 // Watch screen, depth, events, and combat state to trigger autosave or clear saved session
-watch([currentScreen, dungeonDepth, activeEvent, () => combatState.active], () => {
-  if (currentScreen.value === 'gameover' || currentScreen.value === 'success') {
-    clearSavedSession();
-  } else {
-    saveSession();
-  }
-});
+watch(
+  [currentScreen, dungeonDepth, activeEvent, () => combatState.active],
+  () => {
+    if (
+      currentScreen.value === "gameover" ||
+      currentScreen.value === "success"
+    ) {
+      clearSavedSession();
+    } else {
+      saveSession();
+    }
+  },
+);
 
 function savePyramidBossSnapshot() {
   pyramidBossSnapshot.value = {
     character: JSON.parse(JSON.stringify(character.value)),
     followers: JSON.parse(JSON.stringify(followers.value)),
-    dungeonDepth: dungeonDepth.value
+    dungeonDepth: dungeonDepth.value,
   };
-  addLog('🧭 決戦前チェックポイント：冒険者の現在の状態を一時保存しました。', 'info');
+  addLog(
+    "🧭 決戦前チェックポイント：冒険者の現在の状態を一時保存しました。",
+    "info",
+  );
 }
 
 function restorePyramidBossSnapshot(rewindAmount: number) {
   if (!pyramidBossSnapshot.value) return;
-  character.value = JSON.parse(JSON.stringify(pyramidBossSnapshot.value.character));
-  followers.value = JSON.parse(JSON.stringify(pyramidBossSnapshot.value.followers));
-  dungeonDepth.value = Math.max(0, pyramidBossSnapshot.value.dungeonDepth - rewindAmount);
+  character.value = JSON.parse(
+    JSON.stringify(pyramidBossSnapshot.value.character),
+  );
+  followers.value = JSON.parse(
+    JSON.stringify(pyramidBossSnapshot.value.followers),
+  );
+  dungeonDepth.value = Math.max(
+    0,
+    pyramidBossSnapshot.value.dungeonDepth - rewindAmount,
+  );
   activeEvent.value = null;
   transitionToExplore();
   combatState.active = false;
   combatState.isOver = false;
   combatState.enemies = [];
-  addLog(`🌀 時の巻き戻しが発生！ 悪魔の咆哮により、探索段階が ${rewindAmount} 部屋分戻されました！`, 'error');
+  addLog(
+    `🌀 時の巻き戻しが発生！ 悪魔の咆哮により、探索段階が ${rewindAmount} 部屋分戻されました！`,
+    "error",
+  );
 }
-
 
 // Logs & Message Queue Manager
 const pendingMessages = ref<LogEntry[]>([]);
@@ -461,7 +772,9 @@ const showLogbookModal = ref(false);
 const showDetailModal = ref(false);
 let autoTimer: any = null;
 
-const isMessageWaiting = computed(() => currentMessage.value !== null || pendingMessages.value.length > 0);
+const isMessageWaiting = computed(
+  () => currentMessage.value !== null || pendingMessages.value.length > 0,
+);
 
 function advanceMessage() {
   if (pendingMessages.value.length > 0) {
@@ -512,22 +825,25 @@ watch(activeScenario, (newScen, oldScen) => {
 });
 
 watch(currentScreen, (newScreen) => {
-  if (newScreen === 'scenario_select') {
+  if (newScreen === "scenario_select") {
     skipAllMessages();
   }
 });
 
 function isFastForwardMode(): boolean {
-  return (globalThis as any).__FAST_FORWARD_LOGS__ === true ||
-    (typeof (globalThis as any).process !== 'undefined' && (globalThis as any).process.env?.NODE_ENV === 'test');
+  return (
+    (globalThis as any).__FAST_FORWARD_LOGS__ === true ||
+    (typeof (globalThis as any).process !== "undefined" &&
+      (globalThis as any).process.env?.NODE_ENV === "test")
+  );
 }
 
-function addLog(text: string, type: LogType = 'info') {
+function addLog(text: string, type: LogType = "info") {
   const entry: LogEntry = {
     id: generateId(),
     text,
     type,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   };
   logs.value.push(entry);
 
@@ -554,27 +870,34 @@ function rollD6(isCheck: boolean = false): Promise<number> {
   return new Promise((resolve) => {
     diceTray.isRolling = true;
     diceTray.sides = 6;
-    diceTray.resultText = 'ダイスを振っています...';
+    diceTray.resultText = "ダイスを振っています...";
     diceTray.isCritical = false;
     diceTray.isFumble = false;
 
-    const delay = typeof (globalThis as any).process !== 'undefined' && (globalThis as any).process.env?.NODE_ENV === 'test' ? 0 : 700;
+    const delay =
+      typeof (globalThis as any).process !== "undefined" &&
+      (globalThis as any).process.env?.NODE_ENV === "test"
+        ? 0
+        : 700;
     setTimeout(() => {
       const roll = randomInt(1, 6);
       diceTray.d1 = roll;
       diceTray.d2 = 0;
       diceTray.isRolling = false;
-      
+
       if (isCheck) {
         diceTray.isCritical = roll === 6;
         diceTray.isFumble = roll === 1;
-        diceTray.resultText = `出目: [ ${roll} ] ${roll === 6 ? '★クリティカル！' : roll === 1 ? '💀ファンブル！' : ''}`;
-        addLog(`1d6をロール(判定): 出目 ${roll} ${roll === 6 ? '(クリティカル)' : roll === 1 ? '(ファンブル)' : ''}`, 'roll');
+        diceTray.resultText = `出目: [ ${roll} ] ${roll === 6 ? "★クリティカル！" : roll === 1 ? "💀ファンブル！" : ""}`;
+        addLog(
+          `1d6をロール(判定): 出目 ${roll} ${roll === 6 ? "(クリティカル)" : roll === 1 ? "(ファンブル)" : ""}`,
+          "roll",
+        );
       } else {
         diceTray.isCritical = false;
         diceTray.isFumble = false;
         diceTray.resultText = `出目: [ ${roll} ]`;
-        addLog(`1d6をロール: 出目 ${roll}`, 'roll');
+        addLog(`1d6をロール: 出目 ${roll}`, "roll");
       }
       resolve(roll);
     }, delay);
@@ -586,11 +909,15 @@ function rollD66(): Promise<{ d1: number; d2: number; value: number }> {
   return new Promise((resolve) => {
     diceTray.isRolling = true;
     diceTray.sides = 66;
-    diceTray.resultText = 'd66ダイスを振っています...';
+    diceTray.resultText = "d66ダイスを振っています...";
     diceTray.isCritical = false;
     diceTray.isFumble = false;
 
-    const delay = typeof (globalThis as any).process !== 'undefined' && (globalThis as any).process.env?.NODE_ENV === 'test' ? 0 : 900;
+    const delay =
+      typeof (globalThis as any).process !== "undefined" &&
+      (globalThis as any).process.env?.NODE_ENV === "test"
+        ? 0
+        : 900;
     setTimeout(() => {
       let d1 = randomInt(1, 6);
       if (nextRoomTensDigitOverride.value !== null) {
@@ -603,8 +930,8 @@ function rollD66(): Promise<{ d1: number; d2: number; value: number }> {
       diceTray.d2 = d2;
       diceTray.isRolling = false;
       diceTray.resultText = `d66出目: 十の位 [ ${d1} ] 一の位 [ ${d2} ] = [ ${value} ]`;
-      
-      addLog(`d66をロール: 出目 ${d1}, ${d2} -> ${value}`, 'roll');
+
+      addLog(`d66をロール: 出目 ${d1}, ${d2} -> ${value}`, "roll");
       resolve({ d1, d2, value });
     }, delay);
   });
@@ -614,7 +941,7 @@ function rollD66(): Promise<{ d1: number; d2: number; value: number }> {
 async function rollD3(): Promise<number> {
   const raw = await rollD6();
   const val = Math.ceil(raw / 2);
-  addLog(`1d3に変換: 1d6の出目 ${raw} -> 切り上げて ${val}`, 'roll');
+  addLog(`1d3に変換: 1d6の出目 ${raw} -> 切り上げて ${val}`, "roll");
   return val;
 }
 
@@ -622,7 +949,7 @@ async function rollD3(): Promise<number> {
 function getHandsUsed(weapon: Weapon | null, shield: Shield | null): number {
   let hands = 0;
   if (weapon) {
-    if (weapon.type === 'two-handed') {
+    if (weapon.type === "two-handed") {
       hands += 2;
     } else {
       hands += 1;
@@ -637,16 +964,21 @@ function getHandsUsed(weapon: Weapon | null, shield: Shield | null): number {
 // State helpers
 const carriesLantern = computed(() => {
   // 1. If any follower is a lantern bearer, we have active light
-  if (followers.value.some(f => f.type === 'lantern')) {
+  if (followers.value.some((f) => f.type === "lantern")) {
     return true;
   }
   // 2. If the hero doesn't have a lantern in their inventory, we have no light
-  const hasLanternItem = character.value.items.some(i => i.type === 'lantern');
+  const hasLanternItem = character.value.items.some(
+    (i) => i.type === "lantern",
+  );
   if (!hasLanternItem) {
     return false;
   }
   // 3. If the hero carries a lantern, they need at least 1 free hand to hold it
-  const handsUsed = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+  const handsUsed = getHandsUsed(
+    character.value.equippedWeapon,
+    character.value.equippedShield,
+  );
   return handsUsed < 2;
 });
 
@@ -657,30 +989,38 @@ const getRollModifier = computed(() => {
   return 0;
 });
 
-const currentBackpackCount = computed(() => {
-  const baseItems = character.value.weapons.length + 
-                     character.value.armors.length + 
-                     character.value.shields.length + 
-                     character.value.items.filter(i => i.type !== 'clue').length;
+const backpackBreakdown = computed(() => {
+  const baseItems =
+    character.value.weapons.length +
+    character.value.armors.length +
+    character.value.shields.length +
+    character.value.items.filter((i) => i.type !== "clue").length;
   // Exclude equipped items
   let equippedCount = 0;
   if (character.value.equippedWeapon) equippedCount++;
   if (character.value.equippedArmor) equippedCount++;
   if (character.value.equippedShield) equippedCount++;
 
-  const equipmentCount = Math.max(0, baseItems - equippedCount);
-
-  // Gold and Food weight rules:
-  // 金貨100枚につき1スロット、食料10個につき1スロット
+  const itemSlots = Math.max(0, baseItems - equippedCount);
   const goldSlots = Math.floor(character.value.gold / 100);
   const foodSlots = Math.floor(character.value.food / 10);
 
-  return equipmentCount + goldSlots + foodSlots;
+  return {
+    itemSlots,
+    goldSlots,
+    foodSlots,
+    total: itemSlots + goldSlots + foodSlots,
+  };
+});
+
+const currentBackpackCount = computed(() => {
+  return backpackBreakdown.value.total;
 });
 
 const maxBackpackSlots = computed(() => {
   // Follower Porter gives +3 slots
-  const porterBonus = followers.value.filter(f => f.type === 'porter').length * 3;
+  const porterBonus =
+    followers.value.filter((f) => f.type === "porter").length * 3;
   return character.value.lifeMax + porterBonus;
 });
 
@@ -692,9 +1032,15 @@ const isBackpackOverLimit = computed(() => {
   return currentBackpackCount.value > maxBackpackSlots.value;
 });
 
-const hasSwordbearer = computed(() => followers.value.some(f => f.type === 'swordbearer'));
+const hasSwordbearer = computed(() =>
+  followers.value.some((f) => f.type === "swordbearer"),
+);
 const isSwitchingWeapons = computed(() => {
-  return combatState.round === 1 && combatState.playerHasFiredRanged && !hasSwordbearer.value;
+  return (
+    combatState.round === 1 &&
+    combatState.playerHasFiredRanged &&
+    !hasSwordbearer.value
+  );
 });
 
 const getStatusEffectRule = (effectName: string): StatusEffectRule | null => {
@@ -706,24 +1052,25 @@ const getStatusEffectRule = (effectName: string): StatusEffectRule | null => {
   }
   // Fallback defaults
   const defaults: Record<string, StatusEffectRule> = {
-    '呪い': {
-      description: 'すべての判定ロールに -1 のペナルティを受けます。',
+    呪い: {
+      description: "すべての判定ロールに -1 のペナルティを受けます。",
       modAttack: -1,
       modDefense: -1,
-      modSkill: -1
+      modSkill: -1,
     },
-    '麻痺': {
-      description: '戦闘中に攻撃・魔法を行うことができません。',
+    麻痺: {
+      description: "戦闘中に攻撃・魔法を行うことができません。",
       preventsAttack: true,
-      preventsCover: true
+      preventsCover: true,
     },
-    '石化': {
-      description: '体が完全に石化し、一切の行動ができません。防御判定は自動失敗します。',
+    石化: {
+      description:
+        "体が完全に石化し、一切の行動ができません。防御判定は自動失敗します。",
       preventsAttack: true,
       preventsDefense: true,
       preventsMagic: true,
-      preventsCover: true
-    }
+      preventsCover: true,
+    },
   };
   return defaults[effectName] || null;
 };
@@ -731,7 +1078,7 @@ const getStatusEffectRule = (effectName: string): StatusEffectRule | null => {
 const playerActiveStatusEffectRules = computed<StatusEffectRule[]>(() => {
   const list: StatusEffectRule[] = [];
   if (character.value.statusEffects) {
-    character.value.statusEffects.forEach(eff => {
+    character.value.statusEffects.forEach((eff) => {
       const rule = getStatusEffectRule(eff);
       if (rule) list.push(rule);
     });
@@ -740,65 +1087,72 @@ const playerActiveStatusEffectRules = computed<StatusEffectRule[]>(() => {
 });
 
 // Follower purchasing logic
-function buyFollower(type: Follower['type'], attrib: 'strike' | 'slash' = 'strike', spellName: string = '炎球'): boolean {
+function buyFollower(
+  type: Follower["type"],
+  attrib: "strike" | "slash" = "strike",
+  spellName: string = "炎球",
+): boolean {
   // Check follower slots
   const activeFollowerCount = followers.value.length;
   if (activeFollowerCount >= character.value.followerCurrent) {
-    addLog('従者枠がいっぱいです。最大従者点を超えて連れていくことはできません。', 'error');
+    addLog(
+      "従者枠がいっぱいです。最大従者点を超えて連れていくことはできません。",
+      "error",
+    );
     return false;
   }
 
   let cost = 0;
-  let followerData: Omit<Follower, 'id'>;
+  let followerData: Omit<Follower, "id">;
 
   switch (type) {
-    case 'soldier':
+    case "soldier":
       cost = 0;
       followerData = {
-        name: '新米兵士',
-        type: 'soldier',
+        name: "新米兵士",
+        type: "soldier",
         isCombatant: true,
         skill: 0,
         lifeMax: 1,
         lifeCurrent: 1,
         weaponAttribute: attrib,
         goldCost: 0,
-        description: `戦闘に参加する戦う従者。技量0、生命1。無料。(属性: ${attrib === 'strike' ? '打撃' : '斬撃'})`,
+        description: `戦闘に参加する戦う従者。技量0、生命1。無料。(属性: ${attrib === "strike" ? "打撃" : "斬撃"})`,
       };
       break;
-    case 'swordsman':
+    case "swordsman":
       cost = 7;
       followerData = {
-        name: '熟練剣士',
-        type: 'swordsman',
+        name: "熟練剣士",
+        type: "swordsman",
         isCombatant: true,
         skill: 1,
         lifeMax: 1,
         lifeCurrent: 1,
         weaponAttribute: attrib,
         goldCost: 7,
-        description: `戦闘に参加する戦う従者。技量1、生命1。金貨7枚。(属性: ${attrib === 'strike' ? '打撃' : '斬撃'})`,
+        description: `戦闘に参加する戦う従者。技量1、生命1。金貨7枚。(属性: ${attrib === "strike" ? "打撃" : "斬撃"})`,
       };
       break;
-    case 'archer':
+    case "archer":
       cost = 5;
       followerData = {
-        name: '熟練弓兵',
-        type: 'archer',
+        name: "熟練弓兵",
+        type: "archer",
         isCombatant: true,
         skill: 0,
         lifeMax: 1,
         lifeCurrent: 1,
         weaponAttribute: attrib,
         goldCost: 5,
-        description: `戦う従者。Round 0に射撃(+1修正)。接近戦時(${attrib === 'strike' ? '打撃' : '斬撃'})は軽い武器で攻撃力-1。`,
+        description: `戦う従者。Round 0に射撃(+1修正)。接近戦時(${attrib === "strike" ? "打撃" : "斬撃"})は軽い武器で攻撃力-1。`,
       };
       break;
-    case 'mage':
+    case "mage":
       cost = 5;
       followerData = {
-        name: '従者魔術師',
-        type: 'mage',
+        name: "従者魔術師",
+        type: "mage",
         isCombatant: true,
         skill: 0,
         lifeMax: 1,
@@ -808,63 +1162,65 @@ function buyFollower(type: Follower['type'], attrib: 'strike' | 'slash' = 'strik
         magicList: [spellName],
         weaponAttribute: attrib,
         goldCost: 5,
-        description: `戦う従者。魔術点1。呪文【${spellName}】を修得。接近戦時(${attrib === 'strike' ? '打撃' : '斬撃'})は攻撃力-1。`,
+        description: `戦う従者。魔術点1。呪文【${spellName}】を修得。接近戦時(${attrib === "strike" ? "打撃" : "斬撃"})は攻撃力-1。`,
       };
       break;
-    case 'lantern':
+    case "lantern":
       cost = 0;
       followerData = {
-        name: 'ランタン持ち従者',
-        type: 'lantern',
+        name: "ランタン持ち従者",
+        type: "lantern",
         isCombatant: false,
         skill: 0,
         lifeMax: 1,
         lifeCurrent: 1,
-        weaponAttribute: 'strike',
+        weaponAttribute: "strike",
         goldCost: 0,
-        description: '戦わない従者。明かりを提供し、主人公の片手を塞がせない。',
+        description: "戦わない従者。明かりを提供し、主人公の片手を塞がせない。",
       };
       break;
-    case 'swordbearer':
+    case "swordbearer":
       cost = 0;
       followerData = {
-        name: '太刀持ち従者',
-        type: 'swordbearer',
+        name: "太刀持ち従者",
+        type: "swordbearer",
         isCombatant: false,
         skill: 0,
         lifeMax: 1,
         lifeCurrent: 1,
-        weaponAttribute: 'strike',
+        weaponAttribute: "strike",
         goldCost: 0,
-        description: '戦わない従者。弓矢の射撃後の接近戦武器への持ち替えラウンドを省略できる。',
+        description:
+          "戦わない従者。弓矢の射撃後の接近戦武器への持ち替えラウンドを省略できる。",
       };
       break;
-    case 'porter':
+    case "porter":
       cost = 0;
       followerData = {
-        name: '荷物持ち従者',
-        type: 'porter',
+        name: "荷物持ち従者",
+        type: "porter",
         isCombatant: false,
         skill: 0,
         lifeMax: 1,
         lifeCurrent: 1,
-        weaponAttribute: 'strike',
+        weaponAttribute: "strike",
         goldCost: 0,
-        description: '戦わない従者。主人公の持ち物上限を+3スロット追加する。',
+        description: "戦わない従者。主人公の持ち物上限を+3スロット追加する。",
       };
       break;
-    case 'scout':
+    case "scout":
       cost = 5;
       followerData = {
-        name: '斥候従者',
-        type: 'scout',
+        name: "斥候従者",
+        type: "scout",
         isCombatant: false,
         skill: 0,
         lifeMax: 1,
         lifeCurrent: 1,
-        weaponAttribute: 'strike',
+        weaponAttribute: "strike",
         goldCost: 5,
-        description: '戦わない従者。技量0で、主人公とは別に【察知】の器用ロールを行える。',
+        description:
+          "戦わない従者。技量0で、主人公とは別に【察知】の器用ロールを行える。",
       };
       break;
     default:
@@ -872,79 +1228,118 @@ function buyFollower(type: Follower['type'], attrib: 'strike' | 'slash' = 'strik
   }
 
   if (character.value.gold < cost) {
-    addLog(`金貨が足りません！ (必要: ${cost}枚, 所持: ${character.value.gold}枚)`, 'error');
+    addLog(
+      `金貨が足りません！ (必要: ${cost}枚, 所持: ${character.value.gold}枚)`,
+      "error",
+    );
     return false;
   }
 
+  const prevGold = character.value.gold;
   character.value.gold -= cost;
   followers.value.push({
     ...followerData,
     id: generateId(),
   });
 
-  addLog(`${followerData.name}を雇用しました。 (金貨${cost}枚消費)`, 'success');
-  if (followerData.type === 'lantern') {
-    addLog('ランタン持ちを雇ったため、両手が塞がっていても周囲が照らされます！', 'success');
+  addLog(`${followerData.name}を雇用しました。 (金貨${cost}枚消費)`, "success");
+  const prevGoldSlots = Math.floor(prevGold / 100);
+  const nextGoldSlots = Math.floor(character.value.gold / 100);
+  if (prevGoldSlots > nextGoldSlots) {
+    addLog(
+      `🪙 金貨の消費により背負い袋の重量負担が減り、スロットが${prevGoldSlots - nextGoldSlots}枠解放されました！`,
+      "info",
+    );
+  }
+  if (followerData.type === "lantern") {
+    addLog(
+      "ランタン持ちを雇ったため、両手が塞がっていても周囲が照らされます！",
+      "success",
+    );
   }
   return true;
 }
 
 function dismissFollower(id: string) {
-  const index = followers.value.findIndex(f => f.id === id);
+  const index = followers.value.findIndex((f) => f.id === id);
   if (index !== -1) {
     const f = followers.value[index];
     followers.value.splice(index, 1);
-    addLog(`${f.name}を解雇しました。`, 'info');
+    addLog(`${f.name}を解雇しました。`, "info");
 
     // Check if we lost light because the lantern bearer left and hands are full
-    const hasLantern = character.value.items.some(i => i.type === 'lantern');
-    const handsUsed = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
-    if (f.type === 'lantern' && hasLantern && handsUsed === 2) {
-      addLog('ランタン持ちがいなくなり、両手が塞がっているため暗闇状態になりました（全判定に-2の修正を受けます）。', 'error');
+    const hasLantern = character.value.items.some((i) => i.type === "lantern");
+    const handsUsed = getHandsUsed(
+      character.value.equippedWeapon,
+      character.value.equippedShield,
+    );
+    if (f.type === "lantern" && hasLantern && handsUsed === 2) {
+      addLog(
+        "ランタン持ちがいなくなり、両手が塞がっているため暗闇状態になりました（全判定に-2の修正を受けます）。",
+        "error",
+      );
     }
   }
 }
 
 // Gear management
 function equipWeapon(w: Weapon | null) {
-  const hasLantern = character.value.items.some(i => i.type === 'lantern');
-  const hasBearer = followers.value.some(f => f.type === 'lantern');
+  const hasLantern = character.value.items.some((i) => i.type === "lantern");
+  const hasBearer = followers.value.some((f) => f.type === "lantern");
   const checkLanternLog = (handsBefore: number, handsAfter: number) => {
     if (hasLantern && !hasBearer) {
       if (handsBefore < 2 && handsAfter === 2) {
-        addLog('両手が塞がったため、ランタンを手に持てず暗闇状態になりました（全判定に-2の修正を受けます）。', 'error');
+        addLog(
+          "両手が塞がったため、ランタンを手に持てず暗闇状態になりました（全判定に-2の修正を受けます）。",
+          "error",
+        );
       } else if (handsBefore === 2 && handsAfter < 2) {
-        addLog('片手が空いたため、ランタンを手に持って周囲を照らしました。', 'success');
+        addLog(
+          "片手が空いたため、ランタンを手に持って周囲を照らしました。",
+          "success",
+        );
       }
     }
   };
 
-  const handsBefore = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+  const handsBefore = getHandsUsed(
+    character.value.equippedWeapon,
+    character.value.equippedShield,
+  );
 
   if (w && character.value.equippedWeapon?.name === w.name) {
     // Unequip
     character.value.equippedWeapon = null;
-    addLog(`${w.name}を装備解除しました。`, 'info');
-    const handsAfter = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    addLog(`${w.name}を装備解除しました。`, "info");
+    const handsAfter = getHandsUsed(
+      character.value.equippedWeapon,
+      character.value.equippedShield,
+    );
     checkLanternLog(handsBefore, handsAfter);
     return;
   }
-  
+
   if (w) {
     // Check two-handed / lantern restriction
-    if (w.type === 'two-handed') {
+    if (w.type === "two-handed") {
       if (character.value.equippedShield) {
-        addLog('両手武器は盾と同時に装備できません。', 'error');
+        addLog("両手武器は盾と同時に装備できません。", "error");
         return;
       }
     }
     character.value.equippedWeapon = w;
-    addLog(`${w.name}を装備しました。`, 'success');
-    const handsAfter = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    addLog(`${w.name}を装備しました。`, "success");
+    const handsAfter = getHandsUsed(
+      character.value.equippedWeapon,
+      character.value.equippedShield,
+    );
     checkLanternLog(handsBefore, handsAfter);
   } else {
     character.value.equippedWeapon = null;
-    const handsAfter = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    const handsAfter = getHandsUsed(
+      character.value.equippedWeapon,
+      character.value.equippedShield,
+    );
     checkLanternLog(handsBefore, handsAfter);
   }
 }
@@ -955,9 +1350,21 @@ function equipArmor(a: Armor | null) {
     const oldArmor = character.value.equippedArmor;
     character.value.equippedArmor = null;
     if (oldArmor) {
-      character.value.lifeMax = Math.max(1, character.value.lifeMax - oldArmor.modLife);
-      character.value.lifeCurrent = Math.max(1, Math.min(character.value.lifeMax, character.value.lifeCurrent - oldArmor.modLife));
-      addLog(`${oldArmor.name}を装備解除しました。生命力最大値 -${oldArmor.modLife}`, 'info');
+      character.value.lifeMax = Math.max(
+        1,
+        character.value.lifeMax - oldArmor.modLife,
+      );
+      character.value.lifeCurrent = Math.max(
+        1,
+        Math.min(
+          character.value.lifeMax,
+          character.value.lifeCurrent - oldArmor.modLife,
+        ),
+      );
+      addLog(
+        `${oldArmor.name}を装備解除しました。生命力最大値 -${oldArmor.modLife}`,
+        "info",
+      );
     }
     return;
   }
@@ -965,45 +1372,78 @@ function equipArmor(a: Armor | null) {
   // Unequip existing armor first
   if (character.value.equippedArmor) {
     const oldArmor = character.value.equippedArmor;
-    character.value.lifeMax = Math.max(1, character.value.lifeMax - oldArmor.modLife);
-    character.value.lifeCurrent = Math.max(1, Math.min(character.value.lifeMax, character.value.lifeCurrent - oldArmor.modLife));
+    character.value.lifeMax = Math.max(
+      1,
+      character.value.lifeMax - oldArmor.modLife,
+    );
+    character.value.lifeCurrent = Math.max(
+      1,
+      Math.min(
+        character.value.lifeMax,
+        character.value.lifeCurrent - oldArmor.modLife,
+      ),
+    );
   }
 
   if (a) {
     character.value.equippedArmor = a;
     character.value.lifeMax += a.modLife;
     character.value.lifeCurrent += a.modLife;
-    addLog(`${a.name}を装備しました。生命力最大値 +${a.modLife}`, 'success');
+    addLog(`${a.name}を装備しました。生命力最大値 +${a.modLife}`, "success");
   } else {
     character.value.equippedArmor = null;
   }
 }
 
 function equipShield(s: Shield | null) {
-  const hasLantern = character.value.items.some(i => i.type === 'lantern');
-  const hasBearer = followers.value.some(f => f.type === 'lantern');
+  const hasLantern = character.value.items.some((i) => i.type === "lantern");
+  const hasBearer = followers.value.some((f) => f.type === "lantern");
   const checkLanternLog = (handsBefore: number, handsAfter: number) => {
     if (hasLantern && !hasBearer) {
       if (handsBefore < 2 && handsAfter === 2) {
-        addLog('両手が塞がったため、ランタンを手に持てず暗闇状態になりました（全判定に-2の修正を受けます）。', 'error');
+        addLog(
+          "両手が塞がったため、ランタンを手に持てず暗闇状態になりました（全判定に-2の修正を受けます）。",
+          "error",
+        );
       } else if (handsBefore === 2 && handsAfter < 2) {
-        addLog('片手が空いたため、ランタンを手に持って周囲を照らしました。', 'success');
+        addLog(
+          "片手が空いたため、ランタンを手に持って周囲を照らしました。",
+          "success",
+        );
       }
     }
   };
 
-  const handsBefore = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+  const handsBefore = getHandsUsed(
+    character.value.equippedWeapon,
+    character.value.equippedShield,
+  );
 
   if (s && character.value.equippedShield?.name === s.name) {
     // Unequip
     const oldShield = character.value.equippedShield;
     character.value.equippedShield = null;
     if (oldShield) {
-      character.value.lifeMax = Math.max(1, character.value.lifeMax - oldShield.modLife);
-      character.value.lifeCurrent = Math.max(1, Math.min(character.value.lifeMax, character.value.lifeCurrent - oldShield.modLife));
-      addLog(`${oldShield.name}を装備解除しました。生命力最大値 -${oldShield.modLife}`, 'info');
+      character.value.lifeMax = Math.max(
+        1,
+        character.value.lifeMax - oldShield.modLife,
+      );
+      character.value.lifeCurrent = Math.max(
+        1,
+        Math.min(
+          character.value.lifeMax,
+          character.value.lifeCurrent - oldShield.modLife,
+        ),
+      );
+      addLog(
+        `${oldShield.name}を装備解除しました。生命力最大値 -${oldShield.modLife}`,
+        "info",
+      );
     }
-    const handsAfter = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    const handsAfter = getHandsUsed(
+      character.value.equippedWeapon,
+      character.value.equippedShield,
+    );
     checkLanternLog(handsBefore, handsAfter);
     return;
   }
@@ -1011,179 +1451,238 @@ function equipShield(s: Shield | null) {
   // Unequip existing shield first
   if (character.value.equippedShield) {
     const oldShield = character.value.equippedShield;
-    character.value.lifeMax = Math.max(1, character.value.lifeMax - oldShield.modLife);
-    character.value.lifeCurrent = Math.max(1, Math.min(character.value.lifeMax, character.value.lifeCurrent - oldShield.modLife));
+    character.value.lifeMax = Math.max(
+      1,
+      character.value.lifeMax - oldShield.modLife,
+    );
+    character.value.lifeCurrent = Math.max(
+      1,
+      Math.min(
+        character.value.lifeMax,
+        character.value.lifeCurrent - oldShield.modLife,
+      ),
+    );
   }
 
   if (s) {
-    if (character.value.equippedWeapon?.type === 'two-handed') {
-      addLog('両手武器を装備しているため盾を装備できません。', 'error');
+    if (character.value.equippedWeapon?.type === "two-handed") {
+      addLog("両手武器を装備しているため盾を装備できません。", "error");
       return;
     }
     character.value.equippedShield = s;
     character.value.lifeMax += s.modLife;
     character.value.lifeCurrent += s.modLife;
-    addLog(`${s.name}を装備しました。生命力最大値 +${s.modLife}`, 'success');
-    const handsAfter = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    addLog(`${s.name}を装備しました。生命力最大値 +${s.modLife}`, "success");
+    const handsAfter = getHandsUsed(
+      character.value.equippedWeapon,
+      character.value.equippedShield,
+    );
     checkLanternLog(handsBefore, handsAfter);
   } else {
     character.value.equippedShield = null;
-    const handsAfter = getHandsUsed(character.value.equippedWeapon, character.value.equippedShield);
+    const handsAfter = getHandsUsed(
+      character.value.equippedWeapon,
+      character.value.equippedShield,
+    );
     checkLanternLog(handsBefore, handsAfter);
   }
 }
 
 // Items selling
+let isSellingItem = false;
 function sellItem(itemId: string) {
-  if (currentScreen.value !== 'levelup') {
-    addLog('売却は街（冒険の合間）でしか行えません。', 'error');
+  if (isSellingItem) return;
+  if (currentScreen.value !== "levelup") {
+    addLog("売却は街（冒険の合間）でしか行えません。", "error");
     return;
   }
-  const index = character.value.items.findIndex(i => i.id === itemId);
+  const index = character.value.items.findIndex((i) => i.id === itemId);
   if (index !== -1) {
-    const item = character.value.items[index];
-    if (item.value > 0) {
-      character.value.gold += item.value;
-      character.value.items.splice(index, 1);
-      addLog(`${item.name}を金貨${item.value}枚で売却しました。`, 'success');
-    } else {
-      addLog(`${item.name}は売却できません。`, 'error');
+    try {
+      isSellingItem = true;
+      const item = character.value.items[index];
+      if (item.value > 0) {
+        const prevGold = character.value.gold;
+        character.value.gold += item.value;
+        character.value.items.splice(index, 1);
+        addLog(`${item.name}を金貨${item.value}枚で売却しました。`, "success");
+
+        const prevGoldSlots = Math.floor(prevGold / 100);
+        const nextGoldSlots = Math.floor(character.value.gold / 100);
+        if (nextGoldSlots > prevGoldSlots) {
+          const added = nextGoldSlots - prevGoldSlots;
+          addLog(
+            `💰 所持金貨が${character.value.gold}枚に達したため、背負い袋に金貨の重み(+${added}スロット)が加算されました。(Rule 27)`,
+            "info",
+          );
+        }
+      } else {
+        addLog(`${item.name}は売却できません。`, "error");
+      }
+    } finally {
+      isSellingItem = false;
     }
   }
 }
 
 function discardWeapon(weaponName: string) {
-  const idx = character.value.weapons.findIndex(w => w.name === weaponName);
+  const idx = character.value.weapons.findIndex((w) => w.name === weaponName);
   if (idx !== -1) {
     const w = character.value.weapons[idx];
     character.value.weapons.splice(idx, 1);
     if (character.value.equippedWeapon?.name === weaponName) {
       character.value.equippedWeapon = null;
     }
-    addLog(`🎒 背負い袋から武器 [${w.name}] を廃棄しました。`, 'info');
+    addLog(`🎒 背負い袋から武器 [${w.name}] を廃棄しました。`, "info");
   }
 }
 
 function discardArmor(armorName: string) {
-  const idx = character.value.armors.findIndex(a => a.name === armorName);
+  const idx = character.value.armors.findIndex((a) => a.name === armorName);
   if (idx !== -1) {
     const a = character.value.armors[idx];
     character.value.armors.splice(idx, 1);
     if (character.value.equippedArmor?.name === armorName) {
       character.value.equippedArmor = null;
     }
-    addLog(`🎒 背負い袋から防具 [${a.name}] を廃棄しました。`, 'info');
+    addLog(`🎒 背負い袋から防具 [${a.name}] を廃棄しました。`, "info");
   }
 }
 
 function discardShield(shieldName: string) {
-  const idx = character.value.shields.findIndex(s => s.name === shieldName);
+  const idx = character.value.shields.findIndex((s) => s.name === shieldName);
   if (idx !== -1) {
     const s = character.value.shields[idx];
     character.value.shields.splice(idx, 1);
     if (character.value.equippedShield?.name === shieldName) {
       character.value.equippedShield = null;
     }
-    addLog(`🎒 背負い袋から盾 [${s.name}] を廃棄しました。`, 'info');
+    addLog(`🎒 背負い袋から盾 [${s.name}] を廃棄しました。`, "info");
   }
 }
 
 function discardGeneralItem(itemId: string) {
-  const idx = character.value.items.findIndex(i => i.id === itemId);
+  const idx = character.value.items.findIndex((i) => i.id === itemId);
   if (idx !== -1) {
     const item = character.value.items[idx];
     character.value.items.splice(idx, 1);
-    addLog(`🎒 背負い袋から道具 [${item.name}] を廃棄しました。`, 'info');
+    addLog(`🎒 背負い袋から道具 [${item.name}] を廃棄しました。`, "info");
   }
 }
 
 // Consumption functions
 function useFood(useHolyFeast = false) {
   if (character.value.food <= 0) {
-    addLog('食料がありません！', 'error');
+    addLog("食料がありません！", "error");
     return;
   }
   if (combatState.active) {
-    addLog('戦闘中に食料を食べることはできません。', 'error');
+    addLog("戦闘中に食料を食べることはできません。", "error");
     return;
   }
   if (character.value.lifeCurrent >= character.value.lifeMax) {
-    addLog('生命力はすでに満タンです。', 'error');
+    addLog("生命力はすでに満タンです。", "error");
     return;
   }
 
   character.value.food--;
   let heal = 2;
-  
+
   if (useHolyFeast) {
-    character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
+    character.value.subStatCurrent = Math.max(
+      0,
+      character.value.subStatCurrent - 1,
+    );
     heal = 3;
-    addLog('✨ 奇跡【聖餐】を発動！ 幸運点1を消費し、食料の回復量が3になりました。', 'success');
+    addLog(
+      "✨ 奇跡【聖餐】を発動！ 幸運点1を消費し、食料の回復量が3になりました。",
+      "success",
+    );
   }
 
-  character.value.lifeCurrent = Math.min(character.value.lifeMax, character.value.lifeCurrent + heal);
-  addLog(`食料を食べました。生命力が${heal}回復。 (残り食料: ${character.value.food}個)`, 'success');
+  character.value.lifeCurrent = Math.min(
+    character.value.lifeMax,
+    character.value.lifeCurrent + heal,
+  );
+  addLog(
+    `食料を食べました。生命力が${heal}回復。 (残り食料: ${character.value.food}個)`,
+    "success",
+  );
 }
 
 let potionUsedThisAdventure = false;
 function useHealingPotion() {
-  const idx = character.value.items.findIndex(i => i.type === 'healingpotion');
+  const idx = character.value.items.findIndex(
+    (i) => i.type === "healingpotion",
+  );
   if (idx === -1) {
-    addLog('治療のポーションを所持していません。', 'error');
+    addLog("治療のポーションを所持していません。", "error");
     return;
   }
   if (potionUsedThisAdventure) {
-    addLog('治療のポーションは一度の冒険で1回しか使用できません。', 'error');
+    addLog("治療のポーションは一度の冒険で1回しか使用できません。", "error");
     return;
   }
 
   character.value.items.splice(idx, 1);
   character.value.lifeCurrent = character.value.lifeMax;
   potionUsedThisAdventure = true;
-  addLog('治療のポーションを飲みました。生命力が最大値まで全回復！', 'success');
+  addLog("治療のポーションを飲みました。生命力が最大値まで全回復！", "success");
 }
 
-function castCreateWeaponSpell(category: 'weapon' | 'armor' | 'shield', itemKey: string) {
+function castCreateWeaponSpell(
+  category: "weapon" | "armor" | "shield",
+  itemKey: string,
+) {
   if (character.value.subStatCurrent < 1) {
-    addLog('魔術点が足りないため、呪文を唱えられません！', 'error');
+    addLog("魔術点が足りないため、呪文を唱えられません！", "error");
     return;
   }
-  
+
   character.value.subStatCurrent--;
-  
-  if (category === 'weapon') {
+
+  if (category === "weapon") {
     const base = DEFAULT_WEAPONS[itemKey as keyof typeof DEFAULT_WEAPONS];
     if (!base) return;
     const summon: Weapon = {
       ...base,
       name: `創られた${base.name}`,
       isMagic: true,
-      description: `【武具創造】によって生み出された魔法の武具。冒険終了後に消滅する。`
+      description: `【武具創造】によって生み出された魔法の武具。冒険終了後に消滅する。`,
     };
     character.value.weapons.push(summon);
-    addLog(`✨ 呪文【武具創造】を唱え、「${summon.name}」を背負い袋に創造しました！`, 'success');
-  } else if (category === 'armor') {
+    addLog(
+      `✨ 呪文【武具創造】を唱え、「${summon.name}」を背負い袋に創造しました！`,
+      "success",
+    );
+  } else if (category === "armor") {
     const base = DEFAULT_ARMORS[itemKey as keyof typeof DEFAULT_ARMORS];
     if (!base) return;
     const summon: Armor = {
       ...base,
       name: `創られた${base.name}`,
       isMagic: true,
-      description: `【武具創造】によって生み出された魔法の防具。冒険終了後に消滅する。`
+      description: `【武具創造】によって生み出された魔法の防具。冒険終了後に消滅する。`,
     };
     character.value.armors.push(summon);
-    addLog(`✨ 呪文【武具創造】を唱え、「${summon.name}」を背負い袋に創造しました！`, 'success');
-  } else if (category === 'shield') {
+    addLog(
+      `✨ 呪文【武具創造】を唱え、「${summon.name}」を背負い袋に創造しました！`,
+      "success",
+    );
+  } else if (category === "shield") {
     const base = DEFAULT_SHIELDS[itemKey as keyof typeof DEFAULT_SHIELDS];
     if (!base) return;
     const summon: Shield = {
       ...base,
       name: `創られた${base.name}`,
       isMagic: true,
-      description: `【武具創造】によって生み出された魔法の盾。冒険終了後に消滅する。`
+      description: `【武具創造】によって生み出された魔法の盾。冒険終了後に消滅する。`,
     };
     character.value.shields.push(summon);
-    addLog(`✨ 呪文【武具創造】を唱え、「${summon.name}」を背負い袋に創造しました！`, 'success');
+    addLog(
+      `✨ 呪文【武具創造】を唱え、「${summon.name}」を背負い袋に創造しました！`,
+      "success",
+    );
   }
 
   combatState.hasWeaponCreatedThisRound = true;
@@ -1198,18 +1697,24 @@ function restoreStatsAfterAdventure() {
   if (character.value.equippedArmor?.isMagic) {
     const oldArmor = character.value.equippedArmor;
     character.value.equippedArmor = null;
-    character.value.lifeMax = Math.max(1, character.value.lifeMax - oldArmor.modLife);
+    character.value.lifeMax = Math.max(
+      1,
+      character.value.lifeMax - oldArmor.modLife,
+    );
   }
   if (character.value.equippedShield?.isMagic) {
     const oldShield = character.value.equippedShield;
     character.value.equippedShield = null;
-    character.value.lifeMax = Math.max(1, character.value.lifeMax - oldShield.modLife);
+    character.value.lifeMax = Math.max(
+      1,
+      character.value.lifeMax - oldShield.modLife,
+    );
   }
 
   // Remove magic items from inventory lists
-  character.value.weapons = character.value.weapons.filter(w => !w.isMagic);
-  character.value.armors = character.value.armors.filter(a => !a.isMagic);
-  character.value.shields = character.value.shields.filter(s => !s.isMagic);
+  character.value.weapons = character.value.weapons.filter((w) => !w.isMagic);
+  character.value.armors = character.value.armors.filter((a) => !a.isMagic);
+  character.value.shields = character.value.shields.filter((s) => !s.isMagic);
 
   character.value.skillCurrent = character.value.skillMax;
   character.value.lifeCurrent = character.value.lifeMax;
@@ -1217,79 +1722,83 @@ function restoreStatsAfterAdventure() {
   character.value.statusEffects = []; // 町に戻った際にすべての状態異常を治療
   potionUsedThisAdventure = false;
   // Restore follower mages' mana
-  followers.value.forEach(f => {
-    if (f.type === 'mage' && f.magicCurrent !== undefined && f.magicMax !== undefined) {
+  followers.value.forEach((f) => {
+    if (
+      f.type === "mage" &&
+      f.magicCurrent !== undefined &&
+      f.magicMax !== undefined
+    ) {
       f.magicCurrent = f.magicMax;
     }
   });
 }
 
 // Growth stats allocation
-function spendExpForStat(stat: 'skill' | 'life' | 'sub' | 'follower'): boolean {
+function spendExpForStat(stat: "skill" | "life" | "sub" | "follower"): boolean {
   if (character.value.exp <= 0) {
-    addLog('経験点が足りません。', 'error');
+    addLog("経験点が足りません。", "error");
     return false;
   }
 
-  if (stat === 'skill') {
+  if (stat === "skill") {
     // 4 exp per skill max. Limit is +2 from base (base 0, max 2)
     if (character.value.skillMax >= 2) {
-      addLog('技量点の上限(+2)に達しています。', 'error');
+      addLog("技量点の上限(+2)に達しています。", "error");
       return false;
     }
     if (character.value.exp < 4) {
-      addLog('技量点を上げるには4経験点必要です。', 'error');
+      addLog("技量点を上げるには4経験点必要です。", "error");
       return false;
     }
     character.value.exp -= 4;
     character.value.skillMax += 1;
     character.value.skillCurrent = character.value.skillMax;
-    addLog('技量点が1上昇しました！', 'success');
+    addLog("技量点が1上昇しました！", "success");
     return true;
   }
 
-  if (stat === 'life') {
+  if (stat === "life") {
     // 1 exp per life max. Limit is +4 from base (base 4, max 8)
     const currentBase = character.value.baseLifeMax ?? 4;
     if (currentBase >= 8) {
-      addLog('基礎生命力の上限(8)に達しています。', 'error');
+      addLog("基礎生命力の上限(8)に達しています。", "error");
       return false;
     }
     character.value.exp -= 1;
     character.value.baseLifeMax = currentBase + 1;
     character.value.lifeMax += 1;
     character.value.lifeCurrent += 1;
-    addLog('基礎生命力が1上昇しました！', 'success');
+    addLog("基礎生命力が1上昇しました！", "success");
     return true;
   }
 
-  if (stat === 'sub') {
+  if (stat === "sub") {
     // 1 exp per subStat max. Limit is +4 from base (base 2, max 6)
     if (character.value.subStatMax >= 6) {
-      addLog('副能力値の上限(+4)に達しています。', 'error');
+      addLog("副能力値の上限(+4)に達しています。", "error");
       return false;
     }
     character.value.exp -= 1;
     character.value.subStatMax += 1;
     character.value.subStatCurrent = character.value.subStatMax;
-    addLog('副能力値の最大値が1上昇しました！', 'success');
+    addLog("副能力値の最大値が1上昇しました！", "success");
     return true;
   }
 
-  if (stat === 'follower') {
+  if (stat === "follower") {
     // 2 exp per follower max. Limit is +2 from base (base 7, max 9)
     if (character.value.followerMax >= 9) {
-      addLog('従者点の上限(+2)に達しています。', 'error');
+      addLog("従者点の上限(+2)に達しています。", "error");
       return false;
     }
     if (character.value.exp < 2) {
-      addLog('従者点を上げるには2経験点必要です。', 'error');
+      addLog("従者点を上げるには2経験点必要です。", "error");
       return false;
     }
     character.value.exp -= 2;
     character.value.followerMax += 1;
     character.value.followerCurrent = character.value.followerMax;
-    addLog('従者点の最大値が1上昇しました！', 'success');
+    addLog("従者点の最大値が1上昇しました！", "success");
     return true;
   }
 
@@ -1297,69 +1806,89 @@ function spendExpForStat(stat: 'skill' | 'life' | 'sub' | 'follower'): boolean {
 }
 
 // Refund/Undo allocated EXP
-function refundExpForStat(stat: 'skill' | 'life' | 'sub' | 'follower'): boolean {
-  if (stat === 'skill') {
+function refundExpForStat(
+  stat: "skill" | "life" | "sub" | "follower",
+): boolean {
+  if (stat === "skill") {
     if (character.value.skillMax <= checkpointSkillMax.value) {
-      addLog('この画面で上昇させた値より下げることはできません。', 'error');
+      addLog("この画面で上昇させた値より下げることはできません。", "error");
       return false;
     }
     character.value.skillMax -= 1;
     character.value.skillCurrent = character.value.skillMax;
     character.value.exp += 4;
-    addLog('技量点の割り振りをキャンセルし、4経験点を払い戻しました。', 'info');
+    addLog("技量点の割り振りをキャンセルし、4経験点を払い戻しました。", "info");
     return true;
   }
 
-  if (stat === 'life') {
+  if (stat === "life") {
     const currentBase = character.value.baseLifeMax ?? 4;
     if (currentBase <= checkpointBaseLifeMax.value) {
-      addLog('この画面で上昇させた値より下げることはできません。', 'error');
+      addLog("この画面で上昇させた値より下げることはできません。", "error");
       return false;
     }
     character.value.baseLifeMax = currentBase - 1;
     character.value.lifeMax -= 1;
-    character.value.lifeCurrent = Math.min(character.value.lifeMax, character.value.lifeCurrent);
+    character.value.lifeCurrent = Math.min(
+      character.value.lifeMax,
+      character.value.lifeCurrent,
+    );
     character.value.exp += 1;
-    addLog('生命力最大値の割り振りをキャンセルし、1経験点を払い戻しました。', 'info');
+    addLog(
+      "生命力最大値の割り振りをキャンセルし、1経験点を払い戻しました。",
+      "info",
+    );
     return true;
   }
 
-  if (stat === 'sub') {
+  if (stat === "sub") {
     if (character.value.subStatMax <= checkpointSubStatMax.value) {
-      addLog('この画面で上昇させた値より下げることはできません。', 'error');
+      addLog("この画面で上昇させた値より下げることはできません。", "error");
       return false;
     }
-    
+
     // Check if we need to remove learned spells/miracles to fit the new allowed limit
     const allowed = Math.floor((character.value.subStatMax - 1) / 2);
-    if (character.value.subStatType === 'magic') {
+    if (character.value.subStatType === "magic") {
       while (character.value.spells.length > allowed) {
         const removed = character.value.spells.pop();
-        addLog(`制限数超過のため、魔術 【${removed}】 の習得を取り消しました。`, 'info');
+        addLog(
+          `制限数超過のため、魔術 【${removed}】 の習得を取り消しました。`,
+          "info",
+        );
       }
-    } else if (character.value.subStatType === 'luck') {
+    } else if (character.value.subStatType === "luck") {
       while (character.value.miracles.length > allowed) {
         const removed = character.value.miracles.pop();
-        addLog(`制限数超過のため、奇跡 【${removed}】 の習得を取り消しました。`, 'info');
+        addLog(
+          `制限数超過のため、奇跡 【${removed}】 の習得を取り消しました。`,
+          "info",
+        );
       }
     }
 
     character.value.subStatMax -= 1;
     character.value.subStatCurrent = character.value.subStatMax;
     character.value.exp += 1;
-    addLog('副能力値の最大値の割り振りをキャンセルし、1経験点を払い戻しました。', 'info');
+    addLog(
+      "副能力値の最大値の割り振りをキャンセルし、1経験点を払い戻しました。",
+      "info",
+    );
     return true;
   }
 
-  if (stat === 'follower') {
+  if (stat === "follower") {
     if (character.value.followerMax <= checkpointFollowerMax.value) {
-      addLog('この画面で上昇させた値より下げることはできません。', 'error');
+      addLog("この画面で上昇させた値より下げることはできません。", "error");
       return false;
     }
     character.value.followerMax -= 1;
     character.value.followerCurrent = character.value.followerMax;
     character.value.exp += 2;
-    addLog('従者点(最大同行可能数)の割り振りをキャンセルし、2経験点を払い戻しました。', 'info');
+    addLog(
+      "従者点(最大同行可能数)の割り振りをキャンセルし、2経験点を払い戻しました。",
+      "info",
+    );
     return true;
   }
 
@@ -1371,7 +1900,7 @@ function resetCombatState() {
   Object.assign(combatState, createDefaultCombatState());
 }
 
-function initNewCharacter(name: string, subStat: Character['subStatType']) {
+function initNewCharacter(name: string, subStat: Character["subStatType"]) {
   isCharacterCreated.value = true;
   character.value = createDefaultCharacter(name, subStat);
 
@@ -1386,15 +1915,15 @@ function initNewCharacter(name: string, subStat: Character['subStatType']) {
   resetCombatState();
   Object.assign(diceTray, createDefaultDiceTray());
   clearLogs();
-  
+
   // Set default initial equipment based on sub-stat
-  if (subStat === 'magic') {
+  if (subStat === "magic") {
     character.value.weapons.push({ ...DEFAULT_WEAPONS.light });
     character.value.armors.push({ ...DEFAULT_ARMORS.cloth });
     character.value.equippedWeapon = character.value.weapons[0];
     character.value.equippedArmor = character.value.armors[0];
     character.value.spells = []; // レベルアップ画面で習得するため、初期は空
-  } else if (subStat === 'luck') {
+  } else if (subStat === "luck") {
     character.value.weapons.push({ ...DEFAULT_WEAPONS.oneHanded });
     character.value.armors.push({ ...DEFAULT_ARMORS.chain });
     character.value.shields.push({ ...DEFAULT_SHIELDS.wood });
@@ -1402,12 +1931,12 @@ function initNewCharacter(name: string, subStat: Character['subStatType']) {
     character.value.equippedArmor = character.value.armors[0];
     character.value.equippedShield = character.value.shields[0];
     character.value.miracles = []; // レベルアップ画面で習得するため、初期は空
-  } else if (subStat === 'strength') {
+  } else if (subStat === "strength") {
     character.value.weapons.push({ ...DEFAULT_WEAPONS.twoHanded });
     character.value.armors.push({ ...DEFAULT_ARMORS.plate });
     character.value.equippedWeapon = character.value.weapons[0];
     character.value.equippedArmor = character.value.armors[0];
-  } else if (subStat === 'dexterity') {
+  } else if (subStat === "dexterity") {
     character.value.weapons.push({ ...DEFAULT_WEAPONS.bow });
     character.value.weapons.push({ ...DEFAULT_WEAPONS.light });
     character.value.armors.push({ ...DEFAULT_ARMORS.leather });
@@ -1430,33 +1959,46 @@ function initNewCharacter(name: string, subStat: Character['subStatType']) {
   }
   character.value.lifeCurrent = character.value.lifeMax;
 
-  addLog(`キャラクター「${character.value.name}」を作成しました！ 初期経験点10点を割り振ってください。`, 'success');
+  addLog(
+    `キャラクター「${character.value.name}」を作成しました！ 初期経験点10点を割り振ってください。`,
+    "success",
+  );
   triggerLevelUp();
+  saveSession();
 }
 
-function transitionTo(screen: 'scenario_select' | 'creator' | 'explore' | 'combat' | 'levelup' | 'gameover' | 'success') {
+function transitionTo(
+  screen:
+    | "scenario_select"
+    | "creator"
+    | "explore"
+    | "combat"
+    | "levelup"
+    | "gameover"
+    | "success",
+) {
   currentScreen.value = screen;
 }
 
 function triggerGameOver() {
   skipAllMessages();
   nextRoomTensDigitOverride.value = null;
-  transitionTo('gameover');
+  transitionTo("gameover");
 }
 
 function triggerLevelUp() {
-  transitionTo('levelup');
+  transitionTo("levelup");
 }
 
 function transitionToExplore() {
   if (followers.value && Array.isArray(followers.value)) {
-    followers.value = followers.value.filter(f => f.lifeCurrent > 0);
+    followers.value = followers.value.filter((f) => f.lifeCurrent > 0);
   }
-  transitionTo('explore');
+  transitionTo("explore");
 }
 
 function transitionToCombat() {
-  transitionTo('combat');
+  transitionTo("combat");
 }
 
 function transitionToSuccess() {
@@ -1467,11 +2009,17 @@ function transitionToSuccess() {
     if (!character.value.scenarioProgress) {
       character.value.scenarioProgress = {};
     }
-    const currentProgress = character.value.scenarioProgress[scId] || { clearCount: 0, isCompleted: false };
+    const currentProgress = character.value.scenarioProgress[scId] || {
+      clearCount: 0,
+      isCompleted: false,
+    };
     const prevClearCount = currentProgress.clearCount;
     currentProgress.clearCount += 1;
 
-    const hasPhases = !!(activeScenario.value.bossPhases && activeScenario.value.bossPhases.length > 0);
+    const hasPhases = !!(
+      activeScenario.value.bossPhases &&
+      activeScenario.value.bossPhases.length > 0
+    );
     const totalPhases = hasPhases ? activeScenario.value.bossPhases!.length : 1;
 
     if (currentProgress.clearCount >= totalPhases) {
@@ -1493,11 +2041,11 @@ function transitionToSuccess() {
       isCompleted: currentProgress.isCompleted,
       phaseClearMessage,
       completeClearMessage: activeScenario.value.completeClearMessage,
-      isMultiPhase: hasPhases
+      isMultiPhase: hasPhases,
     };
   }
 
-  transitionTo('success');
+  transitionTo("success");
   try {
     if (activeScenario.value) {
       const { registerClearRecord } = useHallOfFame();
@@ -1511,13 +2059,16 @@ function transitionToSuccess() {
 }
 
 function resetScenarioProgress(scenarioId: string) {
-  if (character.value?.scenarioProgress && character.value.scenarioProgress[scenarioId]) {
+  if (
+    character.value?.scenarioProgress &&
+    character.value.scenarioProgress[scenarioId]
+  ) {
     delete character.value.scenarioProgress[scenarioId];
   }
 }
 
 function handleDeath() {
-  addLog('💀 主人公の生命点が0になりました。ゲームオーバーです...', 'error');
+  addLog("💀 主人公の生命点が0になりました。ゲームオーバーです...", "error");
   triggerGameOver();
 }
 
@@ -1546,13 +2097,13 @@ function retrySession() {
   character.value.gold = bonusGold;
 
   // Set default initial equipment based on sub-stat
-  if (subType === 'magic') {
+  if (subType === "magic") {
     character.value.weapons.push({ ...DEFAULT_WEAPONS.light });
     character.value.armors.push({ ...DEFAULT_ARMORS.cloth });
     character.value.equippedWeapon = character.value.weapons[0];
     character.value.equippedArmor = character.value.armors[0];
     character.value.spells = [];
-  } else if (subType === 'luck') {
+  } else if (subType === "luck") {
     character.value.weapons.push({ ...DEFAULT_WEAPONS.oneHanded });
     character.value.armors.push({ ...DEFAULT_ARMORS.chain });
     character.value.shields.push({ ...DEFAULT_SHIELDS.wood });
@@ -1560,12 +2111,12 @@ function retrySession() {
     character.value.equippedArmor = character.value.armors[0];
     character.value.equippedShield = character.value.shields[0];
     character.value.miracles = [];
-  } else if (subType === 'strength') {
+  } else if (subType === "strength") {
     character.value.weapons.push({ ...DEFAULT_WEAPONS.twoHanded });
     character.value.armors.push({ ...DEFAULT_ARMORS.plate });
     character.value.equippedWeapon = character.value.weapons[0];
     character.value.equippedArmor = character.value.armors[0];
-  } else if (subType === 'dexterity') {
+  } else if (subType === "dexterity") {
     character.value.weapons.push({ ...DEFAULT_WEAPONS.bow });
     character.value.weapons.push({ ...DEFAULT_WEAPONS.light });
     character.value.armors.push({ ...DEFAULT_ARMORS.leather });
@@ -1589,30 +2140,36 @@ function retrySession() {
   character.value.lifeCurrent = character.value.lifeMax;
 
   saveSession();
-  transitionTo('levelup');
+  transitionTo("levelup");
 }
 
 function forgetSpell(name: string) {
-  if (character.value.subStatType === 'magic') {
+  if (character.value.subStatType === "magic") {
     if (checkpointSpells.value.includes(name)) {
-      addLog(`既に以前から習得している魔術 【${name}】 は忘れられません。`, 'error');
+      addLog(
+        `既に以前から習得している魔術 【${name}】 は忘れられません。`,
+        "error",
+      );
       return false;
     }
     const idx = character.value.spells.indexOf(name);
     if (idx !== -1) {
       character.value.spells.splice(idx, 1);
-      addLog(`🔮 魔術 【${name}】 を忘れました。`, 'info');
+      addLog(`🔮 魔術 【${name}】 を忘れました。`, "info");
       return true;
     }
-  } else if (character.value.subStatType === 'luck') {
+  } else if (character.value.subStatType === "luck") {
     if (checkpointMiracles.value.includes(name)) {
-      addLog(`既に以前から習得している奇跡 【${name}】 は忘れられません。`, 'error');
+      addLog(
+        `既に以前から習得している奇跡 【${name}】 は忘れられません。`,
+        "error",
+      );
       return false;
     }
     const idx = character.value.miracles.indexOf(name);
     if (idx !== -1) {
       character.value.miracles.splice(idx, 1);
-      addLog(`✨ 奇跡 【${name}】 を忘れました。`, 'info');
+      addLog(`✨ 奇跡 【${name}】 を忘れました。`, "info");
       return true;
     }
   }
@@ -1624,7 +2181,7 @@ function clearDiceTray() {
 }
 
 export function useGameState() {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     (window as any).character = character;
     (window as any).activeScenario = activeScenario;
     (window as any).pyramidRunCount = pyramidRunCount;
@@ -1652,6 +2209,7 @@ export function useGameState() {
     isBackpackFull,
     isBackpackOverLimit,
     currentBackpackCount,
+    backpackBreakdown,
     hasSwordbearer,
     isSwitchingWeapons,
     checkpointSkillMax,
@@ -1733,5 +2291,15 @@ export function useGameState() {
     // Multi-Phase Boss Progression
     lastClearResult,
     resetScenarioProgress,
+  };
+}
+
+if (typeof window !== "undefined") {
+  (window as any).__GAME_STATE__ = {
+    activeSession,
+    character,
+    followers,
+    currentScreen,
+    backpackBreakdown,
   };
 }

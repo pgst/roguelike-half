@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { useGameState } from '../composables/useGameState';
-import { useCombat } from '../composables/useCombat';
+import { computed, ref } from "vue";
+import { useGameState } from "../composables/useGameState";
+import { useCombat } from "../composables/useCombat";
 
 const {
   currentScreen,
@@ -21,7 +21,8 @@ const {
   useFood,
   useHealingPotion,
   dismissFollower,
-  currentBackpackCount
+  currentBackpackCount,
+  backpackBreakdown,
 } = useGameState();
 
 const showSummonSelector = ref(false);
@@ -31,18 +32,58 @@ const { activateWarDoll, resolveCreateWeaponSpell } = useCombat();
 const activeFollowerCount = computed(() => followers.value.length);
 
 const maxBackpackSlots = computed(() => {
-  const porterBonus = followers.value.filter(f => f.type === 'porter').length * 3;
+  const porterBonus =
+    followers.value.filter((f) => f.type === "porter").length * 3;
   return character.value.lifeMax + porterBonus;
 });
 
+const unequippedWeapons = computed(() => {
+  if (!character.value.equippedWeapon) return character.value.weapons;
+  const equippedName = character.value.equippedWeapon.name;
+  let skipped = false;
+  return character.value.weapons.filter((w) => {
+    if (!skipped && w.name === equippedName) {
+      skipped = true;
+      return false;
+    }
+    return true;
+  });
+});
 
+const unequippedArmors = computed(() => {
+  if (!character.value.equippedArmor) return character.value.armors;
+  const equippedName = character.value.equippedArmor.name;
+  let skipped = false;
+  return character.value.armors.filter((a) => {
+    if (!skipped && a.name === equippedName) {
+      skipped = true;
+      return false;
+    }
+    return true;
+  });
+});
+
+const unequippedShields = computed(() => {
+  if (!character.value.equippedShield) return character.value.shields;
+  const equippedName = character.value.equippedShield.name;
+  let skipped = false;
+  return character.value.shields.filter((s) => {
+    if (!skipped && s.name === equippedName) {
+      skipped = true;
+      return false;
+    }
+    return true;
+  });
+});
 </script>
 
 <template>
   <div class="adventure-sheet paper-sheet">
     <div class="sheet-header">
       <h2>冒険記録紙</h2>
-      <p class="hero-name">冒険者: {{ character.name }} (Lv.{{ character.level }})</p>
+      <p class="hero-name">
+        冒険者: {{ character.name }} (Lv.{{ character.level }})
+      </p>
     </div>
 
     <!-- Core Stats Grid -->
@@ -51,34 +92,60 @@ const maxBackpackSlots = computed(() => {
       <div class="stat-card">
         <span class="stat-icon">🧍</span>
         <span class="stat-label">技量点</span>
-        <span class="stat-value">{{ character.skillCurrent }} / {{ character.skillMax }}</span>
+        <span class="stat-value"
+          >{{ character.skillCurrent }} / {{ character.skillMax }}</span
+        >
       </div>
 
       <!-- Life (生命点) -->
       <div class="stat-card" :class="{ danger: character.lifeCurrent <= 1 }">
         <span class="stat-icon">❤️</span>
         <span class="stat-label">生命点</span>
-        <span class="stat-value">{{ character.lifeCurrent }} / {{ character.lifeMax }}</span>
+        <span class="stat-value"
+          >{{ character.lifeCurrent }} / {{ character.lifeMax }}</span
+        >
       </div>
 
       <!-- Sub-stat (副能力値) -->
       <div class="stat-card substat-highlight">
-        <span class="stat-icon" v-if="character.subStatType === 'magic'">🔮</span>
-        <span class="stat-icon" v-else-if="character.subStatType === 'luck'">✨</span>
-        <span class="stat-icon" v-else-if="character.subStatType === 'strength'">💪</span>
-        <span class="stat-icon" v-else-if="character.subStatType === 'dexterity'">🏹</span>
-        
-        <span class="stat-label" style="text-transform: capitalize;">
-          {{ character.subStatType === 'magic' ? '魔術点' : character.subStatType === 'luck' ? '幸運点' : character.subStatType === 'strength' ? '筋力点' : '器用点' }}
+        <span class="stat-icon" v-if="character.subStatType === 'magic'"
+          >🔮</span
+        >
+        <span class="stat-icon" v-else-if="character.subStatType === 'luck'"
+          >✨</span
+        >
+        <span class="stat-icon" v-else-if="character.subStatType === 'strength'"
+          >💪</span
+        >
+        <span
+          class="stat-icon"
+          v-else-if="character.subStatType === 'dexterity'"
+          >🏹</span
+        >
+
+        <span class="stat-label" style="text-transform: capitalize">
+          {{
+            character.subStatType === "magic"
+              ? "魔術点"
+              : character.subStatType === "luck"
+                ? "幸運点"
+                : character.subStatType === "strength"
+                  ? "筋力点"
+                  : "器用点"
+          }}
         </span>
-        <span class="stat-value">{{ character.subStatCurrent }} / {{ character.subStatMax }}</span>
+        <span class="stat-value"
+          >{{ character.subStatCurrent }} / {{ character.subStatMax }}</span
+        >
       </div>
 
       <!-- Follower slots (従者点) -->
       <div class="stat-card">
         <span class="stat-icon">👥</span>
         <span class="stat-label">従者点</span>
-        <span class="stat-value">{{ activeFollowerCount }} / {{ character.followerCurrent }}</span>
+        <span class="stat-value"
+          >{{ activeFollowerCount }} / {{ character.followerCurrent }}</span
+        >
       </div>
     </div>
 
@@ -88,88 +155,319 @@ const maxBackpackSlots = computed(() => {
       <div class="supply-item">
         <span><b>金貨:</b> {{ character.gold }} 枚</span>
       </div>
-      <div class="supply-item" style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+      <div
+        class="supply-item"
+        style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap"
+      >
         <span><b>食料:</b> {{ character.food }} 食分</span>
-        <button 
-          @click="useFood(false)" 
-          class="btn-ink btn-mini" 
-          :disabled="character.food <= 0 || character.lifeCurrent >= character.lifeMax || combatState.active"
-          :title="combatState.active ? '戦闘中は食べられません' : character.lifeCurrent >= character.lifeMax ? '生命力は満タンです' : '食料を食べて2点回復'"
+        <button
+          @click="useFood(false)"
+          class="btn-ink btn-mini"
+          :disabled="
+            character.food <= 0 ||
+            character.lifeCurrent >= character.lifeMax ||
+            combatState.active
+          "
+          :title="
+            combatState.active
+              ? '戦闘中は食べられません'
+              : character.lifeCurrent >= character.lifeMax
+                ? '生命力は満タンです'
+                : '食料を食べて2点回復'
+          "
         >
           食べる (+2回復)
         </button>
-        <button 
-          v-if="character.subStatType === 'luck' && character.miracles.includes('聖餐') && character.subStatCurrent >= 1"
-          @click="useFood(true)" 
-          class="btn-ink btn-mini btn-strength" 
-          :disabled="character.food <= 0 || character.lifeCurrent >= character.lifeMax || combatState.active"
-          :title="combatState.active ? '戦闘中は食べられません' : character.lifeCurrent >= character.lifeMax ? '生命力は満タンです' : '奇跡【聖餐】を発動して3点回復'"
+        <button
+          v-if="
+            character.subStatType === 'luck' &&
+            character.miracles.includes('聖餐') &&
+            character.subStatCurrent >= 1
+          "
+          @click="useFood(true)"
+          class="btn-ink btn-mini btn-strength"
+          :disabled="
+            character.food <= 0 ||
+            character.lifeCurrent >= character.lifeMax ||
+            combatState.active
+          "
+          :title="
+            combatState.active
+              ? '戦闘中は食べられません'
+              : character.lifeCurrent >= character.lifeMax
+                ? '生命力は満タンです'
+                : '奇跡【聖餐】を発動して3点回復'
+          "
         >
           ✨ 聖餐 (+3回復, 幸運1)
         </button>
       </div>
       <div class="supply-item alert-supply">
-        <span><b>明かり:</b> {{ carriesLantern ? '点灯中' : '❌ 暗闇 (判定-2)' }}</span>
+        <span
+          ><b>明かり:</b>
+          {{ carriesLantern ? "点灯中" : "❌ 暗闇 (判定-2)" }}</span
+        >
       </div>
 
       <!-- Status Effects (状態異常) -->
-      <div v-if="character.statusEffects && character.statusEffects.length > 0" class="status-effects-section" style="margin-top: 15px; padding: 10px; border: 1px solid #f5c6cb; background: #fdf3f4; border-radius: 4px;">
-        <span style="font-weight: bold; color: #8c1c1c; font-size: 0.9rem; margin-right: 8px;">🚨 状態異常:</span>
-        <span v-for="effect in character.statusEffects" :key="effect" class="badge-status" style="display: inline-block; padding: 2px 8px; background: #8c1c1c; color: white; border-radius: 3px; font-size: 0.8rem; font-weight: bold; margin-right: 5px;">
+      <div
+        v-if="character.statusEffects && character.statusEffects.length > 0"
+        class="status-effects-section"
+        style="
+          margin-top: 15px;
+          padding: 10px;
+          border: 1px solid #f5c6cb;
+          background: #fdf3f4;
+          border-radius: 4px;
+        "
+      >
+        <span
+          style="
+            font-weight: bold;
+            color: #8c1c1c;
+            font-size: 0.9rem;
+            margin-right: 8px;
+          "
+          >🚨 状態異常:</span
+        >
+        <span
+          v-for="effect in character.statusEffects"
+          :key="effect"
+          class="badge-status"
+          style="
+            display: inline-block;
+            padding: 2px 8px;
+            background: #8c1c1c;
+            color: white;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-right: 5px;
+          "
+        >
           {{ effect }}
         </span>
       </div>
 
       <!-- Combat Buffs (戦闘バフ表示) -->
-      <div v-if="combatState.active && combatState.buffs.defenseBonus > 0" class="status-effects-section" style="margin-top: 8px; padding: 10px; border: 1px solid #90caf9; background: #e3f2fd; border-radius: 4px;">
-        <span style="font-weight: bold; color: #1565c0; font-size: 0.9rem; margin-right: 8px;">🛡️ バフ:</span>
-        <span class="badge-status" style="display: inline-block; padding: 2px 8px; background: #1565c0; color: white; border-radius: 3px; font-size: 0.8rem; font-weight: bold; margin-right: 5px;">
+      <div
+        v-if="combatState.active && combatState.buffs.defenseBonus > 0"
+        class="status-effects-section"
+        style="
+          margin-top: 8px;
+          padding: 10px;
+          border: 1px solid #90caf9;
+          background: #e3f2fd;
+          border-radius: 4px;
+        "
+      >
+        <span
+          style="
+            font-weight: bold;
+            color: #1565c0;
+            font-size: 0.9rem;
+            margin-right: 8px;
+          "
+          >🛡️ バフ:</span
+        >
+        <span
+          class="badge-status"
+          style="
+            display: inline-block;
+            padding: 2px 8px;
+            background: #1565c0;
+            color: white;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-right: 5px;
+          "
+        >
           防衛バフ: +{{ combatState.buffs.defenseBonus }}
         </span>
       </div>
 
-      <div 
-        v-if="character.subStatType === 'magic' && character.spells.includes('武具創造')"
+      <div
+        v-if="
+          character.subStatType === 'magic' &&
+          character.spells.includes('武具創造')
+        "
         class="supply-item"
-        style="border-top: 1px dashed rgba(92,75,61,0.2); padding-top: 10px; margin-top: 5px; flex-direction: column; align-items: stretch; gap: 8px; width: 100%;"
+        style="
+          border-top: 1px dashed rgba(92, 75, 61, 0.2);
+          padding-top: 10px;
+          margin-top: 5px;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 8px;
+          width: 100%;
+        "
       >
-        <button 
-          @click="showSummonSelector = !showSummonSelector" 
+        <button
+          @click="showSummonSelector = !showSummonSelector"
           class="btn-ink btn-mini btn-spell"
-          style="width: 100%; justify-content: center;"
+          style="width: 100%; justify-content: center"
           :disabled="character.subStatCurrent < 1"
         >
-          🔮 呪文【武具創造】を唱える (魔術点1消費 / 残り: {{ character.subStatCurrent }})
+          🔮 呪文【武具創造】を唱える (魔術点1消費 / 残り:
+          {{ character.subStatCurrent }})
         </button>
 
-        <div v-if="showSummonSelector" style="display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.4); padding: 8px; border-radius: 4px; font-size: 0.8rem; width: 100%;">
+        <div
+          v-if="showSummonSelector"
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            width: 100%;
+          "
+        >
           <!-- Weapons -->
           <div>
-            <div style="font-weight: bold; color: #705844; margin-bottom: 3px; font-size: 0.75rem;">⚔️ 武器を創造:</div>
-            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-              <button @click="resolveCreateWeaponSpell('weapon', 'light'); showSummonSelector = false" class="btn-ink btn-mini">軽い武器</button>
-              <button @click="resolveCreateWeaponSpell('weapon', 'oneHanded'); showSummonSelector = false" class="btn-ink btn-mini">片手武器</button>
-              <button @click="resolveCreateWeaponSpell('weapon', 'twoHanded'); showSummonSelector = false" class="btn-ink btn-mini">両手武器</button>
-              <button @click="resolveCreateWeaponSpell('weapon', 'sling'); showSummonSelector = false" class="btn-ink btn-mini">スリング</button>
-              <button @click="resolveCreateWeaponSpell('weapon', 'bow'); showSummonSelector = false" class="btn-ink btn-mini">弓矢</button>
+            <div
+              style="
+                font-weight: bold;
+                color: #705844;
+                margin-bottom: 3px;
+                font-size: 0.75rem;
+              "
+            >
+              ⚔️ 武器を創造:
+            </div>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap">
+              <button
+                @click="
+                  resolveCreateWeaponSpell('weapon', 'light');
+                  showSummonSelector = false;
+                "
+                class="btn-ink btn-mini"
+              >
+                軽い武器
+              </button>
+              <button
+                @click="
+                  resolveCreateWeaponSpell('weapon', 'oneHanded');
+                  showSummonSelector = false;
+                "
+                class="btn-ink btn-mini"
+              >
+                片手武器
+              </button>
+              <button
+                @click="
+                  resolveCreateWeaponSpell('weapon', 'twoHanded');
+                  showSummonSelector = false;
+                "
+                class="btn-ink btn-mini"
+              >
+                両手武器
+              </button>
+              <button
+                @click="
+                  resolveCreateWeaponSpell('weapon', 'sling');
+                  showSummonSelector = false;
+                "
+                class="btn-ink btn-mini"
+              >
+                スリング
+              </button>
+              <button
+                @click="
+                  resolveCreateWeaponSpell('weapon', 'bow');
+                  showSummonSelector = false;
+                "
+                class="btn-ink btn-mini"
+              >
+                弓矢
+              </button>
             </div>
           </div>
           <!-- Armors -->
           <div>
-            <div style="font-weight: bold; color: #705844; margin-bottom: 3px; font-size: 0.75rem;">🛡️ 防具を創造:</div>
-            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-              <button @click="resolveCreateWeaponSpell('armor', 'cloth'); showSummonSelector = false" class="btn-ink btn-mini">布鎧</button>
-              <button @click="resolveCreateWeaponSpell('armor', 'leather'); showSummonSelector = false" class="btn-ink btn-mini">革鎧</button>
-              <button @click="resolveCreateWeaponSpell('armor', 'chain'); showSummonSelector = false" class="btn-ink btn-mini">鎖鎧</button>
-              <button @click="resolveCreateWeaponSpell('armor', 'plate'); showSummonSelector = false" class="btn-ink btn-mini">板金鎧</button>
+            <div
+              style="
+                font-weight: bold;
+                color: #705844;
+                margin-bottom: 3px;
+                font-size: 0.75rem;
+              "
+            >
+              🛡️ 防具を創造:
+            </div>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap">
+              <button
+                @click="
+                  resolveCreateWeaponSpell('armor', 'cloth');
+                  showSummonSelector = false;
+                "
+                class="btn-ink btn-mini"
+              >
+                布鎧
+              </button>
+              <button
+                @click="
+                  resolveCreateWeaponSpell('armor', 'leather');
+                  showSummonSelector = false;
+                "
+                class="btn-ink btn-mini"
+              >
+                革鎧
+              </button>
+              <button
+                @click="
+                  resolveCreateWeaponSpell('armor', 'chain');
+                  showSummonSelector = false;
+                "
+                class="btn-ink btn-mini"
+              >
+                鎖鎧
+              </button>
+              <button
+                @click="
+                  resolveCreateWeaponSpell('armor', 'plate');
+                  showSummonSelector = false;
+                "
+                class="btn-ink btn-mini"
+              >
+                板金鎧
+              </button>
             </div>
           </div>
           <!-- Shields -->
           <div>
-            <div style="font-weight: bold; color: #705844; margin-bottom: 3px; font-size: 0.75rem;">🛡️ 盾を創造:</div>
-            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-              <button @click="resolveCreateWeaponSpell('shield', 'wood'); showSummonSelector = false" class="btn-ink btn-mini">木盾</button>
-              <button @click="resolveCreateWeaponSpell('shield', 'round'); showSummonSelector = false" class="btn-ink btn-mini">丸盾</button>
+            <div
+              style="
+                font-weight: bold;
+                color: #705844;
+                margin-bottom: 3px;
+                font-size: 0.75rem;
+              "
+            >
+              🛡️ 盾を創造:
+            </div>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap">
+              <button
+                @click="
+                  resolveCreateWeaponSpell('shield', 'wood');
+                  showSummonSelector = false;
+                "
+                class="btn-ink btn-mini"
+              >
+                木盾
+              </button>
+              <button
+                @click="
+                  resolveCreateWeaponSpell('shield', 'round');
+                  showSummonSelector = false;
+                "
+                class="btn-ink btn-mini"
+              >
+                丸盾
+              </button>
             </div>
           </div>
         </div>
@@ -181,18 +479,42 @@ const maxBackpackSlots = computed(() => {
     <div class="equipped-box">
       <div class="equipped-slot">
         <span class="slot-label">右手/武器:</span>
-        <span class="slot-val">{{ character.equippedWeapon?.name || '素手 (攻撃力-2)' }}</span>
-        <button v-if="character.equippedWeapon" @click="equipWeapon(character.equippedWeapon)" class="btn-ink btn-mini">外す</button>
+        <span class="slot-val">{{
+          character.equippedWeapon?.name || "素手 (攻撃力-2)"
+        }}</span>
+        <button
+          v-if="character.equippedWeapon"
+          @click="equipWeapon(character.equippedWeapon)"
+          class="btn-ink btn-mini"
+        >
+          外す
+        </button>
       </div>
       <div class="equipped-slot">
         <span class="slot-label">胴体/防具:</span>
-        <span class="slot-val">{{ character.equippedArmor?.name || '衣服のみ' }}</span>
-        <button v-if="character.equippedArmor" @click="equipArmor(character.equippedArmor)" class="btn-ink btn-mini">外す</button>
+        <span class="slot-val">{{
+          character.equippedArmor?.name || "衣服のみ"
+        }}</span>
+        <button
+          v-if="character.equippedArmor"
+          @click="equipArmor(character.equippedArmor)"
+          class="btn-ink btn-mini"
+        >
+          外す
+        </button>
       </div>
       <div class="equipped-slot">
         <span class="slot-label">左手/盾:</span>
-        <span class="slot-val">{{ character.equippedShield?.name || 'なし' }}</span>
-        <button v-if="character.equippedShield" @click="equipShield(character.equippedShield)" class="btn-ink btn-mini">外す</button>
+        <span class="slot-val">{{
+          character.equippedShield?.name || "なし"
+        }}</span>
+        <button
+          v-if="character.equippedShield"
+          @click="equipShield(character.equippedShield)"
+          class="btn-ink btn-mini"
+        >
+          外す
+        </button>
       </div>
     </div>
 
@@ -201,63 +523,215 @@ const maxBackpackSlots = computed(() => {
       🎒 背負い袋 ({{ currentBackpackCount }} / {{ maxBackpackSlots }} スロット)
       <span v-if="isBackpackFull" class="full-badge">満杯！</span>
     </div>
-    
+
+    <!-- 内訳サマリーバー -->
+    <div class="backpack-breakdown-bar">
+      <span
+        >📦 道具・予備装備: <b>{{ backpackBreakdown.itemSlots }}</b></span
+      >
+      <span v-if="backpackBreakdown.goldSlots > 0" class="breakdown-tag gold">
+        🪙 金貨の重み: +<b>{{ backpackBreakdown.goldSlots }}</b> ({{
+          character.gold
+        }}G所持)
+      </span>
+      <span v-if="backpackBreakdown.foodSlots > 0" class="breakdown-tag food">
+        🍞 食料の重み: +<b>{{ backpackBreakdown.foodSlots }}</b> ({{
+          character.food
+        }}食所持)
+      </span>
+    </div>
+
     <div class="backpack-list">
       <!-- Weapons in bag -->
-      <div v-for="w in character.weapons" :key="w.name" class="bag-item" v-show="character.equippedWeapon?.name !== w.name">
-        <span class="item-name"><span class="item-category-label">[武器]</span> {{ w.name }}</span>
+      <div
+        v-for="(w, idx) in unequippedWeapons"
+        :key="w.name + idx"
+        class="bag-item"
+      >
+        <span class="item-name"
+          ><span class="item-category-label">[武器]</span> {{ w.name }}</span
+        >
         <div class="item-actions">
-          <button @click="equipWeapon(w)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedWeapon">装備</button>
-          <button @click="discardWeapon(w.name)" class="btn-ink btn-mini" style="background: #8c1c1c; border-color: #8c1c1c; color: white;">捨てる</button>
+          <button
+            @click="equipWeapon(w)"
+            class="btn-ink btn-mini"
+            :disabled="isBackpackFull && !character.equippedWeapon"
+          >
+            装備
+          </button>
+          <button
+            @click="discardWeapon(w.name)"
+            class="btn-ink btn-mini"
+            style="background: #8c1c1c; border-color: #8c1c1c; color: white"
+          >
+            捨てる
+          </button>
         </div>
       </div>
 
       <!-- Armors in bag -->
-      <div v-for="a in character.armors" :key="a.name" class="bag-item" v-show="character.equippedArmor?.name !== a.name">
-        <span class="item-name"><span class="item-category-label">[防具]</span> {{ a.name }}</span>
+      <div
+        v-for="(a, idx) in unequippedArmors"
+        :key="a.name + idx"
+        class="bag-item"
+      >
+        <span class="item-name"
+          ><span class="item-category-label">[防具]</span> {{ a.name }}</span
+        >
         <div class="item-actions">
-          <button @click="equipArmor(a)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedArmor">装備</button>
-          <button @click="discardArmor(a.name)" class="btn-ink btn-mini" style="background: #8c1c1c; border-color: #8c1c1c; color: white;">捨てる</button>
+          <button
+            @click="equipArmor(a)"
+            class="btn-ink btn-mini"
+            :disabled="isBackpackFull && !character.equippedArmor"
+          >
+            装備
+          </button>
+          <button
+            @click="discardArmor(a.name)"
+            class="btn-ink btn-mini"
+            style="background: #8c1c1c; border-color: #8c1c1c; color: white"
+          >
+            捨てる
+          </button>
         </div>
       </div>
 
       <!-- Shields in bag -->
-      <div v-for="s in character.shields" :key="s.name" class="bag-item" v-show="character.equippedShield?.name !== s.name">
-        <span class="item-name"><span class="item-category-label">[盾]</span> {{ s.name }}</span>
+      <div
+        v-for="(s, idx) in unequippedShields"
+        :key="s.name + idx"
+        class="bag-item"
+      >
+        <span class="item-name"
+          ><span class="item-category-label">[盾]</span> {{ s.name }}</span
+        >
         <div class="item-actions">
-          <button @click="equipShield(s)" class="btn-ink btn-mini" :disabled="isBackpackFull && !character.equippedShield">装備</button>
-          <button @click="discardShield(s.name)" class="btn-ink btn-mini" style="background: #8c1c1c; border-color: #8c1c1c; color: white;">捨てる</button>
+          <button
+            @click="equipShield(s)"
+            class="btn-ink btn-mini"
+            :disabled="isBackpackFull && !character.equippedShield"
+          >
+            装備
+          </button>
+          <button
+            @click="discardShield(s.name)"
+            class="btn-ink btn-mini"
+            style="background: #8c1c1c; border-color: #8c1c1c; color: white"
+          >
+            捨てる
+          </button>
         </div>
       </div>
       <!-- General items -->
       <div v-for="i in character.items" :key="i.id" class="bag-item">
         <span class="item-name">
-          <span class="item-category-label" v-if="['lantern', 'rope'].includes(i.type)">[道具]</span>
-          <span class="item-category-label" v-else-if="['holywater', 'healingpotion'].includes(i.type)">[消耗品]</span>
-          <span class="item-category-label" v-else-if="['magic_flute', 'magic_staff', 'magic_monocle', 'magic_shield', 'magic_doll'].includes(i.type)">[魔道具]</span>
-          <span class="item-category-label" v-else-if="['gem_small', 'gem_large', 'accessory', 'clue'].includes(i.type) || i.value > 0">[財宝]</span>
+          <span
+            class="item-category-label"
+            v-if="['lantern', 'rope'].includes(i.type)"
+            >[道具]</span
+          >
+          <span
+            class="item-category-label"
+            v-else-if="['holywater', 'healingpotion'].includes(i.type)"
+            >[消耗品]</span
+          >
+          <span
+            class="item-category-label"
+            v-else-if="
+              [
+                'magic_flute',
+                'magic_staff',
+                'magic_monocle',
+                'magic_shield',
+                'magic_doll',
+              ].includes(i.type)
+            "
+            >[魔道具]</span
+          >
+          <span
+            class="item-category-label"
+            v-else-if="
+              ['gem_small', 'gem_large', 'accessory', 'clue'].includes(
+                i.type,
+              ) || i.value > 0
+            "
+            >[財宝]</span
+          >
           <span class="item-category-label" v-else>[道具]</span>
-          {{ i.name }} <span class="val-sub" v-if="i.value > 0">(価値:{{ i.value }}g)</span>
+          {{ i.name }}
+          <span class="val-sub" v-if="i.value > 0">(価値:{{ i.value }}g)</span>
         </span>
         <div class="item-actions">
-          <button v-if="i.type === 'healingpotion'" @click="useHealingPotion" class="btn-ink btn-mini">飲む</button>
-          <button v-if="i.type === 'magic_doll'" @click="activateWarDoll(i.id)" class="btn-ink btn-mini">起動(1EXP)</button>
-          <button v-if="i.value > 0 && currentScreen === 'levelup'" @click="sellItem(i.id)" class="btn-ink btn-mini sell-btn">売却</button>
-          <button @click="discardGeneralItem(i.id)" class="btn-ink btn-mini" style="background: #8c1c1c; border-color: #8c1c1c; color: white;">捨てる</button>
+          <button
+            v-if="i.type === 'healingpotion'"
+            @click="useHealingPotion"
+            class="btn-ink btn-mini"
+          >
+            飲む
+          </button>
+          <button
+            v-if="i.type === 'magic_doll'"
+            @click="activateWarDoll(i.id)"
+            class="btn-ink btn-mini"
+          >
+            起動(1EXP)
+          </button>
+          <button
+            v-if="i.value > 0 && currentScreen === 'levelup'"
+            @click="sellItem(i.id)"
+            class="btn-ink btn-mini sell-btn"
+          >
+            売却
+          </button>
+          <button
+            @click="discardGeneralItem(i.id)"
+            class="btn-ink btn-mini"
+            style="background: #8c1c1c; border-color: #8c1c1c; color: white"
+          >
+            捨てる
+          </button>
         </div>
       </div>
 
       <!-- Gold and Food slot weight indicators (Rule 27) -->
-      <div v-if="Math.floor(character.gold / 100) > 0" class="bag-item system-item" style="color: #705844; border-color: rgba(112, 88, 68, 0.2); font-style: italic;">
-        <span class="item-name">金貨の重み ({{ Math.floor(character.gold / 100) }} スロット分)</span>
-        <span style="font-size: 0.8rem; opacity: 0.8;">※金貨100枚ごとに1スロット</span>
+      <div
+        v-if="backpackBreakdown.goldSlots > 0"
+        class="bag-item system-item"
+        style="
+          color: #705844;
+          border-color: rgba(112, 88, 68, 0.2);
+          font-style: italic;
+        "
+      >
+        <span class="item-name"
+          >🪙 金貨の重み ({{ backpackBreakdown.goldSlots }} スロット分 /
+          {{ character.gold }}G)</span
+        >
+        <span style="font-size: 0.8rem; opacity: 0.8"
+          >※金貨100枚ごとに1スロット</span
+        >
       </div>
-      <div v-if="Math.floor(character.food / 10) > 0" class="bag-item system-item" style="color: #705844; border-color: rgba(112, 88, 68, 0.2); font-style: italic;">
-        <span class="item-name">食料の重み ({{ Math.floor(character.food / 10) }} スロット分)</span>
-        <span style="font-size: 0.8rem; opacity: 0.8;">※食料10個ごとに1スロット</span>
+      <div
+        v-if="backpackBreakdown.foodSlots > 0"
+        class="bag-item system-item"
+        style="
+          color: #705844;
+          border-color: rgba(112, 88, 68, 0.2);
+          font-style: italic;
+        "
+      >
+        <span class="item-name"
+          >🍞 食料の重み ({{ backpackBreakdown.foodSlots }} スロット分 /
+          {{ character.food }}食)</span
+        >
+        <span style="font-size: 0.8rem; opacity: 0.8"
+          >※食料10個ごとに1スロット</span
+        >
       </div>
 
-      <div v-if="currentBackpackCount === 0" class="empty-text">背負い袋は空です。</div>
+      <div v-if="currentBackpackCount === 0" class="empty-text">
+        背負い袋は空です。
+      </div>
     </div>
 
     <!-- Active Followers -->
@@ -266,19 +740,55 @@ const maxBackpackSlots = computed(() => {
       <div v-for="f in followers" :key="f.id" class="follower-card">
         <div class="fol-header">
           <span class="fol-name">👤 {{ f.name }}</span>
-          <span class="fol-type">({{ f.type === 'mage' ? '魔術師' : f.type === 'soldier' ? '兵士' : f.type === 'swordsman' ? '剣士' : f.type === 'archer' ? '弓兵' : '非戦闘員' }})</span>
+          <span class="fol-type"
+            >({{
+              f.type === "mage"
+                ? "魔術師"
+                : f.type === "soldier"
+                  ? "兵士"
+                  : f.type === "swordsman"
+                    ? "剣士"
+                    : f.type === "archer"
+                      ? "弓兵"
+                      : "非戦闘員"
+            }})</span
+          >
         </div>
         <div class="fol-stats">
-          <span>技量: {{ f.skill }} | 生命: {{ f.lifeCurrent }}/{{ f.lifeMax }}</span>
-          <span v-if="['soldier', 'swordsman', 'archer', 'mage'].includes(f.type)"> | 属性: {{ f.weaponAttribute === 'strike' ? '打撃' : '斬撃' }}</span>
-          <span v-if="f.type === 'mage'"> | 魔術: {{ f.magicCurrent }}/{{ f.magicMax }}</span>
-          <span v-if="f.type === 'mage'"> | 習得: {{ f.magicList && f.magicList.length ? f.magicList.join(', ') : 'なし' }}</span>
+          <span
+            >技量: {{ f.skill }} | 生命: {{ f.lifeCurrent }}/{{
+              f.lifeMax
+            }}</span
+          >
+          <span
+            v-if="['soldier', 'swordsman', 'archer', 'mage'].includes(f.type)"
+          >
+            | 属性: {{ f.weaponAttribute === "strike" ? "打撃" : "斬撃" }}</span
+          >
+          <span v-if="f.type === 'mage'">
+            | 魔術: {{ f.magicCurrent }}/{{ f.magicMax }}</span
+          >
+          <span v-if="f.type === 'mage'">
+            | 習得:
+            {{
+              f.magicList && f.magicList.length
+                ? f.magicList.join(", ")
+                : "なし"
+            }}</span
+          >
         </div>
         <div class="fol-desc">{{ f.description }}</div>
-        <button @click="dismissFollower(f.id)" class="btn-ink btn-mini dismiss-btn">解雇</button>
+        <button
+          @click="dismissFollower(f.id)"
+          class="btn-ink btn-mini dismiss-btn"
+        >
+          解雇
+        </button>
       </div>
 
-      <div v-if="followers.length === 0" class="empty-text">従者はいません。(街で雇うことができます)</div>
+      <div v-if="followers.length === 0" class="empty-text">
+        従者はいません。(街で雇うことができます)
+      </div>
     </div>
   </div>
 </template>
@@ -298,14 +808,14 @@ const maxBackpackSlots = computed(() => {
 }
 
 .sheet-header h2 {
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   font-size: 1.2rem;
   margin: 0;
   color: var(--ink-dark);
 }
 
 .hero-name {
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   font-size: 0.95rem;
   font-weight: bold;
   color: #705844;
@@ -337,8 +847,12 @@ const maxBackpackSlots = computed(() => {
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 2px #d9534f; }
-  100% { box-shadow: 0 0 8px #d9534f; }
+  0% {
+    box-shadow: 0 0 2px #d9534f;
+  }
+  100% {
+    box-shadow: 0 0 8px #d9534f;
+  }
 }
 
 .substat-highlight {
@@ -354,7 +868,7 @@ const maxBackpackSlots = computed(() => {
 .stat-label {
   font-size: 0.7rem;
   color: #705844;
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   font-weight: bold;
 }
 
@@ -365,7 +879,7 @@ const maxBackpackSlots = computed(() => {
 }
 
 .section-title {
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   font-size: 0.95rem;
   font-weight: bold;
   color: var(--ink-dark);
@@ -386,7 +900,8 @@ const maxBackpackSlots = computed(() => {
   border-radius: 3px;
 }
 
-.supplies-box, .equipped-box {
+.supplies-box,
+.equipped-box {
   background: rgba(255, 255, 255, 0.3);
   border: 1px solid #dcd1be;
   border-radius: 4px;
@@ -495,6 +1010,29 @@ const maxBackpackSlots = computed(() => {
   padding: 10px 0;
 }
 
+.backpack-breakdown-bar {
+  font-size: 0.8rem;
+  color: #5c4b3d;
+  margin: -6px 0 10px 0;
+  padding: 4px 8px;
+  background: rgba(92, 75, 61, 0.06);
+  border-radius: 4px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.breakdown-tag.gold {
+  color: #996515;
+  font-weight: bold;
+}
+
+.breakdown-tag.food {
+  color: #8b4513;
+  font-weight: bold;
+}
+
 .followers-list {
   display: flex;
   flex-direction: column;
@@ -519,7 +1057,7 @@ const maxBackpackSlots = computed(() => {
 }
 
 .fol-name {
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   font-weight: bold;
   font-size: 0.85rem;
   color: var(--ink-dark);

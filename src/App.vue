@@ -1,17 +1,22 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { generateId } from './domain/random';
-import { useGameState } from './composables/useGameState';
-import { DEFAULT_ITEMS, DEFAULT_WEAPONS, DEFAULT_SHIELDS, DEFAULT_ARMORS } from './composables/useGameState';
-import type { Weapon, Armor, Shield, GeneralItem } from './types';
-import { runScenarioHook } from './composables/scenarioPlugins';
-import ScenarioSelector from './components/ScenarioSelector.vue';
-import CharacterCreator from './components/CharacterCreator.vue';
-import DiceRoller from './components/DiceRoller.vue';
-import DungeonExplorer from './components/DungeonExplorer.vue';
-import CombatSimulator from './components/CombatSimulator.vue';
-import MiniStatusHud from './components/MiniStatusHud.vue';
-import MessageWindow from './components/MessageWindow.vue';
+import { computed, ref } from "vue";
+import { generateId } from "./domain/random";
+import { useGameState } from "./composables/useGameState";
+import {
+  DEFAULT_ITEMS,
+  DEFAULT_WEAPONS,
+  DEFAULT_SHIELDS,
+  DEFAULT_ARMORS,
+} from "./composables/useGameState";
+import type { Weapon, Armor, Shield, GeneralItem } from "./types";
+import { runScenarioHook } from "./composables/scenarioPlugins";
+import ScenarioSelector from "./components/ScenarioSelector.vue";
+import CharacterCreator from "./components/CharacterCreator.vue";
+import DiceRoller from "./components/DiceRoller.vue";
+import DungeonExplorer from "./components/DungeonExplorer.vue";
+import CombatSimulator from "./components/CombatSimulator.vue";
+import MiniStatusHud from "./components/MiniStatusHud.vue";
+import MessageWindow from "./components/MessageWindow.vue";
 
 const {
   currentScreen,
@@ -42,63 +47,79 @@ const {
   transitionToExplore,
   triggerGameOver,
   retrySession,
-  lastClearResult
+  lastClearResult,
 } = useGameState();
 
 const ALL_SPELLS = [
-  { name: '気絶', desc: '弱い敵を眠らせて無力化する。アンデッド等には無効。' },
-  { name: '炎球', desc: '敵全体への攻撃魔法。狭い場所ほど威力が上がる。' },
-  { name: '氷槍', desc: '敵1体に2点ダメージを与える強力な氷の槍。' },
-  { name: '速撃', desc: '先制呪文。反応確認後でもプレイヤーが先制攻撃できる。' },
-  { name: '武具創造', desc: '武器・防具を創造する（両手武器や盾など。冒険終了時消失）。' },
-  { name: '友情', desc: 'ワイロ金額を10分の1にするか、反応チェックの出目を±1する。' },
+  { name: "気絶", desc: "弱い敵を眠らせて無力化する。アンデッド等には無効。" },
+  { name: "炎球", desc: "敵全体への攻撃魔法。狭い場所ほど威力が上がる。" },
+  { name: "氷槍", desc: "敵1体に2点ダメージを与える強力な氷の槍。" },
+  {
+    name: "速撃",
+    desc: "先制呪文。反応確認後でもプレイヤーが先制攻撃できる。",
+  },
+  {
+    name: "武具創造",
+    desc: "武器・防具を創造する（両手武器や盾など。冒険終了時消失）。",
+  },
+  {
+    name: "友情",
+    desc: "ワイロ金額を10分の1にするか、反応チェックの出目を±1する。",
+  },
 ];
 
 const ALL_MIRACLES = [
-  { name: '防衛', desc: '戦闘中、味方全体の防御ロールに+1の修正を与える。' },
-  { name: 'そらし', desc: '受けた飛び道具（矢や石）のダメージを無効化する。' },
-  { name: '聖洗脳', desc: '弱い敵が1体だけになった時、幸運判定で捕虜にする。' },
-  { name: '招天', desc: 'アンデッドのみに効く光の矢（弱敵は即死、強敵は1ダメージ）を2回放つ。' },
-  { name: '聖餐', desc: '食料で回復する生命力をさらに+1点増やす。' },
-  { name: '祝福', desc: '呪い・石化・麻痺の状態異常を1つ即座に解除する。' },
+  { name: "防衛", desc: "戦闘中、味方全体の防御ロールに+1の修正を与える。" },
+  { name: "そらし", desc: "受けた飛び道具（矢や石）のダメージを無効化する。" },
+  { name: "聖洗脳", desc: "弱い敵が1体だけになった時、幸運判定で捕虜にする。" },
+  {
+    name: "招天",
+    desc: "アンデッドのみに効く光の矢（弱敵は即死、強敵は1ダメージ）を2回放つ。",
+  },
+  { name: "聖餐", desc: "食料で回復する生命力をさらに+1点増やす。" },
+  { name: "祝福", desc: "呪い・石化・麻痺の状態異常を1つ即座に解除する。" },
 ];
 
 const learnableSpells = computed(() => {
-  if (character.value.subStatType === 'magic') {
-    return ALL_SPELLS.map(s => ({
+  if (character.value.subStatType === "magic") {
+    return ALL_SPELLS.map((s) => ({
       ...s,
-      isLearned: character.value.spells.includes(s.name)
+      isLearned: character.value.spells.includes(s.name),
     }));
-  } else if (character.value.subStatType === 'luck') {
-    return ALL_MIRACLES.map(m => ({
+  } else if (character.value.subStatType === "luck") {
+    return ALL_MIRACLES.map((m) => ({
       ...m,
-      isLearned: character.value.miracles.includes(m.name)
+      isLearned: character.value.miracles.includes(m.name),
     }));
   }
   return [];
 });
 
 const canLearnSpells = computed(() => {
-  if (character.value.subStatType !== 'magic' && character.value.subStatType !== 'luck') {
+  if (
+    character.value.subStatType !== "magic" &&
+    character.value.subStatType !== "luck"
+  ) {
     return false;
   }
   const allowed = Math.floor(character.value.subStatMax / 2);
-  const currentCount = character.value.subStatType === 'magic' 
-    ? character.value.spells.length 
-    : character.value.miracles.length;
+  const currentCount =
+    character.value.subStatType === "magic"
+      ? character.value.spells.length
+      : character.value.miracles.length;
   return currentCount < allowed;
 });
 
 function learnSpell(name: string) {
   const allowed = Math.floor(character.value.subStatMax / 2);
-  if (character.value.subStatType === 'magic') {
+  if (character.value.subStatType === "magic") {
     if (character.value.spells.length >= allowed) return;
     character.value.spells.push(name);
-    addLog(`🔮 魔術 【${name}】 を習得しました！`, 'success');
-  } else if (character.value.subStatType === 'luck') {
+    addLog(`🔮 魔術 【${name}】 を習得しました！`, "success");
+  } else if (character.value.subStatType === "luck") {
     if (character.value.miracles.length >= allowed) return;
     character.value.miracles.push(name);
-    addLog(`✨ 奇跡 【${name}】 を習得しました！`, 'success');
+    addLog(`✨ 奇跡 【${name}】 を習得しました！`, "success");
   }
 }
 
@@ -110,7 +131,7 @@ const townWeapons = [
   { ...DEFAULT_WEAPONS.bow },
   { ...DEFAULT_WEAPONS.magicLight },
   { ...DEFAULT_WEAPONS.magicOneHanded },
-  { ...DEFAULT_WEAPONS.magicTwoHanded }
+  { ...DEFAULT_WEAPONS.magicTwoHanded },
 ] as Weapon[];
 
 const townArmors = [
@@ -121,52 +142,98 @@ const townArmors = [
   { ...DEFAULT_ARMORS.magicCloth },
   { ...DEFAULT_ARMORS.magicLeather },
   { ...DEFAULT_ARMORS.magicChain },
-  { ...DEFAULT_ARMORS.magicPlate }
+  { ...DEFAULT_ARMORS.magicPlate },
 ] as Armor[];
 
 const townShields = [
   { ...DEFAULT_SHIELDS.wood },
   { ...DEFAULT_SHIELDS.round },
   { ...DEFAULT_SHIELDS.magicWood },
-  { ...DEFAULT_SHIELDS.magicRound }
+  { ...DEFAULT_SHIELDS.magicRound },
 ] as Shield[];
 
 const townItems = [
   { ...DEFAULT_ITEMS.lantern, value: 0 },
   { ...DEFAULT_ITEMS.rope, value: 0 },
   { ...DEFAULT_ITEMS.holywater, value: 0 },
-  { ...DEFAULT_ITEMS.potion, value: 0 }
-] as Omit<GeneralItem, 'id'>[];
+  { ...DEFAULT_ITEMS.potion, value: 0 },
+] as Omit<GeneralItem, "id">[];
 
 const hireableFollowers = [
-  { type: 'soldier', name: '兵士', cost: 0, desc: '戦闘要員。技量0、生命1。無料。' },
-  { type: 'swordsman', name: '剣士', cost: 7, desc: '戦闘要員。技量1、生命1。金貨7枚。' },
-  { type: 'archer', name: '弓兵', cost: 5, desc: '戦闘要員。第0R射撃。金貨5枚。' },
-  { type: 'mage', name: '魔術師', cost: 5, desc: '戦闘要員。魔術1。金貨5枚。' },
-  { type: 'scout', name: '斥候', cost: 5, desc: '非戦闘。察知可能。金貨5枚。' },
-  { type: 'lantern', name: 'ランタン持ち', cost: 0, desc: '非戦闘。明かり提供。無料。' },
-  { type: 'swordbearer', name: '太刀持ち', cost: 0, desc: '非戦闘。武器即時持替。無料。' },
-  { type: 'porter', name: '荷物持ち', cost: 0, desc: '非戦闘.バッグ拡張。無料。' },
+  {
+    type: "soldier",
+    name: "兵士",
+    cost: 0,
+    desc: "戦闘要員。技量0、生命1。無料。",
+  },
+  {
+    type: "swordsman",
+    name: "剣士",
+    cost: 7,
+    desc: "戦闘要員。技量1、生命1。金貨7枚。",
+  },
+  {
+    type: "archer",
+    name: "弓兵",
+    cost: 5,
+    desc: "戦闘要員。第0R射撃。金貨5枚。",
+  },
+  { type: "mage", name: "魔術師", cost: 5, desc: "戦闘要員。魔術1。金貨5枚。" },
+  { type: "scout", name: "斥候", cost: 5, desc: "非戦闘。察知可能。金貨5枚。" },
+  {
+    type: "lantern",
+    name: "ランタン持ち",
+    cost: 0,
+    desc: "非戦闘。明かり提供。無料。",
+  },
+  {
+    type: "swordbearer",
+    name: "太刀持ち",
+    cost: 0,
+    desc: "非戦闘。武器即時持替。無料。",
+  },
+  {
+    type: "porter",
+    name: "荷物持ち",
+    cost: 0,
+    desc: "非戦闘.バッグ拡張。無料。",
+  },
 ];
 
-const selectedFollowerAttrib = ref<Record<string, 'strike' | 'slash'>>({
-  soldier: 'strike',
-  swordsman: 'strike',
-  archer: 'slash',
-  mage: 'strike'
+const selectedFollowerAttrib = ref<Record<string, "strike" | "slash">>({
+  soldier: "strike",
+  swordsman: "strike",
+  archer: "slash",
+  mage: "strike",
 });
 
-const selectedMageSpell = ref('炎球');
+const selectedMageSpell = ref("炎球");
+
+function checkGoldSlotFreed(prevGold: number, nextGold: number) {
+  const prevSlots = Math.floor(prevGold / 100);
+  const nextSlots = Math.floor(nextGold / 100);
+  if (prevSlots > nextSlots) {
+    addLog(
+      `🪙 金貨の消費により背負い袋の重量負担が減り、スロットが${prevSlots - nextSlots}枠解放されました！`,
+      "info",
+    );
+  }
+}
 
 function buyWeapon(w: Weapon) {
   if (isBackpackFull.value) {
-    addLog('🎒 背負い袋が満杯のため購入できません！', 'error');
+    addLog("🎒 背負い袋が満杯のため購入できません！", "error");
     return;
   }
   if (character.value.gold < w.goldCost) return;
+  const prevGold = character.value.gold;
   character.value.gold -= w.goldCost;
   character.value.weapons.push({ ...w });
-  addLog(`街の市場で [${w.name}] を購入しました。(金貨${w.goldCost}枚消費)`, 'success');
+  addLog(
+    `街の市場で [${w.name}] を購入しました。(金貨${w.goldCost}枚消費)`,
+    "success",
+  );
+  checkGoldSlotFreed(prevGold, character.value.gold);
 }
 
 function buyArmor(a: Armor) {
@@ -179,47 +246,71 @@ function buyArmor(a: Armor) {
       equipArmor(null);
     }
     character.value.armors = [];
-    addLog(`古い防具 [${oldArmor.name}] を処分しました。`, 'info');
+    addLog(`古い防具 [${oldArmor.name}] を処分しました。`, "info");
   }
 
+  const prevGold = character.value.gold;
   character.value.gold -= a.goldCost;
   character.value.armors.push({ ...a });
-  addLog(`街の市場で [${a.name}] を購入しました。(金貨${a.goldCost}枚消費)`, 'success');
+  addLog(
+    `街の市場で [${a.name}] を購入しました。(金貨${a.goldCost}枚消費)`,
+    "success",
+  );
+  checkGoldSlotFreed(prevGold, character.value.gold);
   equipArmor(character.value.armors[0]);
 }
 
 function buyShield(s: Shield) {
   if (isBackpackFull.value) {
-    addLog('🎒 背負い袋が満杯のため購入できません！', 'error');
+    addLog("🎒 背負い袋が満杯のため購入できません！", "error");
     return;
   }
   if (character.value.gold < s.goldCost) return;
+  const prevGold = character.value.gold;
   character.value.gold -= s.goldCost;
   character.value.shields.push({ ...s });
-  addLog(`街の市場で [${s.name}] を購入しました。(金貨${s.goldCost}枚消費)`, 'success');
+  addLog(
+    `街の市場で [${s.name}] を購入しました。(金貨${s.goldCost}枚消費)`,
+    "success",
+  );
+  checkGoldSlotFreed(prevGold, character.value.gold);
 }
 
-function buyItem(item: Omit<GeneralItem, 'id'>) {
+function buyItem(item: Omit<GeneralItem, "id">) {
   if (isBackpackFull.value) {
-    addLog('🎒 背負い袋が満杯のため購入できません！', 'error');
+    addLog("🎒 背負い袋が満杯のため購入できません！", "error");
     return;
   }
   if (character.value.gold < item.goldCost) return;
+  const prevGold = character.value.gold;
   character.value.gold -= item.goldCost;
   character.value.items.push({
     ...item,
-    id: generateId()
+    id: generateId(),
   } as GeneralItem);
-  addLog(`街の市場で [${item.name}] を購入しました。(金貨${item.goldCost}枚消費)`, 'success');
+  addLog(
+    `街の市場で [${item.name}] を購入しました。(金貨${item.goldCost}枚消費)`,
+    "success",
+  );
+  checkGoldSlotFreed(prevGold, character.value.gold);
 }
 
 function buyChurchBlessing() {
   if (character.value.gold < 50) return;
-  if (!character.value.statusEffects || character.value.statusEffects.length === 0) return;
-  
+  if (
+    !character.value.statusEffects ||
+    character.value.statusEffects.length === 0
+  )
+    return;
+
+  const prevGold = character.value.gold;
   character.value.gold -= 50;
   character.value.statusEffects = [];
-  addLog('⛪ 教会で『祝福の魔法』を受け、すべての状態異常が回復しました。(金貨50枚消費)', 'success');
+  addLog(
+    "⛪ 教会で『祝福の魔法』を受け、すべての状態異常が回復しました。(金貨50枚消費)",
+    "success",
+  );
+  checkGoldSlotFreed(prevGold, character.value.gold);
 }
 
 // Resolve dungeon victory, move to next adventure level-up
@@ -237,16 +328,19 @@ function proceedToNextAdventure() {
     triggerLevelUp,
     transitionToSuccess,
     transitionToExplore,
-    triggerGameOver
+    triggerGameOver,
   };
-  runScenarioHook(activeScenario.value?.id, 'onAdventureEnd', context);
+  runScenarioHook(activeScenario.value?.id, "onAdventureEnd", context);
   restoreStatsAfterAdventure();
   // Clear depth
   dungeonDepth.value = 0;
   // Award 1 EXP for victory
   character.value.exp += 1;
   character.value.level += 1;
-  addLog(`🎉 ダンジョンクリア報酬！ 経験値 +1。新しいレベルは ${character.value.level} です。`, 'success');
+  addLog(
+    `🎉 ダンジョンクリア報酬！ 経験値 +1。新しいレベルは ${character.value.level} です。`,
+    "success",
+  );
   activeScenario.value = null; // シナリオの選択状態をクリア
   triggerLevelUp(); // 直接レベルアップ/街の市場画面へ遷移
 }
@@ -258,17 +352,26 @@ function handleRetry() {
 
 function startAdventure() {
   if (canLearnSpells.value) {
-    const isMagic = character.value.subStatType === 'magic';
-    const typeName = isMagic ? '魔術' : '奇跡';
+    const isMagic = character.value.subStatType === "magic";
+    const typeName = isMagic ? "魔術" : "奇跡";
     const allowed = Math.floor(character.value.subStatMax / 2);
-    const currentCount = isMagic ? character.value.spells.length : character.value.miracles.length;
+    const currentCount = isMagic
+      ? character.value.spells.length
+      : character.value.miracles.length;
     const remain = allowed - currentCount;
-    if (!confirm(`未習得の${typeName}スロットが ${remain} つ残っています。習得せずに冒険を開始しますか？`)) {
+    if (
+      !confirm(
+        `未習得の${typeName}スロットが ${remain} つ残っています。習得せずに冒険を開始しますか？`,
+      )
+    ) {
       return;
     }
   }
   transitionToExplore();
-  addLog('🧭 さあ、暗い地下迷宮へと歩みを進めましょう！ 生きて宝を持ち帰るために。', 'success');
+  addLog(
+    "🧭 さあ、暗い地下迷宮へと歩みを進めましょう！ 生きて宝を持ち帰るために。",
+    "success",
+  );
   const context = {
     character,
     followers,
@@ -282,39 +385,53 @@ function startAdventure() {
     triggerLevelUp,
     transitionToSuccess,
     transitionToExplore,
-    triggerGameOver
+    triggerGameOver,
   };
-  runScenarioHook(activeScenario.value?.id, 'onAdventureStart', context);
+  runScenarioHook(activeScenario.value?.id, "onAdventureStart", context);
 }
-
 </script>
 
 <template>
-  <MiniStatusHud v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'" />
+  <MiniStatusHud
+    v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'"
+  />
   <div class="tabletop-container">
     <!-- ドラクエ風メッセージ承認ウィンドウ（探索・戦闘以外での表示：レベルアップ、ゲームオーバー、クリア画面等） -->
-    <MessageWindow v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select' && currentScreen !== 'explore' && currentScreen !== 'combat'" />
+    <MessageWindow
+      v-if="
+        currentScreen !== 'creator' &&
+        currentScreen !== 'scenario_select' &&
+        currentScreen !== 'explore' &&
+        currentScreen !== 'combat'
+      "
+    />
 
     <div class="desktop-layout">
-      
       <!-- LEFT COLUMN: Main Opened Gamebook -->
       <div class="left-book-section">
         <!-- Render current view -->
         <ScenarioSelector v-if="currentScreen === 'scenario_select'" />
-        
+
         <CharacterCreator v-else-if="currentScreen === 'creator'" />
-        
+
         <DungeonExplorer v-else-if="currentScreen === 'explore'" />
-        
+
         <CombatSimulator v-else-if="currentScreen === 'combat'" />
 
         <!-- LEVEL UP STAT ALLOCATOR LEDGER -->
-        <div v-else-if="currentScreen === 'levelup'" class="levelup-card paper-sheet">
+        <div
+          v-else-if="currentScreen === 'levelup'"
+          class="levelup-card paper-sheet"
+        >
           <h2 class="ledger-title">🖋️ 冒険者の強化記録紙</h2>
-          <p class="ledger-desc">迷宮に入る前に、経験点を消費して能力値の最大値を上昇させることができます。</p>
-          
+          <p class="ledger-desc">
+            迷宮に入る前に、経験点を消費して能力値の最大値を上昇させることができます。
+          </p>
+
           <div class="exp-pool">
-            <span>所持経験点: <b>{{ character.exp }}</b> 点</span>
+            <span
+              >所持経験点: <b>{{ character.exp }}</b> 点</span
+            >
           </div>
 
           <div class="ledger-rows">
@@ -322,18 +439,21 @@ function startAdventure() {
             <div class="ledger-row">
               <span class="row-label">🧍 <b>技量点:</b></span>
               <span class="row-val">{{ character.skillMax }} / 2 (限界値)</span>
-              <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
-                <button 
-                  @click="refundExpForStat('skill')" 
-                  class="btn-ink btn-mini" 
+              <div
+                class="ledger-buttons"
+                style="display: flex; gap: 8px; align-items: center"
+              >
+                <button
+                  @click="refundExpForStat('skill')"
+                  class="btn-ink btn-mini"
                   :disabled="character.skillMax <= checkpointSkillMax"
-                  style="border-color: #8c1c1c; color: #8c1c1c;"
+                  style="border-color: #8c1c1c; color: #8c1c1c"
                 >
                   - 戻す
                 </button>
-                <button 
-                  @click="spendExpForStat('skill')" 
-                  class="btn-ink btn-mini" 
+                <button
+                  @click="spendExpForStat('skill')"
+                  class="btn-ink btn-mini"
                   :disabled="character.exp < 4 || character.skillMax >= 2"
                 >
                   +1上昇 (4 EXP)
@@ -344,20 +464,30 @@ function startAdventure() {
             <!-- Life -->
             <div class="ledger-row">
               <span class="row-label">❤️ <b>生命点:</b></span>
-              <span class="row-val">{{ character.baseLifeMax ?? 4 }} / 8 (装備込み: {{ character.lifeMax }})</span>
-              <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
-                <button 
-                  @click="refundExpForStat('life')" 
-                  class="btn-ink btn-mini" 
-                  :disabled="(character.baseLifeMax ?? 4) <= checkpointBaseLifeMax"
-                  style="border-color: #8c1c1c; color: #8c1c1c;"
+              <span class="row-val"
+                >{{ character.baseLifeMax ?? 4 }} / 8 (装備込み:
+                {{ character.lifeMax }})</span
+              >
+              <div
+                class="ledger-buttons"
+                style="display: flex; gap: 8px; align-items: center"
+              >
+                <button
+                  @click="refundExpForStat('life')"
+                  class="btn-ink btn-mini"
+                  :disabled="
+                    (character.baseLifeMax ?? 4) <= checkpointBaseLifeMax
+                  "
+                  style="border-color: #8c1c1c; color: #8c1c1c"
                 >
                   - 戻す
                 </button>
-                <button 
-                  @click="spendExpForStat('life')" 
-                  class="btn-ink btn-mini" 
-                  :disabled="character.exp < 1 || (character.baseLifeMax ?? 4) >= 8"
+                <button
+                  @click="spendExpForStat('life')"
+                  class="btn-ink btn-mini"
+                  :disabled="
+                    character.exp < 1 || (character.baseLifeMax ?? 4) >= 8
+                  "
                 >
                   +1上昇 (1 EXP)
                 </button>
@@ -370,22 +500,29 @@ function startAdventure() {
                 <span v-if="character.subStatType === 'magic'">🔮</span>
                 <span v-else-if="character.subStatType === 'luck'">✨</span>
                 <span v-else-if="character.subStatType === 'strength'">💪</span>
-                <span v-else-if="character.subStatType === 'dexterity'">🏹</span>
+                <span v-else-if="character.subStatType === 'dexterity'"
+                  >🏹</span
+                >
                 <b>副能力値:</b>
               </span>
-              <span class="row-val">{{ character.subStatMax }} / 6 (限界値)</span>
-              <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
-                <button 
-                  @click="refundExpForStat('sub')" 
-                  class="btn-ink btn-mini" 
+              <span class="row-val"
+                >{{ character.subStatMax }} / 6 (限界値)</span
+              >
+              <div
+                class="ledger-buttons"
+                style="display: flex; gap: 8px; align-items: center"
+              >
+                <button
+                  @click="refundExpForStat('sub')"
+                  class="btn-ink btn-mini"
                   :disabled="character.subStatMax <= checkpointSubStatMax"
-                  style="border-color: #8c1c1c; color: #8c1c1c;"
+                  style="border-color: #8c1c1c; color: #8c1c1c"
                 >
                   - 戻す
                 </button>
-                <button 
-                  @click="spendExpForStat('sub')" 
-                  class="btn-ink btn-mini" 
+                <button
+                  @click="spendExpForStat('sub')"
+                  class="btn-ink btn-mini"
                   :disabled="character.exp < 1 || character.subStatMax >= 6"
                 >
                   +1上昇 (1 EXP)
@@ -396,19 +533,24 @@ function startAdventure() {
             <!-- Follower slots -->
             <div class="ledger-row">
               <span class="row-label">👥 <b>従者点:</b></span>
-              <span class="row-val">{{ character.followerMax }} / 9 (限界値)</span>
-              <div class="ledger-buttons" style="display: flex; gap: 8px; align-items: center;">
-                <button 
-                  @click="refundExpForStat('follower')" 
-                  class="btn-ink btn-mini" 
+              <span class="row-val"
+                >{{ character.followerMax }} / 9 (限界値)</span
+              >
+              <div
+                class="ledger-buttons"
+                style="display: flex; gap: 8px; align-items: center"
+              >
+                <button
+                  @click="refundExpForStat('follower')"
+                  class="btn-ink btn-mini"
                   :disabled="character.followerMax <= checkpointFollowerMax"
-                  style="border-color: #8c1c1c; color: #8c1c1c;"
+                  style="border-color: #8c1c1c; color: #8c1c1c"
                 >
                   - 戻す
                 </button>
-                <button 
-                  @click="spendExpForStat('follower')" 
-                  class="btn-ink btn-mini" 
+                <button
+                  @click="spendExpForStat('follower')"
+                  class="btn-ink btn-mini"
                   :disabled="character.exp < 2 || character.followerMax >= 9"
                 >
                   +1上昇 (2 EXP)
@@ -418,59 +560,189 @@ function startAdventure() {
           </div>
 
           <!-- Spells / Miracles Learning Section (Rule 18 / 20) -->
-          <div v-if="character.subStatType === 'magic' || character.subStatType === 'luck'" class="spell-learning-section" style="margin-top: 25px; padding: 20px; background: rgba(75, 0, 130, 0.03); border: 1px dashed #4b0082; border-radius: 6px;">
+          <div
+            v-if="
+              character.subStatType === 'magic' ||
+              character.subStatType === 'luck'
+            "
+            class="spell-learning-section"
+            style="
+              margin-top: 25px;
+              padding: 20px;
+              background: rgba(75, 0, 130, 0.03);
+              border: 1px dashed #4b0082;
+              border-radius: 6px;
+            "
+          >
             <!-- 1. Active learning interface when there are empty slots -->
             <div v-if="canLearnSpells">
-              <h3 style="margin-top: 0; font-family: 'Noto Serif JP', serif; color: var(--ink-dark); font-size: 1.1rem; border-bottom: 1px dashed #4b0082; padding-bottom: 5px;">
-                {{ character.subStatType === 'magic' ? '🔮 新たな魔術の習得' : '✨ 新たな奇跡の習得' }} 
-                (空きスロット: {{ Math.floor(character.subStatMax / 2) - (character.subStatType === 'magic' ? character.spells.length : character.miracles.length) }}つ)
+              <h3
+                style="
+                  margin-top: 0;
+                  font-family: &quot;Noto Serif JP&quot;, serif;
+                  color: var(--ink-dark);
+                  font-size: 1.1rem;
+                  border-bottom: 1px dashed #4b0082;
+                  padding-bottom: 5px;
+                "
+              >
+                {{
+                  character.subStatType === "magic"
+                    ? "🔮 新たな魔術の習得"
+                    : "✨ 新たな奇跡の習得"
+                }}
+                (空きスロット:
+                {{
+                  Math.floor(character.subStatMax / 2) -
+                  (character.subStatType === "magic"
+                    ? character.spells.length
+                    : character.miracles.length)
+                }}つ)
               </h3>
-              <p style="font-size: 0.85rem; color: #555; margin-bottom: 15px;">
-                初期習得、または副能力値の最大値が上昇したため、新たな魔法を習得できます。（最大習得数: 魔術点/幸運点の半分）
+              <p style="font-size: 0.85rem; color: #555; margin-bottom: 15px">
+                初期習得、または副能力値の最大値が上昇したため、新たな魔法を習得できます。（最大習得数:
+                魔術点/幸運点の半分）
               </p>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
-                <button 
-                  v-for="spell in learnableSpells" 
-                  :key="spell.name" 
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 10px;
+                  margin-bottom: 20px;
+                "
+              >
+                <button
+                  v-for="spell in learnableSpells"
+                  :key="spell.name"
                   @click="!spell.isLearned && learnSpell(spell.name)"
                   class="btn-ink btn-mini"
                   :disabled="spell.isLearned"
-                  style="justify-content: flex-start; text-align: left; height: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; position: relative;"
+                  style="
+                    justify-content: flex-start;
+                    text-align: left;
+                    height: auto;
+                    padding: 8px 12px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px;
+                    position: relative;
+                  "
                 >
-                  <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 5px;">
-                    <b style="font-size: 0.9rem;">{{ spell.name }}</b>
-                    <span v-if="spell.isLearned" style="font-size: 0.7rem; background: #e8e0d4; padding: 1px 5px; border-radius: 3px; font-weight: bold; color: var(--ink-dark);">習得済み</span>
+                  <div
+                    style="
+                      display: flex;
+                      justify-content: space-between;
+                      width: 100%;
+                      align-items: center;
+                      gap: 5px;
+                    "
+                  >
+                    <b style="font-size: 0.9rem">{{ spell.name }}</b>
+                    <span
+                      v-if="spell.isLearned"
+                      style="
+                        font-size: 0.7rem;
+                        background: #e8e0d4;
+                        padding: 1px 5px;
+                        border-radius: 3px;
+                        font-weight: bold;
+                        color: var(--ink-dark);
+                      "
+                      >習得済み</span
+                    >
                   </div>
-                  <span style="font-size: 0.7rem; font-weight: normal; color: #555;">{{ spell.desc }}</span>
+                  <span
+                    style="font-size: 0.7rem; font-weight: normal; color: #555"
+                    >{{ spell.desc }}</span
+                  >
                 </button>
               </div>
             </div>
 
             <!-- 2. Spells list (always visible if character is mage/priest) -->
-            <h3 :style="{ marginTop: canLearnSpells ? '15px' : '0' }" style="font-family: 'Noto Serif JP', serif; color: var(--ink-dark); font-size: 1.1rem; border-bottom: 1px dashed #4b0082; padding-bottom: 5px; margin-bottom: 10px;">
-              {{ character.subStatType === 'magic' ? '🔮 習得済みの魔術一覧' : '✨ 習得済みの奇跡一覧' }} 
-              ({{ (character.subStatType === 'magic' ? character.spells.length : character.miracles.length) }} / {{ Math.floor(character.subStatMax / 2) }} スロット使用中)
+            <h3
+              :style="{ marginTop: canLearnSpells ? '15px' : '0' }"
+              style="
+                font-family: &quot;Noto Serif JP&quot;, serif;
+                color: var(--ink-dark);
+                font-size: 1.1rem;
+                border-bottom: 1px dashed #4b0082;
+                padding-bottom: 5px;
+                margin-bottom: 10px;
+              "
+            >
+              {{
+                character.subStatType === "magic"
+                  ? "🔮 習得済みの魔術一覧"
+                  : "✨ 習得済みの奇跡一覧"
+              }}
+              ({{
+                character.subStatType === "magic"
+                  ? character.spells.length
+                  : character.miracles.length
+              }}
+              / {{ Math.floor(character.subStatMax / 2) }} スロット使用中)
             </h3>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; align-items: center;">
-              <div 
-                v-for="name in (character.subStatType === 'magic' ? character.spells : character.miracles)" 
-                :key="name" 
+            <div
+              style="
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                margin-top: 10px;
+                align-items: center;
+              "
+            >
+              <div
+                v-for="name in character.subStatType === 'magic'
+                  ? character.spells
+                  : character.miracles"
+                :key="name"
                 class="badge-stat"
-                style="background: #e8e0d4; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;"
+                style="
+                  background: #e8e0d4;
+                  padding: 5px 10px;
+                  border-radius: 4px;
+                  font-weight: bold;
+                  font-size: 0.85rem;
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 6px;
+                "
               >
                 <span>{{ name }}</span>
                 <button
-                  v-if="!(character.subStatType === 'magic' ? checkpointSpells.includes(name) : checkpointMiracles.includes(name))"
+                  v-if="
+                    !(character.subStatType === 'magic'
+                      ? checkpointSpells.includes(name)
+                      : checkpointMiracles.includes(name))
+                  "
                   @click="forgetSpell(name)"
-                  style="background: #8c1c1c; color: white; border: none; border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; padding: 0;"
+                  style="
+                    background: #8c1c1c;
+                    color: white;
+                    border: none;
+                    border-radius: 50%;
+                    width: 16px;
+                    height: 16px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 10px;
+                    cursor: pointer;
+                    padding: 0;
+                  "
                   title="この習得を取り消す"
                 >
                   ✕
                 </button>
               </div>
-              <span 
-                v-if="(character.subStatType === 'magic' ? character.spells.length : character.miracles.length) === 0"
-                style="font-size: 0.85rem; color: #888; font-style: italic;"
+              <span
+                v-if="
+                  (character.subStatType === 'magic'
+                    ? character.spells.length
+                    : character.miracles.length) === 0
+                "
+                style="font-size: 0.85rem; color: #888; font-style: italic"
               >
                 （未習得です。上のリストから選択して習得してください）
               </span>
@@ -479,63 +751,263 @@ function startAdventure() {
 
           <!-- TOWN MARKET & RECRUITER (Rule 28 & 32 Compliance) -->
           <div class="divider"></div>
-          
+
           <div class="town-market">
-            <h3 class="ledger-title" style="font-size: 1.1rem; border-bottom: 1px dashed var(--ink-dark); margin-top: 10px;">🛒 街の市場 ＆ 従者スカウト</h3>
-            <div v-if="activeScenario" style="margin-bottom: 10px; font-size: 0.85rem; background: rgba(92, 75, 61, 0.08); padding: 8px 12px; border-radius: 4px; border-left: 3px solid var(--ink-dark); display: flex; justify-content: space-between; align-items: center;">
-              <span>🧭 挑戦中のシナリオ: <b>{{ activeScenario.title }}</b> (全 {{ activeScenario.totalRoomsToClear }} 部屋 + 決戦)</span>
-              <button @click="currentScreen = 'scenario_select'" class="btn-ink btn-mini" style="font-size: 0.75rem;">シナリオを変更する</button>
+            <h3
+              class="ledger-title"
+              style="
+                font-size: 1.1rem;
+                border-bottom: 1px dashed var(--ink-dark);
+                margin-top: 10px;
+              "
+            >
+              🛒 街の市場 ＆ 従者スカウト
+            </h3>
+            <div
+              v-if="activeScenario"
+              style="
+                margin-bottom: 10px;
+                font-size: 0.85rem;
+                background: rgba(92, 75, 61, 0.08);
+                padding: 8px 12px;
+                border-radius: 4px;
+                border-left: 3px solid var(--ink-dark);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <span
+                >🧭 挑戦中のシナリオ: <b>{{ activeScenario.title }}</b> (全
+                {{ activeScenario.totalRoomsToClear }} 部屋 + 決戦)</span
+              >
+              <button
+                @click="currentScreen = 'scenario_select'"
+                class="btn-ink btn-mini"
+                style="font-size: 0.75rem"
+              >
+                シナリオを変更する
+              </button>
             </div>
-            <p class="ledger-desc" style="font-size: 0.85rem; margin-bottom: 15px;">
+            <p
+              class="ledger-desc"
+              style="font-size: 0.85rem; margin-bottom: 15px"
+            >
               冒険へ旅立つ前に、初期の金貨を使って基礎的な装備の購入や従者を雇うことができます。
-              <br/>
-              <b>所持金貨:</b> <span style="color: #b8860b; font-weight: bold;">{{ character.gold }}</span> 枚 | 
-              <b>従者枠:</b> <span style="font-weight: bold;">{{ followers.length }} / {{ character.followerCurrent }}</span> 人
+              <br />
+              <b>所持金貨:</b>
+              <span style="color: #b8860b; font-weight: bold">{{
+                character.gold
+              }}</span>
+              枚 | <b>従者枠:</b>
+              <span style="font-weight: bold"
+                >{{ followers.length }} / {{ character.followerCurrent }}</span
+              >
+              人
             </p>
-            
-            <div class="market-grid-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+
+            <div
+              class="market-grid-container"
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                margin-bottom: 20px;
+              "
+            >
               <!-- Left: Gear Shop -->
-              <div class="shop-column" style="background: rgba(255,255,255,0.3); border: 1px solid #c2b09a; padding: 15px; border-radius: 4px; max-height: 400px; overflow-y: auto;">
-                <h4 style="margin: 0 0 10px 0; font-family: 'Noto Serif JP', serif; font-size: 0.9rem; color: var(--ink-dark); border-bottom: 1px dashed #c2b09a; padding-bottom: 3px;">🛡️ 装備品・道具の店</h4>
-                
-                <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div
+                class="shop-column"
+                style="
+                  background: rgba(255, 255, 255, 0.3);
+                  border: 1px solid #c2b09a;
+                  padding: 15px;
+                  border-radius: 4px;
+                  max-height: 400px;
+                  overflow-y: auto;
+                "
+              >
+                <h4
+                  style="
+                    margin: 0 0 10px 0;
+                    font-family: &quot;Noto Serif JP&quot;, serif;
+                    font-size: 0.9rem;
+                    color: var(--ink-dark);
+                    border-bottom: 1px dashed #c2b09a;
+                    padding-bottom: 3px;
+                  "
+                >
+                  🛡️ 装備品・道具の店
+                </h4>
+
+                <div style="display: flex; flex-direction: column; gap: 8px">
                   <!-- Weapons -->
-                  <div style="font-weight: bold; font-size: 0.75rem; color: #705844;">近接/射撃武器:</div>
-                  <div v-for="w in townWeapons" :key="w.name" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; border-bottom: 1px dashed #e8e0d4; padding: 3px 0;">
+                  <div
+                    style="
+                      font-weight: bold;
+                      font-size: 0.75rem;
+                      color: #705844;
+                    "
+                  >
+                    近接/射撃武器:
+                  </div>
+                  <div
+                    v-for="w in townWeapons"
+                    :key="w.name"
+                    style="
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      font-size: 0.8rem;
+                      border-bottom: 1px dashed #e8e0d4;
+                      padding: 3px 0;
+                    "
+                  >
                     <span>{{ w.name }} ({{ w.goldCost }}g)</span>
-                    <button @click="buyWeapon(w)" class="btn-ink btn-mini" :disabled="character.gold < w.goldCost || isBackpackFull">購入</button>
+                    <button
+                      @click="buyWeapon(w)"
+                      class="btn-ink btn-mini"
+                      :disabled="character.gold < w.goldCost || isBackpackFull"
+                    >
+                      購入
+                    </button>
                   </div>
 
                   <!-- Armors -->
-                  <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-top: 5px;">胴防具 (鎧):</div>
-                  <div v-for="a in townArmors" :key="a.name" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; border-bottom: 1px dashed #e8e0d4; padding: 3px 0;">
+                  <div
+                    style="
+                      font-weight: bold;
+                      font-size: 0.75rem;
+                      color: #705844;
+                      margin-top: 5px;
+                    "
+                  >
+                    胴防具 (鎧):
+                  </div>
+                  <div
+                    v-for="a in townArmors"
+                    :key="a.name"
+                    style="
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      font-size: 0.8rem;
+                      border-bottom: 1px dashed #e8e0d4;
+                      padding: 3px 0;
+                    "
+                  >
                     <span>{{ a.name }} ({{ a.goldCost }}g)</span>
-                    <button @click="buyArmor(a)" class="btn-ink btn-mini" :disabled="character.gold < a.goldCost">購入</button>
+                    <button
+                      @click="buyArmor(a)"
+                      class="btn-ink btn-mini"
+                      :disabled="character.gold < a.goldCost"
+                    >
+                      購入
+                    </button>
                   </div>
 
                   <!-- Shields -->
-                  <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-top: 5px;">防盾:</div>
-                  <div v-for="s in townShields" :key="s.name" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; border-bottom: 1px dashed #e8e0d4; padding: 3px 0;">
+                  <div
+                    style="
+                      font-weight: bold;
+                      font-size: 0.75rem;
+                      color: #705844;
+                      margin-top: 5px;
+                    "
+                  >
+                    防盾:
+                  </div>
+                  <div
+                    v-for="s in townShields"
+                    :key="s.name"
+                    style="
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      font-size: 0.8rem;
+                      border-bottom: 1px dashed #e8e0d4;
+                      padding: 3px 0;
+                    "
+                  >
                     <span>{{ s.name }} ({{ s.goldCost }}g)</span>
-                    <button @click="buyShield(s)" class="btn-ink btn-mini" :disabled="character.gold < s.goldCost || isBackpackFull">購入</button>
+                    <button
+                      @click="buyShield(s)"
+                      class="btn-ink btn-mini"
+                      :disabled="character.gold < s.goldCost || isBackpackFull"
+                    >
+                      購入
+                    </button>
                   </div>
 
                   <!-- Consumables -->
-                  <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-top: 5px;">一般道具・消耗品:</div>
-                  <div v-for="i in townItems" :key="i.name" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; border-bottom: 1px dashed #e8e0d4; padding: 3px 0;">
+                  <div
+                    style="
+                      font-weight: bold;
+                      font-size: 0.75rem;
+                      color: #705844;
+                      margin-top: 5px;
+                    "
+                  >
+                    一般道具・消耗品:
+                  </div>
+                  <div
+                    v-for="i in townItems"
+                    :key="i.name"
+                    style="
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      font-size: 0.8rem;
+                      border-bottom: 1px dashed #e8e0d4;
+                      padding: 3px 0;
+                    "
+                  >
                     <span>{{ i.name }} ({{ i.goldCost }}g)</span>
-                    <button @click="buyItem(i)" class="btn-ink btn-mini" :disabled="character.gold < i.goldCost || isBackpackFull">購入</button>
+                    <button
+                      @click="buyItem(i)"
+                      class="btn-ink btn-mini"
+                      :disabled="character.gold < i.goldCost || isBackpackFull"
+                    >
+                      購入
+                    </button>
                   </div>
 
                   <!-- Church Services -->
-                  <div style="font-weight: bold; font-size: 0.75rem; color: #705844; margin-top: 5px;">教会サービス:</div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; border-bottom: 1px dashed #e8e0d4; padding: 3px 0;">
+                  <div
+                    style="
+                      font-weight: bold;
+                      font-size: 0.75rem;
+                      color: #705844;
+                      margin-top: 5px;
+                    "
+                  >
+                    教会サービス:
+                  </div>
+                  <div
+                    style="
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      font-size: 0.8rem;
+                      border-bottom: 1px dashed #e8e0d4;
+                      padding: 3px 0;
+                    "
+                  >
                     <span>⛪ 【祝福】の呪文 (50g)</span>
-                    <button 
-                      @click="buyChurchBlessing" 
-                      class="btn-ink btn-mini" 
-                      :disabled="character.gold < 50 || !character.statusEffects || character.statusEffects.length === 0"
-                      :title="!character.statusEffects || character.statusEffects.length === 0 ? '治療が必要な状態異常はありません' : '金貨50枚で状態異常を治療'"
+                    <button
+                      @click="buyChurchBlessing"
+                      class="btn-ink btn-mini"
+                      :disabled="
+                        character.gold < 50 ||
+                        !character.statusEffects ||
+                        character.statusEffects.length === 0
+                      "
+                      :title="
+                        !character.statusEffects ||
+                        character.statusEffects.length === 0
+                          ? '治療が必要な状態異常はありません'
+                          : '金貨50枚で状態異常を治療'
+                      "
                     >
                       購入
                     </button>
@@ -544,32 +1016,162 @@ function startAdventure() {
               </div>
 
               <!-- Right: Followers Recruiting -->
-              <div class="recruiter-column" style="background: rgba(255,255,255,0.3); border: 1px solid #c2b09a; padding: 15px; border-radius: 4px; max-height: 400px; overflow-y: auto;">
-                <h4 style="margin: 0 0 10px 0; font-family: 'Noto Serif JP', serif; font-size: 0.9rem; color: var(--ink-dark); border-bottom: 1px dashed #c2b09a; padding-bottom: 3px;">👥 従者のスカウト・雇用</h4>
-                
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                  <div v-for="f in hireableFollowers" :key="f.name" style="display: flex; flex-direction: column; gap: 3px; border-bottom: 1px dashed #e8e0d4; padding-bottom: 6px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold;">
-                      <span>{{ f.name }} <span style="font-weight: normal; color: #705844; font-size: 0.75rem;">(費用: {{ f.cost }}g)</span></span>
-                      <button @click="buyFollower(f.type as any, selectedFollowerAttrib[f.type] || 'strike', f.type === 'mage' ? selectedMageSpell : undefined)" class="btn-ink btn-mini" :disabled="character.gold < f.cost || followers.length >= character.followerCurrent">雇用</button>
+              <div
+                class="recruiter-column"
+                style="
+                  background: rgba(255, 255, 255, 0.3);
+                  border: 1px solid #c2b09a;
+                  padding: 15px;
+                  border-radius: 4px;
+                  max-height: 400px;
+                  overflow-y: auto;
+                "
+              >
+                <h4
+                  style="
+                    margin: 0 0 10px 0;
+                    font-family: &quot;Noto Serif JP&quot;, serif;
+                    font-size: 0.9rem;
+                    color: var(--ink-dark);
+                    border-bottom: 1px dashed #c2b09a;
+                    padding-bottom: 3px;
+                  "
+                >
+                  👥 従者のスカウト・雇用
+                </h4>
+
+                <div style="display: flex; flex-direction: column; gap: 10px">
+                  <div
+                    v-for="f in hireableFollowers"
+                    :key="f.name"
+                    style="
+                      display: flex;
+                      flex-direction: column;
+                      gap: 3px;
+                      border-bottom: 1px dashed #e8e0d4;
+                      padding-bottom: 6px;
+                    "
+                  >
+                    <div
+                      style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        font-size: 0.8rem;
+                        font-weight: bold;
+                      "
+                    >
+                      <span
+                        >{{ f.name }}
+                        <span
+                          style="
+                            font-weight: normal;
+                            color: #705844;
+                            font-size: 0.75rem;
+                          "
+                          >(費用: {{ f.cost }}g)</span
+                        ></span
+                      >
+                      <button
+                        @click="
+                          buyFollower(
+                            f.type as any,
+                            selectedFollowerAttrib[f.type] || 'strike',
+                            f.type === 'mage' ? selectedMageSpell : undefined,
+                          )
+                        "
+                        class="btn-ink btn-mini"
+                        :disabled="
+                          character.gold < f.cost ||
+                          followers.length >= character.followerCurrent
+                        "
+                      >
+                        雇用
+                      </button>
                     </div>
-                    <div style="font-size: 0.7rem; color: #8c715c; line-height: 1.2;">{{ f.desc }}</div>
+                    <div
+                      style="
+                        font-size: 0.7rem;
+                        color: #8c715c;
+                        line-height: 1.2;
+                      "
+                    >
+                      {{ f.desc }}
+                    </div>
 
                     <!-- Weapon Attribute selection (Soldier, Swordsman, Archer, Mage) -->
-                    <div v-if="['soldier', 'swordsman', 'archer', 'mage'].includes(f.type)" style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; margin-top: 2px;">
-                      <span style="color: #705844;">武器特性:</span>
-                      <label style="display: inline-flex; align-items: center; gap: 2px; cursor: pointer;">
-                        <input type="radio" :name="'attrib-' + f.type" value="strike" v-model="selectedFollowerAttrib[f.type]" /> 打撃
+                    <div
+                      v-if="
+                        ['soldier', 'swordsman', 'archer', 'mage'].includes(
+                          f.type,
+                        )
+                      "
+                      style="
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 0.75rem;
+                        margin-top: 2px;
+                      "
+                    >
+                      <span style="color: #705844">武器特性:</span>
+                      <label
+                        style="
+                          display: inline-flex;
+                          align-items: center;
+                          gap: 2px;
+                          cursor: pointer;
+                        "
+                      >
+                        <input
+                          type="radio"
+                          :name="'attrib-' + f.type"
+                          value="strike"
+                          v-model="selectedFollowerAttrib[f.type]"
+                        />
+                        打撃
                       </label>
-                      <label style="display: inline-flex; align-items: center; gap: 2px; cursor: pointer;">
-                        <input type="radio" :name="'attrib-' + f.type" value="slash" v-model="selectedFollowerAttrib[f.type]" /> 斬撃
+                      <label
+                        style="
+                          display: inline-flex;
+                          align-items: center;
+                          gap: 2px;
+                          cursor: pointer;
+                        "
+                      >
+                        <input
+                          type="radio"
+                          :name="'attrib-' + f.type"
+                          value="slash"
+                          v-model="selectedFollowerAttrib[f.type]"
+                        />
+                        斬撃
                       </label>
                     </div>
 
                     <!-- Mage spell selection -->
-                    <div v-if="f.type === 'mage'" style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; margin-top: 2px;">
-                      <span style="color: #705844;">習得魔術:</span>
-                      <select v-model="selectedMageSpell" style="padding: 1px 3px; font-size: 0.7rem; border: 1px solid #c2b09a; background: #faf8f5; border-radius: 2px; color: var(--ink-dark);">
+                    <div
+                      v-if="f.type === 'mage'"
+                      style="
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 0.75rem;
+                        margin-top: 2px;
+                      "
+                    >
+                      <span style="color: #705844">習得魔術:</span>
+                      <select
+                        v-model="selectedMageSpell"
+                        style="
+                          padding: 1px 3px;
+                          font-size: 0.7rem;
+                          border: 1px solid #c2b09a;
+                          background: #faf8f5;
+                          border-radius: 2px;
+                          color: var(--ink-dark);
+                        "
+                      >
                         <option value="炎球">炎球 (1点ダメージ)</option>
                         <option value="気絶">気絶 (弱い敵眠らせ)</option>
                         <option value="氷槍">氷槍 (2点ダメージ)</option>
@@ -585,23 +1187,41 @@ function startAdventure() {
           <div class="divider"></div>
 
           <div class="actions">
-            <button v-if="!activeScenario" @click="currentScreen = 'scenario_select'" class="btn-ink btn-large btn-select-scenario">
+            <button
+              v-if="!activeScenario"
+              @click="currentScreen = 'scenario_select'"
+              class="btn-ink btn-large btn-select-scenario"
+            >
               🗺️ 次のシナリオを選択する (シナリオ選択へ)
             </button>
-            <button v-else @click="startAdventure" class="btn-ink btn-large btn-start-adventure">
+            <button
+              v-else
+              @click="startAdventure"
+              class="btn-ink btn-large btn-start-adventure"
+            >
               🧭 冒険を開始する ({{ activeScenario.title }} の探索へ)
             </button>
           </div>
         </div>
 
         <!-- GAME OVER SCREEN -->
-        <div v-else-if="currentScreen === 'gameover'" class="gameover-card paper-sheet">
+        <div
+          v-else-if="currentScreen === 'gameover'"
+          class="gameover-card paper-sheet"
+        >
           <h2 class="dead-title">💀 冒険者は息絶えた...</h2>
-          <p class="dead-desc">地下の闇に飲まれ、生命力が0となりました。アランツァの冷酷な地底に骸が残されます。</p>
-          
+          <p class="dead-desc">
+            地下の闇に飲まれ、生命力が0となりました。アランツァの冷酷な地底に骸が残されます。
+          </p>
+
           <div class="dead-stats">
-            <p>最終到達部屋数: <b>{{ dungeonDepth }} / {{ totalRoomsToClear }}</b></p>
-            <p>最終レベル: <b>Lv.{{ character.level }}</b></p>
+            <p>
+              最終到達部屋数:
+              <b>{{ dungeonDepth }} / {{ totalRoomsToClear }}</b>
+            </p>
+            <p>
+              最終レベル: <b>Lv.{{ character.level }}</b>
+            </p>
           </div>
 
           <div class="divider"></div>
@@ -614,33 +1234,88 @@ function startAdventure() {
         </div>
 
         <!-- VICTORY SUCCESS SCREEN -->
-        <div v-else-if="currentScreen === 'success'" class="victory-card paper-sheet">
+        <div
+          v-else-if="currentScreen === 'success'"
+          class="victory-card paper-sheet"
+        >
           <template v-if="lastClearResult && lastClearResult.isMultiPhase">
-            <div v-if="lastClearResult.isCompleted" class="multi-phase-complete-box">
-              <h2 class="victory-title" style="color: #b8860b;">👑 迷宮完全制覇！ 冒険成功！</h2>
-              <span class="phase-badge" style="background: #b8860b; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85rem;">
+            <div
+              v-if="lastClearResult.isCompleted"
+              class="multi-phase-complete-box"
+            >
+              <h2 class="victory-title" style="color: #b8860b">
+                👑 迷宮完全制覇！ 冒険成功！
+              </h2>
+              <span
+                class="phase-badge"
+                style="
+                  background: #b8860b;
+                  color: white;
+                  padding: 2px 8px;
+                  border-radius: 4px;
+                  font-weight: bold;
+                  font-size: 0.85rem;
+                "
+              >
                 全 {{ lastClearResult.totalPhases }} 周回クリア達成
               </span>
-              <p class="victory-desc" style="margin-top: 12px; font-size: 1.05rem; line-height: 1.6; white-space: pre-line;">
-                {{ lastClearResult.completeClearMessage || '全ての変容を打ち倒し、この地に真の平和をもたらしました。君の任務は完全に達成された！' }}
+              <p
+                class="victory-desc"
+                style="
+                  margin-top: 12px;
+                  font-size: 1.05rem;
+                  line-height: 1.6;
+                  white-space: pre-line;
+                "
+              >
+                {{
+                  lastClearResult.completeClearMessage ||
+                  "全ての変容を打ち倒し、この地に真の平和をもたらしました。君の任務は完全に達成された！"
+                }}
               </p>
             </div>
             <div v-else class="multi-phase-progress-box">
-              <h2 class="victory-title">🏆 第 {{ lastClearResult.clearCount }} / {{ lastClearResult.totalPhases }} 周回クリア！</h2>
-              <span class="phase-badge" style="background: #2b5c8f; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85rem;">
+              <h2 class="victory-title">
+                🏆 第 {{ lastClearResult.clearCount }} /
+                {{ lastClearResult.totalPhases }} 周回クリア！
+              </h2>
+              <span
+                class="phase-badge"
+                style="
+                  background: #2b5c8f;
+                  color: white;
+                  padding: 2px 8px;
+                  border-radius: 4px;
+                  font-weight: bold;
+                  font-size: 0.85rem;
+                "
+              >
                 第 {{ lastClearResult.clearCount }} 段階突破
               </span>
-              <p class="victory-desc" style="margin-top: 12px; font-size: 1rem; line-height: 1.6; white-space: pre-line;">
-                {{ lastClearResult.phaseClearMessage || '最深部のボスを打ち倒したが、何やら不穏な気配が漂っている…' }}
+              <p
+                class="victory-desc"
+                style="
+                  margin-top: 12px;
+                  font-size: 1rem;
+                  line-height: 1.6;
+                  white-space: pre-line;
+                "
+              >
+                {{
+                  lastClearResult.phaseClearMessage ||
+                  "最深部のボスを打ち倒したが、何やら不穏な気配が漂っている…"
+                }}
               </p>
             </div>
           </template>
           <template v-else>
             <h2 class="victory-title">🏆 迷宮踏破！ 冒険成功！</h2>
-            <p class="victory-desc">最深部のボスを打ち倒し、迷宮の生ける宝物を抱えて地上へと生還しました！</p>
+            <p class="victory-desc">
+              最深部のボスを打ち倒し、迷宮の生ける宝物を抱えて地上へと生還しました！
+            </p>
           </template>
-          
-          <div class="victory-stats" style="margin-top: 15px;">
+
+          <div class="victory-stats" style="margin-top: 15px">
             <p>獲得経験値: <b>+1 点</b></p>
             <p>生命力・技量・副能力値: <b>最大値まで全回復！</b></p>
           </div>
@@ -648,13 +1323,20 @@ function startAdventure() {
           <div class="divider"></div>
 
           <div class="actions">
-            <button @click="proceedToNextAdventure" class="btn-ink btn-large btn-success-next">
-              📜 経験点分配 ＆ {{ (lastClearResult?.isMultiPhase && !lastClearResult?.isCompleted) ? '次の周回へ挑む' : '次の冒険へ旅立つ' }}
+            <button
+              @click="proceedToNextAdventure"
+              class="btn-ink btn-large btn-success-next"
+            >
+              📜 経験点分配 ＆
+              {{
+                lastClearResult?.isMultiPhase && !lastClearResult?.isCompleted
+                  ? "次の周回へ挑む"
+                  : "次の冒険へ旅立つ"
+              }}
             </button>
           </div>
         </div>
       </div>
-
     </div>
 
     <!-- 運命のダイス（自動フェード オーバーレイモーダル） -->
@@ -693,7 +1375,7 @@ function startAdventure() {
 }
 
 .ledger-title {
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   font-weight: bold;
   font-size: 1.4rem;
   color: var(--ink-dark);
@@ -716,7 +1398,7 @@ function startAdventure() {
   border-radius: 4px;
   padding: 10px 15px;
   font-size: 1.1rem;
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   display: inline-block;
   margin-bottom: 25px;
 }
@@ -741,7 +1423,7 @@ function startAdventure() {
 }
 
 .row-label {
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   font-size: 1rem;
   color: var(--ink-dark);
   min-width: 180px;
@@ -763,7 +1445,7 @@ function startAdventure() {
 }
 
 .logbook-header {
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   font-weight: bold;
   font-size: 1rem;
   color: var(--ink-dark);
@@ -784,7 +1466,7 @@ function startAdventure() {
 }
 
 .log-entry {
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   font-size: 0.85rem;
   line-height: 1.4;
   display: flex;
@@ -799,17 +1481,41 @@ function startAdventure() {
 }
 
 /* Log type colors matching ink calligraphy style */
-.log-entry.info { color: var(--ink-dark); }
-.log-entry.roll { color: #5c4b3d; font-style: italic; }
-.log-entry.combat { color: #4682b4; font-weight: bold; }
-.log-entry.success { color: #2e8b57; font-weight: bold; }
-.log-entry.error { color: #a52a2a; }
-.log-entry.damage { color: #8c1c1c; font-weight: bold; animation: text-shake 0.3s ease; }
+.log-entry.info {
+  color: var(--ink-dark);
+}
+.log-entry.roll {
+  color: #5c4b3d;
+  font-style: italic;
+}
+.log-entry.combat {
+  color: #4682b4;
+  font-weight: bold;
+}
+.log-entry.success {
+  color: #2e8b57;
+  font-weight: bold;
+}
+.log-entry.error {
+  color: #a52a2a;
+}
+.log-entry.damage {
+  color: #8c1c1c;
+  font-weight: bold;
+  animation: text-shake 0.3s ease;
+}
 
 @keyframes text-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
 }
 
 .empty-logs {
@@ -829,7 +1535,7 @@ function startAdventure() {
 }
 
 .dead-title {
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   font-size: 2rem;
   font-weight: 900;
   margin-top: 0;
@@ -875,7 +1581,7 @@ function startAdventure() {
 }
 
 .victory-title {
-  font-family: 'Noto Serif JP', serif;
+  font-family: "Noto Serif JP", serif;
   font-size: 2rem;
   color: #b8860b;
   margin-top: 0;
@@ -926,7 +1632,8 @@ function startAdventure() {
     gap: 15px !important;
   }
 
-  .shop-column, .recruiter-column {
+  .shop-column,
+  .recruiter-column {
     max-height: none !important;
     overflow-y: visible !important;
   }
@@ -957,15 +1664,18 @@ function startAdventure() {
     grid-template-columns: 1fr !important;
   }
 
-  .gameover-card, .victory-card {
+  .gameover-card,
+  .victory-card {
     padding: 20px 15px;
   }
 
-  .dead-title, .victory-title {
+  .dead-title,
+  .victory-title {
     font-size: 1.6rem;
   }
 
-  .dead-stats, .victory-stats {
+  .dead-stats,
+  .victory-stats {
     padding: 10px 15px;
     font-size: 1rem;
     width: 100%;
