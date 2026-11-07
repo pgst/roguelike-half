@@ -11,19 +11,42 @@ service cloud.firestore {
       allow read, write: if isGoogleAuth() && request.auth.uid == userId;
     }
 
-    // カスタムシナリオ: Google認証済みの本人のみ読み書き可能（100KB未満）
+    // カスタムシナリオ: Google認証済みの本人のみ読み書き可能（構造バリデーション付き）
     match /users/{userId}/custom_scenarios/{scenarioId} {
-      allow read, write: if isGoogleAuth() && request.auth.uid == userId
-                            && (request.method == 'delete' || request.resource.data.size() < 100000);
+      allow read: if isGoogleAuth() && request.auth.uid == userId;
+      allow write: if isGoogleAuth() && request.auth.uid == userId
+                    && (request.method == 'delete' || (
+                      request.resource.data.keys().size() <= 25
+                      && request.resource.data.title is string && request.resource.data.title.size() <= 100
+                      && request.resource.data.description is string && request.resource.data.description.size() <= 2000
+                      && request.resource.data.totalRoomsToClear is int && request.resource.data.totalRoomsToClear >= 3 && request.resource.data.totalRoomsToClear <= 50
+                    ));
     }
     
-    // 迷宮踏破の殿堂: 全員読み取り可能、作成はGoogle認証済みユーザーのみ（10KB未満）
+    // 迷宮踏破の殿堂: 全員読み取り可能、作成はGoogle認証済みユーザー本人のみ（スキーマ検証済み）
     match /hall_of_fame/{docId} {
       allow read: if true;
-      allow create: if isGoogleAuth() 
-                    && request.resource.data.adventurerName is string
-                    && request.resource.data.level is int
-                    && request.resource.data.size() < 10000;
+      allow create: if isGoogleAuth()
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.adventurerName is string && request.resource.data.adventurerName.size() <= 50
+                    && request.resource.data.scenarioTitle is string && request.resource.data.scenarioTitle.size() <= 100
+                    && request.resource.data.level is int && request.resource.data.level >= 1 && request.resource.data.level <= 100
+                    && request.resource.data.gold is int && request.resource.data.gold >= 0
+                    && request.resource.data.subStatType is string && request.resource.data.subStatType.size() <= 20
+                    && request.resource.data.equipmentSummary is string && request.resource.data.equipmentSummary.size() <= 300
+                    && request.resource.data.clearedAt is timestamp
+                    && request.resource.data.clientTimestamp is number
+                    && request.resource.data.keys().hasOnly([
+                      'userId',
+                      'adventurerName',
+                      'scenarioTitle',
+                      'level',
+                      'gold',
+                      'subStatType',
+                      'equipmentSummary',
+                      'clearedAt',
+                      'clientTimestamp'
+                    ]);
       allow update, delete: if false; // 改ざん・削除不可
     }
   }
