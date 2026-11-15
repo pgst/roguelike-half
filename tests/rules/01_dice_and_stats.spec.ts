@@ -198,4 +198,54 @@ test.describe('基本ルール ver.5.1: 判定ロール・出目・副能力消�
     await expect(normalChallengeBtn).toBeVisible();
   });
 
+  test('【#25 & #26】判定ロールの内訳表示（攻撃・防御・離脱追撃）および部屋数・生命力・キャラ作成サマリー表示の統一', async ({ page }) => {
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
+
+    // #26-3: キャラクター作成画面に初期能力値・装備プレビューが表示されていること
+    await expect(page.getByTestId('creator-summary-preview')).toBeVisible();
+    await expect(page.getByTestId('creator-summary-preview')).toContainText('技量点: 0');
+    await expect(page.getByTestId('creator-summary-preview')).toContainText('基礎生命点: 4');
+
+    await page.fill('#char-name', '内訳表示検証勇者');
+    await page.locator('.archetype-card').nth(2).click({ force: true }); // 筋力型（両手武器: 攻撃+1, 板金鎧: 防御+1）
+    await page.getByTestId('create-character-btn').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+
+    // #26-2 & #26-3: 強化記録紙に作成直後のサマリーと統一された生命点表記が表示されていること
+    await expect(page.getByTestId('created-character-summary')).toBeVisible();
+    await expect(page.getByTestId('created-character-summary')).toContainText('内訳表示検証勇者');
+    await expect(page.getByTestId('growth-life-val')).toContainText('現在HP: 6 / 6 (基礎最大値: 4 / 8 成長上限)');
+
+    // 冒険開始
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // #26-1: HUDの部屋数バッジが「踏破 X / Y 部屋」になっていること
+    await expect(page.getByTestId('hud-depth-badge')).toContainText('踏破 0 / 8 部屋');
+
+    // d66 = 11 (ゴブリン Lv.2, 3体)
+    // 両手武器(+1) + ランタン不携帯(-2) = 攻撃修正 -1, 防御修正 -2
+    // 出目: 攻撃4 (命中: 出目[4] + 能力値(0) - 修正(1) = 合計(3) vs 目標値(2)), 防御5, 防御5, 逃走追撃5, 逃走追撃5
+    await setupMockRandom(page, 11, [4, 5, 5, 5, 5]);
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(400);
+
+    await transitionToMelee(page);
+    await handlePendingDefense(page);
+
+    // #25-1: 攻撃判定の内訳表示を検証
+    await clickButtonByText(page, '通常攻撃', 600);
+    const logbook = page.locator('.logbook-entries');
+    await expect(logbook).toContainText('[内訳: 出目[4] + 能力値(0) - 修正(1) = 合計(3) vs 目標値(2)]');
+
+    // #25-1: 防御判定の内訳表示を検証（板金鎧 modDef=+1 + ランタン不携帯 -2 = 修正 -1）
+    await handlePendingDefense(page);
+    await expect(logbook).toContainText('[内訳: 出目[5] + 能力値(0) - 修正(1) = 合計(4) vs 目標値(2)]');
+
+    // #25-2: 逃走時の離脱追撃防御判定と逃走成立の段階表示を検証
+    await clickButtonByText(page, '戦闘から逃走する', 600);
+    await expect(logbook).toContainText('【追撃防御：成功】');
+    await expect(logbook).toContainText('【逃走成立】');
+  });
+
 });

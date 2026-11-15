@@ -440,6 +440,27 @@ async function startAdventure() {
             迷宮に入る前に、経験点を消費して能力値の最大値を上昇させることができます。
           </p>
 
+          <div
+            class="created-character-summary"
+            data-testid="created-character-summary"
+            style="background: rgba(255, 255, 255, 0.45); border: 1px dashed #8d6e63; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; font-size: 0.9rem; color: #3e2723;"
+          >
+            <div style="font-weight: bold; margin-bottom: 4px;">
+              📋 現在の能力・初期装備サマリー（{{ character.name }} / Lv.{{ character.level }}）
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+              <span>🧍 技量点: <b>{{ character.skillCurrent }}/{{ character.skillMax }}</b></span>
+              <span>❤️ 生命点: <b>{{ character.lifeCurrent }}/{{ character.lifeMax }}</b> <small>(基礎:{{ character.baseLifeMax ?? 4 }})</small></span>
+              <span>✨ 副能力: <b>{{ character.subStatCurrent }}/{{ character.subStatMax }}</b></span>
+              <span>👥 従者点: <b>{{ character.followerCurrent }}/{{ character.followerMax }}</b></span>
+              <span>💰 金貨: <b>{{ character.gold }}G</b></span>
+              <span>🍖 食料: <b>{{ character.food }}食</b></span>
+            </div>
+            <div style="margin-top: 4px; font-size: 0.85rem; color: #5d4037;">
+              🗡️ 装備中: 武器【{{ character.equippedWeapon?.name || 'なし' }}】 / 鎧【{{ character.equippedArmor?.name || 'なし' }}】 / 盾【{{ character.equippedShield?.name || 'なし' }}】
+            </div>
+          </div>
+
           <div class="exp-pool">
             <span
               >所持経験点: <b>{{ character.exp }}</b> 点</span
@@ -476,9 +497,9 @@ async function startAdventure() {
             <!-- Life -->
             <div class="ledger-row">
               <span class="row-label">❤️ <b>生命点:</b></span>
-              <span class="row-val"
-                >{{ character.baseLifeMax ?? 4 }} / 8 (装備込み:
-                {{ character.lifeMax }})</span
+              <span class="row-val" data-testid="growth-life-val"
+                >現在HP: {{ character.lifeCurrent }} / {{ character.lifeMax }} (基礎最大値:
+                {{ character.baseLifeMax ?? 4 }} / 8 成長上限)</span
               >
               <div
                 class="ledger-buttons"

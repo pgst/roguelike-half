@@ -171,14 +171,18 @@ export function useCombat() {
       }
       if (!carriesLantern.value) modifier -= 2;
 
-      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + character.value.skillCurrent + modifier;
+      const rawSum = roll + character.value.skillCurrent + modifier;
+      const total = roll === 6 ? 99 : roll === 1 ? -99 : rawSum;
       const defSuccess = roll === 6 || (roll !== 1 && total >= enemy.level);
+      const modStr = modifier > 0 ? ` + 修正(${modifier})` : modifier < 0 ? ` - 修正(${Math.abs(modifier)})` : '';
+      const breakdownText = `出目[${roll}] + 技量(${character.value.skillCurrent})${modStr} = 合計(${rawSum}) vs 目標値(${enemy.level})`;
+      diceTray.resultText = `【離脱追撃の防御判定】${breakdownText} → ${defSuccess ? '🛡️追撃回避！' : '💥追撃被弾(-1HP)！'} (生存時は逃走成立)`;
 
       if (defSuccess) {
-        addLog(`🛡️ 防御成功！ ${enemy.name} の追撃をかわした。(出目: ${roll})`, 'success');
+        addLog(`🛡️ 【追撃防御：成功】防御成功！ ${enemy.name} の追撃をかわした。(出目: ${roll}) [内訳: ${breakdownText}]`, 'success');
       } else {
         character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
-        addLog(`💥 被弾！ ${enemy.name} の追撃を受け、生命点1点を失った！(残り生命点: ${character.value.lifeCurrent})`, 'error');
+        addLog(`💥 【追撃防御：失敗】被弾！ ${enemy.name} の追撃を受け、生命点1点を失った！(残り生命点: ${character.value.lifeCurrent}) [内訳: ${breakdownText}]`, 'error');
         if (character.value.lifeCurrent <= 0) {
           handleDeath();
           return;
@@ -190,7 +194,7 @@ export function useCombat() {
       combatState.isOver = true;
       combatState.resultType = 'escaped';
       (combatState as any).activeAttacks = [];
-      addLog('🏃 敵の追撃を耐え抜き、逃走に成功しました！ 一本道のためその場にとどまり、再度探索を行います。(Rule 42)', 'success');
+      addLog('🏃 【逃走成立】敵の追撃を耐え抜き、逃走に成功しました！ 一本道のためその場にとどまり、再度探索を行います。(Rule 42)', 'success');
     }
   }
 
@@ -389,8 +393,12 @@ export function useCombat() {
       addLog(`⚠️ 状態異常（ファンブル閾値: ${fumbleThreshold}以下）により、出目 [ ${roll} ] はファンブルとなりました！`, 'error');
     }
 
-    const total = isCritical ? 99 : isFumble ? -99 : roll + attackStat + modifier;
+    const rawAttackSum = roll + attackStat + modifier;
+    const total = isCritical ? 99 : isFumble ? -99 : rawAttackSum;
     let hit = isCritical || (!isFumble && total >= targetEnemy.level);
+    const atkModStr = modifier > 0 ? ` + 修正(${modifier})` : modifier < 0 ? ` - 修正(${Math.abs(modifier)})` : '';
+    const atkBreakdownText = `出目[${roll}] + 能力値(${attackStat})${atkModStr} = 合計(${rawAttackSum}) vs 目標値(${targetEnemy.level})`;
+    diceTray.resultText = `【攻撃判定】${atkBreakdownText} → ${isCritical ? '★クリティカル命中！' : isFumble ? '💀ファンブル失敗！' : hit ? '🎯命中！' : '💨ミス！'}`;
 
     // Apply evasion rules
     if (targetEnemy.evasionRule === 'shireen_future_sight') {
@@ -490,7 +498,7 @@ export function useCombat() {
       }
 
       targetEnemy.lifeCurrent = Math.max(0, targetEnemy.lifeCurrent - damage);
-      addLog(`🎯 命中！ ${targetEnemy.name} に ${damage} 点のダメージを与えた！ (ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${targetEnemy.level})`, 'success');
+      addLog(`🎯 命中！ ${targetEnemy.name} に ${damage} 点のダメージを与えた！ (ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${targetEnemy.level}) [内訳: ${atkBreakdownText}]`, 'success');
       
       // Check if enemy died (Move before critical double attack)
       if (targetEnemy.lifeCurrent <= 0) {
@@ -533,7 +541,7 @@ export function useCombat() {
         return; 
       }
     } else {
-      addLog(`💨 ミス！ 攻撃が届かなかった。(ロール計: ${roll === 1 ? 'ファンブル' : total} < ${enemy.level})`, 'error');
+      addLog(`💨 ミス！ 攻撃が届かなかった。(ロール計: ${roll === 1 ? 'ファンブル' : total} < ${enemy.level}) [内訳: ${atkBreakdownText}]`, 'error');
     }
 
     // Trigger follower attacks
@@ -815,6 +823,7 @@ export function useCombat() {
 
     const isRangedAttack = Boolean(enemy.isRanged || combatState.round === 0);
 
+    let defBreakdownSuffix = '';
     if (!isPrevented) {
       const displayTitle = attack.targetName ? `${enemy.name} の〈時空牙〉 (対象: ${attack.targetName})` : enemy.name;
       addLog(`🛡️ ${defName} が ${displayTitle} の攻撃を防御します！ (目標値: ${enemy.level})`, 'combat');
@@ -873,8 +882,13 @@ export function useCombat() {
         modifier -= 2;
         addLog(`暗闇のため${defName}の防御判定に -2 のペナルティ！`, 'error');
       }
-      total = roll === 6 ? 99 : roll === 1 ? -99 : roll + skill + modifier;
+      const rawDefSum = roll + skill + modifier;
+      total = roll === 6 ? 99 : roll === 1 ? -99 : rawDefSum;
       defSuccess = roll === 6 || (roll !== 1 && total >= enemy.level);
+      const defModStr = modifier > 0 ? ` + 修正(${modifier})` : modifier < 0 ? ` - 修正(${Math.abs(modifier)})` : '';
+      const defBreakdownText = `出目[${roll}] + 能力値(${skill})${defModStr} = 合計(${rawDefSum}) vs 目標値(${enemy.level})`;
+      defBreakdownSuffix = ` [内訳: ${defBreakdownText}]`;
+      diceTray.resultText = `【防御判定】${defBreakdownText} → ${roll === 6 ? '★クリティカル防御！' : roll === 1 ? '💀ファンブル被弾！' : defSuccess ? '🛡️防御成功！' : '💥防御失敗！'}`;
     } else {
       addLog(`💥 自動被弾: ${defName} は防御行動を取れず、攻撃が直撃しました。`, 'error');
     }
@@ -885,9 +899,9 @@ export function useCombat() {
     }
 
     if (defSuccess) {
-      addLog(`🛡️ 防御成功！ ${defName} は無傷です。(ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${enemy.level})`, 'success');
+      addLog(`🛡️ 防御成功！ ${defName} は無傷です。(ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${enemy.level})${defBreakdownSuffix}`, 'success');
     } else {
-      addLog(`💥 防御失敗！ ${defName} が被弾しました。(ロール計: ${roll === 1 ? 'ファンブル' : total} < ${enemy.level})`, 'error');
+      addLog(`💥 防御失敗！ ${defName} が被弾しました。(ロール計: ${roll === 1 ? 'ファンブル' : total} < ${enemy.level})${defBreakdownSuffix}`, 'error');
 
       // 【そらし】の奇跡チェック
       // 敵が飛び道具タイプであるか、または第0ラウンド（遠距離フェーズ）の攻撃であること

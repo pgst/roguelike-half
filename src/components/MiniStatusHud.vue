@@ -71,8 +71,8 @@ const livingFollowers = computed(() => followers.value.filter(f => f.lifeCurrent
         <span class="hero-name-badge">
           🛡️ <b>{{ character.name || '冒険者' }}</b> <small>Lv.{{ character.level }}</small>
         </span>
-        <span v-if="currentScreen === 'explore' || currentScreen === 'combat'" class="depth-badge">
-          🧭 <b>第 {{ dungeonDepth }} / {{ totalRoomsToClear }} 部屋</b>
+        <span v-if="currentScreen === 'explore' || currentScreen === 'combat'" class="depth-badge" data-testid="hud-depth-badge">
+          🧭 <b>踏破 {{ dungeonDepth }} / {{ totalRoomsToClear }} 部屋</b>
           <span v-if="activeScenario?.explorationMode === 'mapping'" class="hud-mode-pill pill-tile" title="マッピングモード">
             🗺️ マッピング
           </span>

@@ -170,12 +170,35 @@ function handleCreate() {
 
     <div class="divider"></div>
 
+    <!-- 初期能力値・装備プレビュー (#26-3) -->
+    <div class="creator-summary-preview" data-testid="creator-summary-preview">
+      <div class="summary-preview-title">📋 作成される冒険者の初期ステータス確認</div>
+      <div class="summary-preview-stats">
+        <span>🧍 技量点: <b>0</b></span>
+        <span>❤️ 基礎生命点: <b>4</b></span>
+        <span>🌟 副能力値: <b>2</b></span>
+        <span>👥 従者点: <b>7</b></span>
+        <span>✨ 初期経験点: <b>10点</b> (次画面で成長可能)</span>
+        <span>💰 初期金貨: <b>10G</b></span>
+        <span>🍖 携行食料: <b>2食</b> + ランタン</span>
+      </div>
+      <div class="summary-preview-gear">
+        🗡️ <b>初期装備:</b>
+        <span v-if="subStat === 'magic'">軽い武器 ({{ weaponAttribute === 'slash' ? '斬撃' : '打撃' }}) ＋ 布鎧 (生命力最大値+1 → 計5)</span>
+        <span v-else-if="subStat === 'luck'">片手武器 ({{ weaponAttribute === 'slash' ? '斬撃' : '打撃' }}) ＋ 鎖鎧 ＋ 木盾 (生命力最大値+2 → 計6)</span>
+        <span v-else-if="subStat === 'strength' && strengthOption === 'twoHanded'">両手武器 ({{ weaponAttribute === 'slash' ? '斬撃' : '打撃' }}・攻撃+1) ＋ 板金鎧 (生命力最大値+2 → 計6)</span>
+        <span v-else-if="subStat === 'strength' && strengthOption === 'oneHandedShield'">片手武器 ({{ weaponAttribute === 'slash' ? '斬撃' : '打撃' }}) ＋ 丸盾 ＋ 板金鎧 (生命力最大値+3 → 計7)</span>
+        <span v-else-if="subStat === 'dexterity' && dexterityOption === 'bow'">弓と十分な矢 (斬撃) ＋ 軽い武器 ({{ weaponAttribute === 'slash' ? '斬撃' : '打撃' }}) ＋ 革鎧 (生命力最大値+1 → 計5)</span>
+        <span v-else-if="subStat === 'dexterity' && dexterityOption === 'sling'">スリング (打撃) ＋ 軽い武器 ({{ weaponAttribute === 'slash' ? '斬撃' : '打撃' }}) ＋ 革鎧 (生命力最大値+1 → 計5)</span>
+      </div>
+    </div>
+
     <div class="submit-section">
       <button @click="currentScreen = 'scenario_select'" class="btn-ink btn-large btn-back">
         🔙 シナリオ選択に戻る
       </button>
-      <button @click="handleCreate" class="btn-ink btn-large">
-        📜 キャラクターの命運を紡ぎ出す
+      <button @click="handleCreate" class="btn-ink btn-large" data-testid="create-character-btn">
+        📜 この内容で作成（キャラクターの命運を紡ぎ出す）
       </button>
     </div>
   </div>
@@ -373,6 +396,35 @@ function handleCreate() {
   font-size: 0.88rem;
   color: #3e2723;
   cursor: pointer;
+}
+
+.creator-summary-preview {
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px dashed #8d6e63;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #3e2723;
+}
+
+.summary-preview-title {
+  font-weight: bold;
+  font-size: 0.92rem;
+}
+
+.summary-preview-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  font-size: 0.88rem;
+}
+
+.summary-preview-gear {
+  font-size: 0.88rem;
+  color: #5d4037;
 }
 
 .submit-section {
