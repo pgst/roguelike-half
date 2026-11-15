@@ -495,13 +495,6 @@ const unequippedShields = computed(() => {
         <span class="slot-val">{{
           character.equippedArmor?.name || "衣服のみ"
         }}</span>
-        <button
-          v-if="character.equippedArmor"
-          @click="equipArmor(character.equippedArmor)"
-          class="btn-ink btn-mini"
-        >
-          外す
-        </button>
       </div>
       <div class="equipped-slot">
         <span class="slot-label">左手/盾:</span>
@@ -632,7 +625,7 @@ const unequippedShields = computed(() => {
           >
           <span
             class="item-category-label"
-            v-else-if="['holywater', 'healingpotion'].includes(i.type)"
+            v-else-if="['holywater', 'healingpotion', 'magic_bullet'].includes(i.type)"
             >[消耗品]</span
           >
           <span

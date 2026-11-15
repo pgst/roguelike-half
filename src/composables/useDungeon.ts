@@ -382,6 +382,14 @@ export function useDungeon() {
 
     if (stat === 'skill') {
       statVal = character.value.skillCurrent;
+    } else if (stat === 'life') {
+      if (useSubStat) {
+        statVal = character.value.lifeCurrent;
+        addLog(`現在の生命点を使用して【生命ロール】を行います。(現在生命点: ${statVal}、消費なし)`, 'success');
+      } else {
+        statVal = character.value.skillCurrent;
+        addLog(`技量点で代用して【生命ロール】を行います。(現在技量点: ${statVal})`, 'info');
+      }
     } else {
       // Check if sub-stat matches and player chose to use it
       const isSubMatch = character.value.subStatType === stat;
@@ -439,7 +447,9 @@ export function useDungeon() {
       applyTrapNextRoomOverride();
 
       const scope = getTrapTargetScope(activeEvent.value);
-      const validFollowers = followers.value.filter(f => f.lifeCurrent > 0 && f.name !== 'ウォー・ドール');
+      const validFollowers = followers.value.filter(
+        f => f.lifeCurrent > 0 && f.name !== 'ウォー・ドール' && f.type !== 'golem' && !(f.tags && f.tags.includes('golem'))
+      );
 
       if (scope === 'all') {
         if (damage > 0) {
@@ -841,7 +851,12 @@ export function useDungeon() {
 
       // 候補: 主人公 + 生存中のウォー・ドール以外の従者（未選定者）
       const validFollowers = followers.value.filter(
-        f => f.lifeCurrent > 0 && f.name !== 'ウォー・ドール' && !chosenIds.includes(f.id)
+        f =>
+          f.lifeCurrent > 0 &&
+          f.name !== 'ウォー・ドール' &&
+          f.type !== 'golem' &&
+          !(f.tags && f.tags.includes('golem')) &&
+          !chosenIds.includes(f.id)
       );
 
       const candidateIds: string[] = [];
@@ -916,6 +931,14 @@ export function useDungeon() {
 
     if (stat === 'skill') {
       statVal = character.value.skillCurrent;
+    } else if (stat === 'life') {
+      if (useSubStat) {
+        statVal = character.value.lifeCurrent;
+        addLog(`現在の生命点を使用して【生命ロール】を行います。(現在生命点: ${statVal}、消費なし)`, 'success');
+      } else {
+        statVal = character.value.skillCurrent;
+        addLog(`技量点で代用して【生命ロール】を行います。(現在技量点: ${statVal})`, 'info');
+      }
     } else {
       const isSubMatch = character.value.subStatType === stat;
       if (isSubMatch && useSubStat) {

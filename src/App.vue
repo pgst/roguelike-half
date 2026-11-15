@@ -35,7 +35,7 @@ const {
   checkpointMiracles,
   restoreStatsAfterAdventure,
   buyFollower,
-  equipArmor,
+  replaceArmorWithConfirm,
   addLog,
   forgetSpell,
   activeScenario,
@@ -237,28 +237,19 @@ function buyWeapon(w: Weapon) {
   checkGoldSlotFreed(prevGold, character.value.gold);
 }
 
-function buyArmor(a: Armor) {
+async function buyArmor(a: Armor) {
   if (character.value.gold < a.goldCost) return;
 
-  if (character.value.armors.length >= 1) {
-    const oldArmor = character.value.armors[0];
-    const isEquipped = character.value.equippedArmor?.name === oldArmor.name;
-    if (isEquipped) {
-      equipArmor(null);
-    }
-    character.value.armors = [];
-    addLog(`古い防具 [${oldArmor.name}] を処分しました。`, "info");
-  }
+  const replaced = await replaceArmorWithConfirm(a);
+  if (!replaced) return;
 
   const prevGold = character.value.gold;
   character.value.gold -= a.goldCost;
-  character.value.armors.push({ ...a });
   addLog(
     `街の市場で [${a.name}] を購入しました。(金貨${a.goldCost}枚消費)`,
     "success",
   );
   checkGoldSlotFreed(prevGold, character.value.gold);
-  equipArmor(character.value.armors[0]);
 }
 
 function buyShield(s: Shield) {
@@ -368,6 +359,7 @@ function startAdventure() {
       return;
     }
   }
+  character.value.food = 2; // Rule 26 & 31: シナリオ開始ごとに食料は2食にリセット
   transitionToExplore();
   addLog(
     "🧭 さあ、暗い地下迷宮へと歩みを進めましょう！ 生きて宝を持ち帰るために。",

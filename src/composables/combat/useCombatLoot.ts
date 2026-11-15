@@ -172,15 +172,15 @@ export function useCombatLoot(deps: CombatLootDependencies) {
       item = {
         id: generateId(),
         name: '貫きの石弾 (5個)',
-        type: 'holywater',
-        goldCost: 15,
-        value: 12,
+        type: 'magic_bullet',
+        goldCost: 60,
+        value: 60,
         chargesCurrent: 5,
         chargesMax: 5,
         description: 'スリング用の魔法石弾。使用時に攻撃判定+2ボーナス。魔法武器属性。',
       };
       descText = '魔法の石弾『貫きの石弾 (5個)』';
-      addLog('✨ 『貫きの石弾(5回分)』を獲得！ (攻撃時に+2ボーナス)', 'success');
+      addLog('✨ 『貫きの石弾(5回分)』を獲得！ (スリング攻撃時に+2ボーナス、価値60G)', 'success');
     } else if (roll === 2) {
       item = {
         id: generateId(),
@@ -271,14 +271,17 @@ export function useCombatLoot(deps: CombatLootDependencies) {
     followers.value.push({
       id: generateId(),
       name: 'ウォー・ドール',
-      type: 'soldier',
+      type: 'golem',
       isCombatant: true,
       skill: 1,
       lifeMax: 1,
       lifeCurrent: 1,
+      attackCount: 2,
+      damageIgnoreCount: 1,
+      tags: ['golem'],
       weaponAttribute: 'slash',
       goldCost: 0,
-      description: '【ゴーレム】。接近戦2回攻撃。1冒険に1回だけダメージ無視。罠無効。',
+      description: '【ゴーレム】。接近戦2回攻撃。1冒険に1回だけダメージ無視。罠・毒・病気無効。',
     });
 
     addLog('✨ 経験点1を注ぎ込み、ウォー・ドールを起動しました！ 「戦う従者」としてパーティに加入。', 'success');

@@ -30,7 +30,7 @@ const {
   playerActiveStatusEffectRules,
   isBackpackFull,
   isBackpackOverLimit,
-  equipArmor,
+  replaceArmorWithConfirm,
   triggerLevelUp,
   transitionToSuccess,
   transitionToExplore,
@@ -191,25 +191,17 @@ function buyWeaponFromMerchant(w: Weapon) {
   addLog(`行商人から [${w.name}] を購入しました。(金貨${w.goldCost}枚消費)`, 'success');
 }
 
-function buyArmorFromMerchant(a: Armor) {
+async function buyArmorFromMerchant(a: Armor) {
   if (character.value.gold < a.goldCost) {
     addLog('金貨が足りません！', 'error');
     return;
   }
-  
-  if (character.value.armors.length >= 1) {
-    const oldArmor = character.value.armors[0];
-    if (character.value.equippedArmor?.name === oldArmor.name) {
-      equipArmor(null);
-    }
-    character.value.armors = [];
-    addLog(`古い防具 [${oldArmor.name}] を処分しました。`, 'info');
-  }
+
+  const replaced = await replaceArmorWithConfirm(a);
+  if (!replaced) return;
 
   character.value.gold -= a.goldCost;
-  character.value.armors.push({ ...a });
   addLog(`行商人から [${a.name}] を購入しました。(金貨${a.goldCost}枚消費)`, 'success');
-  equipArmor(character.value.armors[0]);
 }
 
 function buyShieldFromMerchant(s: Shield) {
@@ -658,11 +650,15 @@ function resolveRestRoom(option: 'life' | 'sub') {
   if (!activeEvent.value) return;
   let text = '';
   if (option === 'life') {
+    const beforeLife = character.value.lifeCurrent;
     character.value.lifeCurrent = Math.min(character.value.lifeMax, character.value.lifeCurrent + 2);
-    text = '静かに祈りを捧げ、怪我を癒やしました。生命力+2回復。';
+    const actualHeal = character.value.lifeCurrent - beforeLife;
+    text = `静かに祈りを捧げ、怪我を癒やしました。生命力+${actualHeal}回復（現在: ${character.value.lifeCurrent}/${character.value.lifeMax}）。`;
+    addLog(text, 'success');
   } else {
     character.value.subStatCurrent = character.value.subStatMax;
     text = '瞑想を行い、精神と体力を統一しました。副能力値が全回復しました！';
+    addLog(text, 'success');
   }
   (activeEvent.value as any).isResolved = true;
   (activeEvent.value as any).resolutionText = text;
@@ -708,6 +704,9 @@ async function handleCustomChoiceClick(choice: any) {
     let isUsingSubStat = false;
     if (choice.checkStat === 'skill') {
       statVal = character.value.skillCurrent;
+    } else if (choice.checkStat === 'life') {
+      statVal = Math.max(character.value.lifeCurrent, character.value.skillCurrent);
+      addLog(`現在の生命点を使用して【生命ロール】を行います。(現在値: ${statVal}、消費なし)`, 'success');
     } else {
       const isSubMatch = character.value.subStatType === choice.checkStat;
       if (isSubMatch && character.value.subStatCurrent > 0) {
@@ -1044,7 +1043,15 @@ function resolveSkeletonEvent() {
 
           <!-- Trap Challenge Options -->
           <template v-else-if="!activeEvent.isResolved">
-            <div v-if="activeEvent.trapStat && character.subStatType === activeEvent.trapStat && character.subStatCurrent > 0" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div v-if="activeEvent.trapStat === 'life'" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button @click="resolveTrapCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
+                ❤️ 現在の生命点で挑戦 (判定値: {{ character.lifeCurrent }} / 消費なし)
+              </button>
+              <button @click="resolveTrapCheck(false)" class="btn-ink" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
+                🎲 技量点で挑戦 (判定値: {{ character.skillCurrent }} / 消費なし)
+              </button>
+            </div>
+            <div v-else-if="activeEvent.trapStat && character.subStatType === activeEvent.trapStat && character.subStatCurrent > 0" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
               <button @click="resolveTrapCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
                 {{ activeEvent.trapStat === 'strength' ? '💪' : activeEvent.trapStat === 'dexterity' ? '🏹' : activeEvent.trapStat === 'magic' ? '🔮' : '✨' }} 副能力値【{{ activeEvent.trapStat === 'strength' ? '筋力点' : activeEvent.trapStat === 'dexterity' ? '器用点' : activeEvent.trapStat === 'magic' ? '魔術点' : activeEvent.trapStat === 'luck' ? '幸運点' : activeEvent.trapStat }}】で挑戦 (判定値: {{ character.subStatCurrent }} / 1点消費)
               </button>
@@ -1069,7 +1076,15 @@ function resolveSkeletonEvent() {
 
         <!-- Search Actions -->
         <div v-else-if="activeEvent.type === 'search'">
-          <div v-if="activeEvent.searchStat && character.subStatType === activeEvent.searchStat && character.subStatCurrent > 0" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <div v-if="activeEvent.searchStat === 'life'" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button @click="resolveSearchCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
+              ❤️ 現在の生命点で調査 (判定値: {{ character.lifeCurrent }} / 消費なし)
+            </button>
+            <button @click="resolveSearchCheck(false)" class="btn-ink" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
+              🎲 技量点で調査 (判定値: {{ character.skillCurrent }} / 消費なし)
+            </button>
+          </div>
+          <div v-else-if="activeEvent.searchStat && character.subStatType === activeEvent.searchStat && character.subStatCurrent > 0" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button @click="resolveSearchCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
               {{ activeEvent.searchStat === 'strength' ? '💪' : activeEvent.searchStat === 'dexterity' ? '🏹' : activeEvent.searchStat === 'magic' ? '🔮' : '✨' }} 副能力値【{{ activeEvent.searchStat === 'strength' ? '筋力点' : activeEvent.searchStat === 'dexterity' ? '器用点' : activeEvent.searchStat === 'magic' ? '魔術点' : activeEvent.searchStat === 'luck' ? '幸運点' : activeEvent.searchStat }}】で調査 (判定値: {{ character.subStatCurrent }} / 1点消費)
             </button>

@@ -434,7 +434,8 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
   }
 
   async function resolveCreateWeaponSpell(category: 'weapon' | 'armor' | 'shield', itemKey: string) {
-    castCreateWeaponSpell(category, itemKey);
+    const ok = await castCreateWeaponSpell(category, itemKey);
+    if (ok === false) return;
     if (combatState.active) {
       if (combatState.round === 0) {
         combatState.hasRangedFired = true;

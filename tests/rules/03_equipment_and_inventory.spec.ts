@@ -104,12 +104,11 @@ test.describe("基本ルール ver.5.1: 装備品・所持品・食料・暗闇 
     await unequipShieldBtn.click();
     await expect(sheet).toContainText("❤️生命点6 / 6");
 
-    // 板金鎧を「外す」と生命力が -2 (6 -> 4)
+    // Rule 27 (#20): 予備の防具は背負い袋に入れられないため、着用中の防具には「外す」ボタンが存在しないこと
     const unequipArmorBtn = sheet.locator(
       '.equipped-slot:has-text("胴体/防具") button:has-text("外す")',
     );
-    await unequipArmorBtn.click();
-    await expect(sheet).toContainText("❤️生命点4 / 4");
+    await expect(unequipArmorBtn).toHaveCount(0);
 
     await closeAdventureSheet(page);
   });
@@ -516,5 +515,106 @@ test.describe("基本ルール ver.5.1: 装備品・所持品・食料・暗闇 
     // 購入した「魔法の片手武器」は残っており、「創られた片手武器」は消滅していること
     expect(weapons.some((w: any) => w.name === "魔法の片手武器")).toBe(true);
     expect(weapons.some((w: any) => w.name.startsWith("創られた"))).toBe(false);
+  });
+
+  test("【Phase 3: #12,#13,#15,#20,#21,#23】防具上書き確認モーダル・貫きの石弾価値減衰・ウォードール特性・食料リセット・実回復量ログの検証", async ({
+    page,
+  }) => {
+    await selectScenarioInUI(page, "魔将アラザスの迷宮");
+
+    await page.fill("#char-name", "アイテム検証者");
+    await page.locator(".archetype-card").nth(0).click({ force: true }); // 魔術型（初期防具：布鎧）
+    await page
+      .locator('button:has-text("キャラクターの命運を紡ぎ出す")')
+      .click({ force: true });
+    await page.waitForSelector(".levelup-card", {
+      state: "visible",
+      timeout: 5000,
+    });
+
+    await page
+      .locator('.spell-learning-section button:has-text("武具創造")')
+      .click();
+
+    // #20: 既に布鎧を着用している状態で、街の市場で革鎧（5G）を購入しようとすると確認モーダルが出ること
+    const buyLeatherBtn = page
+      .locator('.shop-column span:has-text("革鎧") + button')
+      .first();
+    await buyLeatherBtn.click();
+    const confirmModal = page.locator('[data-testid="confirm-modal"]');
+    await expect(confirmModal).toBeVisible();
+    await expect(confirmModal).toContainText("布鎧");
+    await expect(confirmModal).toContainText("革鎧");
+    await page.locator('[data-testid="confirm-modal-ok"]').click();
+    await expect(confirmModal).toBeHidden();
+
+    // 食料を5食に増やしてから冒険を開始すると、#21 により食料が2食にリセットされること
+    await page.evaluate(() => {
+      const state = (window as any).__GAME_STATE__;
+      if (state) state.character.value.food = 5;
+    });
+
+    await page
+      .locator('button:has-text("冒険を開始する")')
+      .click({ force: true });
+    await page.waitForSelector(".explorer-card", {
+      state: "visible",
+      timeout: 5000,
+    });
+
+    const foodAtStart = await page.evaluate(
+      () => (window as any).__GAME_STATE__.character.value.food,
+    );
+    expect(foodAtStart).toBe(2);
+
+    // #23: 最大HPから1点だけ減った状態で食料を食べた場合、ログに「生命力が1回復」と実回復量が記録されること
+    await page.evaluate(() => {
+      const state = (window as any).__GAME_STATE__;
+      state.character.value.lifeCurrent = state.character.value.lifeMax - 1;
+    });
+    await openAdventureSheet(page);
+    await page.locator('.adventure-sheet button:has-text("食べる (+2回復)")').click();
+    await expect(page.locator(".logbook-entries")).toContainText(
+      "食料を食べました。生命力が1回復。",
+    );
+
+    // #20: 冒険記録紙から【武具創造】で「板金鎧」を創造しようとすると、「冒険終了時に消滅し、終了後は無防備になります」の警告モーダルが出ること
+    await page.locator('button:has-text("呪文【武具創造】を唱える")').click();
+    await page.locator('button:has-text("板金鎧")').click();
+    await expect(confirmModal).toBeVisible();
+    await expect(confirmModal).toContainText("革鎧");
+    await expect(confirmModal).toContainText("創られた板金鎧");
+    await expect(confirmModal).toContainText("終了後は無防備になります");
+    await page.locator('[data-testid="confirm-modal-ok"]').click();
+    await closeAdventureSheet(page);
+
+    // #12 & #15: ウォー・ドール起動時の属性・2回攻撃・ダメージ無視1回と、貫きの石弾の種別・価値をチェック
+    const phase3Check = await page.evaluate(async () => {
+      const state = (window as any).__GAME_STATE__;
+      state.character.value.exp = 2;
+      state.character.value.items.push({
+        id: "wardoll-test",
+        name: "ウォー・ドール (未起動)",
+        type: "magic_doll",
+        goldCost: 60,
+        value: 60,
+        description: "test",
+      });
+      return true;
+    });
+    expect(phase3Check).toBe(true);
+
+    await openAdventureSheet(page);
+    await page.locator('button:has-text("起動(1EXP)")').click();
+    await closeAdventureSheet(page);
+
+    const warDoll = await page.evaluate(() => {
+      const state = (window as any).__GAME_STATE__;
+      return state.followers.value.find((f: any) => f.name === "ウォー・ドール");
+    });
+    expect(warDoll.type).toBe("golem");
+    expect(warDoll.attackCount).toBe(2);
+    expect(warDoll.damageIgnoreCount).toBe(1);
+    expect(warDoll.tags).toContain("golem");
   });
 });

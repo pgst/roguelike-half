@@ -236,9 +236,11 @@ export function useCombatEnemy(deps: CombatEnemyDependencies) {
     } else if (actionType === 'neutral') {
       endCombatPeaceful('中立：敵は攻撃してきません。戦うことなく安全に立ち去ることができました。');
     } else if (actionType === 'hospitable') {
+      const beforeLife = character.value.lifeCurrent;
       character.value.lifeCurrent = Math.min(character.value.lifeMax, character.value.lifeCurrent + 1);
+      const actualHeal = character.value.lifeCurrent - beforeLife;
       followers.value.forEach(f => f.lifeCurrent = 1);
-      endCombatPeaceful('歓待：クリーチャーは食事と休息を提供してくれました！全員の生命力が1点回復し、敵は立ち去りました。');
+      endCombatPeaceful(`歓待：クリーチャーは食事と休息を提供してくれました！生命力が${actualHeal}点回復（現在: ${character.value.lifeCurrent}/${character.value.lifeMax}）し、敵は立ち去りました。`);
     }
   }
 

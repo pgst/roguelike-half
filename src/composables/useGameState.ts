@@ -18,6 +18,7 @@ import { generateId, setGlobalSeed, randomInt } from "../domain/random";
 import { useCloudSync } from "./useCloudSync";
 import { useHallOfFame } from "./useHallOfFame";
 import { useCustomScenarios } from "./useCustomScenarios";
+import { useConfirmModal } from "./useConfirmModal";
 
 // Load Scenarios: 公開用シナリオは常時バンドル、開発検証用モックはDEV環境のみバンドル
 const publicModules = import.meta.glob<{ default: any }>(
@@ -1392,26 +1393,11 @@ function equipWeapon(w: Weapon | null) {
 
 function equipArmor(a: Armor | null) {
   if (a && character.value.equippedArmor?.name === a.name) {
-    // Unequip
-    const oldArmor = character.value.equippedArmor;
-    character.value.equippedArmor = null;
-    if (oldArmor) {
-      character.value.lifeMax = Math.max(
-        1,
-        character.value.lifeMax - oldArmor.modLife,
-      );
-      character.value.lifeCurrent = Math.max(
-        1,
-        Math.min(
-          character.value.lifeMax,
-          character.value.lifeCurrent - oldArmor.modLife,
-        ),
-      );
-      addLog(
-        `${oldArmor.name}を装備解除しました。生命力最大値 -${oldArmor.modLife}`,
-        "info",
-      );
-    }
+    // Rule 27: 予備の防具を背負い袋に入れることはできないため、着用中の防具を背負い袋へ外す操作は不可
+    addLog(
+      "防具は予備として背負い袋にしまうことができません（新しい防具への着替えのみ可能です）。(Rule 27)",
+      "error",
+    );
     return;
   }
 
@@ -1439,6 +1425,41 @@ function equipArmor(a: Armor | null) {
   } else {
     character.value.equippedArmor = null;
   }
+}
+
+async function replaceArmorWithConfirm(
+  newArmor: Armor,
+  skipConfirm = false,
+): Promise<boolean> {
+  const oldArmor =
+    character.value.equippedArmor || character.value.armors[0] || null;
+  if (oldArmor && !skipConfirm) {
+    const { requestConfirm } = useConfirmModal();
+    const createdWarning = newArmor.isCreated
+      ? `\n※「${newArmor.name}」は【武具創造】によって創られた防具のため、冒険終了時に消滅し、終了後は無防備になります。`
+      : "";
+    const ok = await requestConfirm({
+      title: "防具の着替えと手放しの確認",
+      message: `現在着用している防具「${oldArmor.name}」を手放して、新しい防具「${newArmor.name}」に着替えますか？\n（ルールにより予備の防具を背負い袋に入れて持ち運ぶことはできません）${createdWarning}`,
+      confirmText: "着替える（旧防具を破棄）",
+      cancelText: "やめる",
+      danger: Boolean(oldArmor.isMagic || newArmor.isCreated),
+    });
+    if (!ok) return false;
+  }
+
+  if (oldArmor) {
+    if (character.value.equippedArmor) {
+      equipArmor(null);
+    }
+    character.value.armors = [];
+    addLog(`古い防具 [${oldArmor.name}] を処分しました。`, "info");
+  }
+
+  const cloned = { ...newArmor };
+  character.value.armors = [cloned];
+  equipArmor(character.value.armors[0]);
+  return true;
 }
 
 function equipShield(s: Shield | null) {
@@ -1646,12 +1667,14 @@ function useFood(useHolyFeast = false) {
     );
   }
 
+  const beforeLife = character.value.lifeCurrent;
   character.value.lifeCurrent = Math.min(
     character.value.lifeMax,
     character.value.lifeCurrent + heal,
   );
+  const actualHeal = character.value.lifeCurrent - beforeLife;
   addLog(
-    `食料を食べました。生命力が${heal}回復。 (残り食料: ${character.value.food}個)`,
+    `食料を食べました。生命力が${actualHeal}回復。 (残り食料: ${character.value.food}個)`,
     "success",
   );
 }
@@ -1676,20 +1699,20 @@ function useHealingPotion() {
   addLog("治療のポーションを飲みました。生命力が最大値まで全回復！", "success");
 }
 
-function castCreateWeaponSpell(
+async function castCreateWeaponSpell(
   category: "weapon" | "armor" | "shield",
   itemKey: string,
-) {
+  skipConfirm = false,
+): Promise<boolean> {
   if (character.value.subStatCurrent < 1) {
     addLog("魔術点が足りないため、呪文を唱えられません！", "error");
-    return;
+    return false;
   }
-
-  character.value.subStatCurrent--;
 
   if (category === "weapon") {
     const base = DEFAULT_WEAPONS[itemKey as keyof typeof DEFAULT_WEAPONS];
-    if (!base) return;
+    if (!base) return false;
+    character.value.subStatCurrent--;
     const summon: Weapon = {
       ...base,
       name: `創られた${base.name}`,
@@ -1704,7 +1727,7 @@ function castCreateWeaponSpell(
     );
   } else if (category === "armor") {
     const base = DEFAULT_ARMORS[itemKey as keyof typeof DEFAULT_ARMORS];
-    if (!base) return;
+    if (!base) return false;
     const summon: Armor = {
       ...base,
       name: `創られた${base.name}`,
@@ -1712,14 +1735,19 @@ function castCreateWeaponSpell(
       isCreated: true,
       description: `【武具創造】によって生み出された防具。冒険終了後に消滅する。`,
     };
-    character.value.armors.push(summon);
+    const replaced = await replaceArmorWithConfirm(summon, skipConfirm);
+    if (!replaced) {
+      return false;
+    }
+    character.value.subStatCurrent--;
     addLog(
-      `✨ 呪文【武具創造】を唱え、「${summon.name}」を背負い袋に創造しました！`,
+      `✨ 呪文【武具創造】を唱え、「${summon.name}」を創造して着用しました！`,
       "success",
     );
   } else if (category === "shield") {
     const base = DEFAULT_SHIELDS[itemKey as keyof typeof DEFAULT_SHIELDS];
-    if (!base) return;
+    if (!base) return false;
+    character.value.subStatCurrent--;
     const summon: Shield = {
       ...base,
       name: `創られた${base.name}`,
@@ -1735,6 +1763,7 @@ function castCreateWeaponSpell(
   }
 
   combatState.hasWeaponCreatedThisRound = true;
+  return true;
 }
 
 // Dungeon completion stats restore
@@ -1768,9 +1797,10 @@ function restoreStatsAfterAdventure() {
   character.value.skillCurrent = character.value.skillMax;
   character.value.lifeCurrent = character.value.lifeMax;
   character.value.subStatCurrent = character.value.subStatMax;
+  character.value.food = 2; // Rule 26 & 31: シナリオごとに食料は2食にリセット
   character.value.statusEffects = []; // 町に戻った際にすべての状態異常を治療
   potionUsedThisAdventure = false;
-  // Restore follower mages' mana
+  // Restore follower mages' mana & War Doll's damage ignore count
   followers.value.forEach((f) => {
     if (
       f.type === "mage" &&
@@ -1778,6 +1808,9 @@ function restoreStatsAfterAdventure() {
       f.magicMax !== undefined
     ) {
       f.magicCurrent = f.magicMax;
+    }
+    if (f.name === "ウォー・ドール" || f.type === "golem") {
+      f.damageIgnoreCount = 1;
     }
   });
 }
@@ -2294,6 +2327,7 @@ export function useGameState() {
     // Equipment actions
     equipWeapon,
     equipArmor,
+    replaceArmorWithConfirm,
     equipShield,
     sellItem,
     discardWeapon,

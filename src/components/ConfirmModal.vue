@@ -69,7 +69,7 @@ onUnmounted(() => {
 .confirm-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 12000;
+  z-index: 200000;
   background: rgba(20, 15, 10, 0.65);
   display: flex;
   align-items: center;

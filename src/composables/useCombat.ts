@@ -284,10 +284,30 @@ export function useCombat() {
       addLog('🌪️ 斬撃風による体勢崩れペナルティ -1！', 'error');
     }
 
+    // 貫きの石弾 (magic_bullet) チェック：スリング装備時に自動消費し、攻撃判定+2・魔法武器属性化 (Rule 40)
+    const isSlingEquipped = Boolean(
+      character.value.equippedWeapon?.type === 'ranged' &&
+      character.value.equippedWeapon?.name.includes('スリング')
+    );
+    const magicBullet = isSlingEquipped
+      ? character.value.items.find(i => i.type === 'magic_bullet' && (i.chargesCurrent ?? 0) > 0)
+      : undefined;
+    if (magicBullet) {
+      modifier += 2;
+      magicBullet.chargesCurrent = Math.max(0, (magicBullet.chargesCurrent || 1) - 1);
+      magicBullet.value = Math.floor((60 * magicBullet.chargesCurrent) / (magicBullet.chargesMax || 5));
+      magicBullet.name = `貫きの石弾 (${magicBullet.chargesCurrent}個)`;
+      addLog(`🪨 『貫きの石弾』を放った！ 攻撃判定に +2 ボーナス＆魔法の武器属性として扱われます。(残り: ${magicBullet.chargesCurrent}個 / 価値: ${magicBullet.value}G)`, 'success');
+      if (magicBullet.chargesCurrent <= 0) {
+        character.value.items = character.value.items.filter(i => i.id !== magicBullet.id);
+        addLog('🪨 『貫きの石弾』を使い果たしました。', 'info');
+      }
+    }
+
     // Apply enemy resistances for player
     if (targetEnemy.resistances && character.value.equippedWeapon) {
       const weaponAttr = character.value.equippedWeapon.type === 'ranged' ? 'ranged' : character.value.equippedWeapon.attribute;
-      const isMagic = character.value.equippedWeapon.isMagic;
+      const isMagic = Boolean(character.value.equippedWeapon.isMagic || magicBullet);
       targetEnemy.resistances.forEach(res => {
         if (res.attribute === weaponAttr) {
           if (res.ignoreIfMagic && isMagic) {
@@ -913,28 +933,35 @@ export function useCombat() {
             }
           }
         } else {
-          // Check if Strength cover skill can be triggered (Rule 22)
-          const canCover = character.value.subStatType === 'strength' &&
-                            character.value.subStatCurrent >= 1 &&
-                            !combatState.hasCoveredInRound;
-
-          if (canCover) {
-            combatState.pendingCover = {
-              attackId,
-              followerId: defenderId,
-              followerName: defName,
-              enemyName: enemy.name,
-              enemyLevel: enemy.level,
-              isRanged: isRangedAttack
-            };
-            addLog(`🛡️ 従者 ${defName} が被弾！ 主人公は「かばう」を使用できます。`, 'error');
-            return;
+          // Rule 40: ウォー・ドールは1回の冒険に1度だけダメージを無視する
+          const hitFollower = followers.value.find(fol => fol.id === defenderId);
+          if (hitFollower && (hitFollower.damageIgnoreCount ?? 0) > 0) {
+            hitFollower.damageIgnoreCount!--;
+            addLog(`✨ ${hitFollower.name} の魔術的装甲により、この冒険で1回だけダメージを無視しました！(残り無視回数: ${hitFollower.damageIgnoreCount}回)`, 'success');
           } else {
-            // Followers have only 1 HP and immediately die (Rule 33)
-            const fIdx = followers.value.findIndex(fol => fol.id === defenderId);
-            if (fIdx !== -1) {
-              addLog(`💀 従者 ${followers.value[fIdx].name} は致命傷を受け、息絶えました...`, 'error');
-              followers.value.splice(fIdx, 1);
+            // Check if Strength cover skill can be triggered (Rule 22)
+            const canCover = character.value.subStatType === 'strength' &&
+                              character.value.subStatCurrent >= 1 &&
+                              !combatState.hasCoveredInRound;
+
+            if (canCover) {
+              combatState.pendingCover = {
+                attackId,
+                followerId: defenderId,
+                followerName: defName,
+                enemyName: enemy.name,
+                enemyLevel: enemy.level,
+                isRanged: isRangedAttack
+              };
+              addLog(`🛡️ 従者 ${defName} が被弾！ 主人公は「かばう」を使用できます。`, 'error');
+              return;
+            } else {
+              // Followers have only 1 HP and immediately die (Rule 33)
+              const fIdx = followers.value.findIndex(fol => fol.id === defenderId);
+              if (fIdx !== -1) {
+                addLog(`💀 従者 ${followers.value[fIdx].name} は致命傷を受け、息絶えました...`, 'error');
+                followers.value.splice(fIdx, 1);
+              }
             }
           }
         }

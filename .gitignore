@@ -31,6 +31,7 @@ dist-ssr
 /test-results/
 /playwright-report/
 /playwright-report-personas/
+/playwright-report-legacy/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
