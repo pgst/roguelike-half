@@ -177,6 +177,12 @@ const merchantGoods = {
   ] as Omit<GeneralItem, 'id'>[]
 };
 
+const selectedMerchantWeaponAttrib = ref<Record<string, 'strike' | 'slash'>>({
+  [DEFAULT_WEAPONS.light.name]: 'strike',
+  [DEFAULT_WEAPONS.oneHanded.name]: 'slash',
+  [DEFAULT_WEAPONS.twoHanded.name]: 'slash',
+});
+
 function buyWeaponFromMerchant(w: Weapon) {
   if (isBackpackFull.value) {
     addLog('🎒 背負い袋が満杯のため、これ以上アイテムを購入できません！', 'error');
@@ -187,8 +193,12 @@ function buyWeaponFromMerchant(w: Weapon) {
     return;
   }
   character.value.gold -= w.goldCost;
-  character.value.weapons.push({ ...w });
-  addLog(`行商人から [${w.name}] を購入しました。(金貨${w.goldCost}枚消費)`, 'success');
+  const chosenAttr =
+    w.type !== 'ranged'
+      ? selectedMerchantWeaponAttrib.value[w.name] || w.attribute
+      : w.attribute;
+  character.value.weapons.push({ ...w, attribute: chosenAttr });
+  addLog(`行商人から [${w.name}] (属性: ${chosenAttr === 'slash' ? '斬撃' : '打撃'}) を購入しました。(金貨${w.goldCost}枚消費)`, 'success');
 }
 
 async function buyArmorFromMerchant(a: Armor) {
@@ -1259,9 +1269,22 @@ function resolveSkeletonEvent() {
               <div class="merch-cat">
                 <h5>⚔️ 武器の購入:</h5>
                 <div class="merch-grid">
-                  <div v-for="w in merchantGoods.weapons" :key="w.name" class="merch-item">
-                    <span>{{ w.name }} ({{ w.goldCost }}g)</span>
-                    <button @click="buyWeaponFromMerchant(w)" class="btn-ink btn-mini" :disabled="character.gold < w.goldCost || isBackpackFull">購入</button>
+                  <div v-for="w in merchantGoods.weapons" :key="w.name" class="merch-item" style="flex-direction: column; align-items: stretch; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span>{{ w.name }} ({{ w.goldCost }}g)</span>
+                      <button @click="buyWeaponFromMerchant(w)" class="btn-ink btn-mini" :disabled="character.gold < w.goldCost || isBackpackFull">購入</button>
+                    </div>
+                    <div v-if="w.type !== 'ranged'" style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: #705844;">
+                      <span>属性:</span>
+                      <label style="display: inline-flex; align-items: center; gap: 2px; cursor: pointer;">
+                        <input type="radio" :name="'merch-w-attr-' + w.name" value="slash" v-model="selectedMerchantWeaponAttrib[w.name]" />
+                        斬撃
+                      </label>
+                      <label style="display: inline-flex; align-items: center; gap: 2px; cursor: pointer;">
+                        <input type="radio" :name="'merch-w-attr-' + w.name" value="strike" v-model="selectedMerchantWeaponAttrib[w.name]" />
+                        打撃
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>

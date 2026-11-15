@@ -318,6 +318,7 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
     await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
     await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // 初期生命力を記憶 (10)
@@ -377,6 +378,7 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
     await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
     await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // 部屋34（迷宮の野営地）に進む。小休止ロールで出目1（失敗）。次回ダイスで一の位1（-> 51 ゴブリン突撃兵）
@@ -430,6 +432,7 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
     await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
     await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // 部屋42（油の壷）に進む。判定ロール出目1（失敗）。
@@ -487,6 +490,7 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
     await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
     await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // 部屋11（チーズ）に進み、探索判定ロール出目6（成功）。
@@ -539,6 +543,7 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
     await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
     await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // 部屋23（冒険者の一団）に進む
@@ -579,6 +584,7 @@ test.describe('1st公式シナリオ『黄昏の騎士』JSONデータ & シナ�
     await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
     await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // 部屋55（カルネーの愛猫: 公式シナリオで元々フレーバーテキストが付いている遭遇）に進む

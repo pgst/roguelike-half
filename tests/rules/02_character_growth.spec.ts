@@ -31,8 +31,11 @@ test.describe('基本ルール ver.5.1: キャラクター作成・成長・チ�
     const expText = page.locator('.exp-pool');
     await expect(expText).toContainText('所持経験点: 10 点');
 
-    // 冒険開始ボタンを押してダンジョン画面へ遷移
+    // 冒険開始ボタンを押してダンジョン画面へ遷移（未習得奇跡の確認モーダルを承認）
+    await expect(page.getByTestId('unlearned-spells-notice')).toBeVisible();
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await expect(page.getByTestId('confirm-modal')).toBeVisible();
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // 冒険記録紙を開いてステータスと装備・所持品を精査
@@ -213,6 +216,60 @@ test.describe('基本ルール ver.5.1: キャラクター作成・成長・チ�
     await expect(spellSection).toContainText('2 / 2 スロット使用中');
     await expect(spellSection.locator('.badge-stat:has-text("氷槍")')).toBeVisible();
     await expect(spellSection.locator('.badge-stat:has-text("気絶")')).toBeVisible();
+  });
+
+  test('【Phase 4: #8 & #19】初期装備の選択肢（片手武器＋丸盾／スリング）・武器属性選択・未習得魔術確認モーダルの検証', async ({ page }) => {
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
+
+    // 1. #19: 筋力型で「片手武器＋丸盾＋板金鎧」＆初期武器属性「打撃」を選択して作成
+    await page.fill('#char-name', '盾持ち重戦士');
+    await page.locator('.archetype-card').nth(2).click({ force: true });
+    await page.getByTestId('strength-opt-oneHandedShield').check();
+    await page.getByTestId('initial-weapon-attr-strike').check();
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+
+    // 街の市場で「軽い武器」の属性を「斬撃」にして購入 (#19)
+    const lightWeaponRow = page.locator('.shop-column > div > div').filter({ hasText: '軽い武器 (短剣等) (2g)' });
+    await lightWeaponRow.locator('input[value="slash"]').check();
+    await lightWeaponRow.locator('button:has-text("購入")').click({ force: true });
+
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // セッションデータで初期装備（片手武器:打撃、丸盾、板金鎧、生命点4+2+2=8）と購入した軽い武器(斬撃)を検証
+    const strengthState = await page.evaluate(() => {
+      const raw = localStorage.getItem('roguelike_half_saved_session');
+      return raw ? JSON.parse(raw).character : null;
+    });
+    expect(strengthState.lifeMax).toBe(8);
+    expect(strengthState.equippedWeapon.name).toContain('片手武器');
+    expect(strengthState.equippedWeapon.attribute).toBe('strike');
+    expect(strengthState.equippedShield.name).toBe('丸盾');
+    const boughtLight = strengthState.weapons.find((w: any) => w.name.includes('軽い武器'));
+    expect(boughtLight.attribute).toBe('slash');
+
+    // 2. #8: 魔術型で未習得のまま「冒険を開始する」→キャンセルで留まり、承認で開始できること
+    await page.evaluate(() => localStorage.clear());
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
+
+    await page.fill('#char-name', '無詠唱の魔導師');
+    await page.locator('.archetype-card').nth(0).click({ force: true });
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+
+    await expect(page.getByTestId('unlearned-spells-notice')).toContainText('未習得の魔術スロットが 1 つ残っています');
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await expect(page.getByTestId('confirm-modal')).toContainText('未習得の魔術スロットが 1 つ残っています');
+    // キャンセルでレベルアップ画面に留まること
+    await page.getByTestId('confirm-modal-cancel').click({ force: true });
+    await expect(page.locator('.levelup-card')).toBeVisible();
+    // 再度押して承認で探索画面へ遷移すること
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
   });
 
 });

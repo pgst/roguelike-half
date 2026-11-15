@@ -18,6 +18,9 @@ import CombatSimulator from "./components/CombatSimulator.vue";
 import MiniStatusHud from "./components/MiniStatusHud.vue";
 import MessageWindow from "./components/MessageWindow.vue";
 import ConfirmModal from "./components/ConfirmModal.vue";
+import { useConfirmModal } from "./composables/useConfirmModal";
+
+const { requestConfirm } = useConfirmModal();
 
 const {
   currentScreen,
@@ -210,6 +213,15 @@ const selectedFollowerAttrib = ref<Record<string, "strike" | "slash">>({
 
 const selectedMageSpell = ref("炎球");
 
+const selectedShopWeaponAttrib = ref<Record<string, "strike" | "slash">>({
+  [DEFAULT_WEAPONS.light.name]: "strike",
+  [DEFAULT_WEAPONS.oneHanded.name]: "slash",
+  [DEFAULT_WEAPONS.twoHanded.name]: "slash",
+  [DEFAULT_WEAPONS.magicLight.name]: "strike",
+  [DEFAULT_WEAPONS.magicOneHanded.name]: "slash",
+  [DEFAULT_WEAPONS.magicTwoHanded.name]: "slash",
+});
+
 function checkGoldSlotFreed(prevGold: number, nextGold: number) {
   const prevSlots = Math.floor(prevGold / 100);
   const nextSlots = Math.floor(nextGold / 100);
@@ -229,9 +241,13 @@ function buyWeapon(w: Weapon) {
   if (character.value.gold < w.goldCost) return;
   const prevGold = character.value.gold;
   character.value.gold -= w.goldCost;
-  character.value.weapons.push({ ...w });
+  const chosenAttr =
+    w.type !== "ranged"
+      ? selectedShopWeaponAttrib.value[w.name] || w.attribute
+      : w.attribute;
+  character.value.weapons.push({ ...w, attribute: chosenAttr });
   addLog(
-    `街の市場で [${w.name}] を購入しました。(金貨${w.goldCost}枚消費)`,
+    `街の市場で [${w.name}] (属性: ${chosenAttr === "slash" ? "斬撃" : "打撃"}) を購入しました。(金貨${w.goldCost}枚消費)`,
     "success",
   );
   checkGoldSlotFreed(prevGold, character.value.gold);
@@ -342,7 +358,7 @@ function handleRetry() {
   retrySession();
 }
 
-function startAdventure() {
+async function startAdventure() {
   if (canLearnSpells.value) {
     const isMagic = character.value.subStatType === "magic";
     const typeName = isMagic ? "魔術" : "奇跡";
@@ -351,11 +367,13 @@ function startAdventure() {
       ? character.value.spells.length
       : character.value.miracles.length;
     const remain = allowed - currentCount;
-    if (
-      !confirm(
-        `未習得の${typeName}スロットが ${remain} つ残っています。習得せずに冒険を開始しますか？`,
-      )
-    ) {
+    const ok = await requestConfirm({
+      title: `⚠️ 未習得の${typeName}スロットの確認`,
+      message: `未習得の${typeName}スロットが ${remain} つ残っています。\n習得せずにこのまま冒険を開始しますか？`,
+      confirmText: "このまま開始する",
+      cancelText: "戻って習得する",
+    });
+    if (!ok) {
       return;
     }
   }
@@ -850,21 +868,73 @@ function startAdventure() {
                     :key="w.name"
                     style="
                       display: flex;
-                      justify-content: space-between;
-                      align-items: center;
+                      flex-direction: column;
+                      gap: 3px;
                       font-size: 0.8rem;
                       border-bottom: 1px dashed #e8e0d4;
-                      padding: 3px 0;
+                      padding: 4px 0;
                     "
                   >
-                    <span>{{ w.name }} ({{ w.goldCost }}g)</span>
-                    <button
-                      @click="buyWeapon(w)"
-                      class="btn-ink btn-mini"
-                      :disabled="character.gold < w.goldCost || isBackpackFull"
+                    <div
+                      style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                      "
                     >
-                      購入
-                    </button>
+                      <span>{{ w.name }} ({{ w.goldCost }}g)</span>
+                      <button
+                        @click="buyWeapon(w)"
+                        class="btn-ink btn-mini"
+                        :disabled="character.gold < w.goldCost || isBackpackFull"
+                      >
+                        購入
+                      </button>
+                    </div>
+                    <div
+                      v-if="w.type !== 'ranged'"
+                      style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: 0.72rem;
+                        color: #705844;
+                      "
+                    >
+                      <span>属性:</span>
+                      <label
+                        style="
+                          display: inline-flex;
+                          align-items: center;
+                          gap: 2px;
+                          cursor: pointer;
+                        "
+                      >
+                        <input
+                          type="radio"
+                          :name="'shop-w-attr-' + w.name"
+                          value="slash"
+                          v-model="selectedShopWeaponAttrib[w.name]"
+                        />
+                        斬撃
+                      </label>
+                      <label
+                        style="
+                          display: inline-flex;
+                          align-items: center;
+                          gap: 2px;
+                          cursor: pointer;
+                        "
+                      >
+                        <input
+                          type="radio"
+                          :name="'shop-w-attr-' + w.name"
+                          value="strike"
+                          v-model="selectedShopWeaponAttrib[w.name]"
+                        />
+                        打撃
+                      </label>
+                    </div>
                   </div>
 
                   <!-- Armors -->
@@ -1179,6 +1249,32 @@ function startAdventure() {
           </div>
 
           <div class="divider"></div>
+
+          <div
+            v-if="canLearnSpells && activeScenario"
+            data-testid="unlearned-spells-notice"
+            style="
+              margin-bottom: 12px;
+              padding: 8px 12px;
+              background: #fff8e1;
+              border: 1px dashed #b8860b;
+              border-radius: 4px;
+              font-size: 0.85rem;
+              color: #5c4b3d;
+              text-align: center;
+            "
+          >
+            💡 未習得の{{
+              character.subStatType === "magic" ? "魔術" : "奇跡"
+            }}スロットが
+            <b>{{
+              Math.floor(character.subStatMax / 2) -
+              (character.subStatType === "magic"
+                ? character.spells.length
+                : character.miracles.length)
+            }}</b>
+            つ残っています（上部の習得欄から習得できますが、未習得のまま開始することも可能です）。
+          </div>
 
           <div class="actions">
             <button

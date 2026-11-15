@@ -183,6 +183,7 @@ test.describe("基本ルール ver.5.1: 装備品・所持品・食料・暗闇 
     await page
       .locator('button:has-text("冒険を開始する")')
       .click({ force: true });
+    await page.getByTestId("confirm-modal-ok").click({ force: true });
     await page.waitForSelector(".explorer-card", {
       state: "visible",
       timeout: 5000,

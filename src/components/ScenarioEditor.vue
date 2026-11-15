@@ -200,28 +200,46 @@ const currentPhaseBossEnemy = computed(() => {
   return currentP.bossEvent.enemies[0]!;
 });
 
+// シナリオデータのドラフト読み込み共通処理（編集・複製で統一）
+function loadScenarioIntoDraft(source: Scenario, asClone = false) {
+  const data: Scenario = asClone
+    ? cloneFromExisting(source)
+    : JSON.parse(JSON.stringify(source));
+  if (!data.explorationMode) {
+    data.explorationMode = 'linear';
+  }
+  delete draft.midpointEvent;
+  delete draft.bossPhases;
+  delete draft.completeClearMessage;
+  Object.assign(draft, data);
+  draft.d66EventTable = JSON.parse(JSON.stringify(data.d66EventTable || {}));
+  draft.bossEvent = JSON.parse(JSON.stringify(data.bossEvent));
+  if (data.bossPhases && data.bossPhases.length > 0) {
+    draft.bossPhases = JSON.parse(JSON.stringify(data.bossPhases));
+    hasMultiPhaseBoss.value = true;
+  } else {
+    hasMultiPhaseBoss.value = false;
+  }
+  activePhaseIdx.value = 0;
+  saveError.value = null;
+}
+
 // テンプレートの複製
-function handleCloneFromOfficial(scenarioId: string) {
+function handleCloneFromOfficial(scenarioId: string, event?: Event) {
+  if (event && event.target) {
+    (event.target as HTMLSelectElement).value = '';
+  }
   const target = availableScenarios.value.find(s => s.id === scenarioId);
   if (!target) return;
-  if (!confirm(`既存シナリオ「${target.title}」を複製してエディタに読み込みますか？（現在の編集内容は上書きされます）`)) {
-    return;
-  }
-  const cloned = cloneFromExisting(target);
-  Object.assign(draft, cloned);
-  saveError.value = null;
+  loadScenarioIntoDraft(target, true);
 }
 
 // 標準構成で自動生成
 function handleGenerateDefault() {
-  if (!confirm('標準的なバランスのダンジョン（遭遇40%/罠25%/宝15%/NPC10%/休息10%）で36部屋を自動初期化しますか？')) {
-    return;
-  }
   const tpl = createDefaultTemplate();
   tpl.id = draft.id;
   tpl.title = draft.title;
-  Object.assign(draft, tpl);
-  saveError.value = null;
+  loadScenarioIntoDraft(tpl, false);
 }
 
 // 部屋イベントに敵を追加
@@ -389,9 +407,13 @@ function getRoomTypeBadge(type: string) {
         <div class="header-actions">
           <!-- Template Helpers -->
           <div class="helper-dropdown">
-            <select @change="(e: any) => e.target.value && handleCloneFromOfficial(e.target.value)" class="select-tpl">
+            <select
+              data-testid="clone-scenario-select"
+              @change="(e: any) => e.target.value && handleCloneFromOfficial(e.target.value, e)"
+              class="select-tpl"
+            >
               <option value="">📋 既存シナリオから複製...</option>
-              <option v-for="s in availableScenarios.filter(s => !s.id.startsWith('custom_'))" :key="s.id" :value="s.id">
+              <option v-for="s in availableScenarios" :key="s.id" :value="s.id">
                 {{ s.title }}
               </option>
             </select>

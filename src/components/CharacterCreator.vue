@@ -1,14 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useGameState } from '../composables/useGameState';
 
 const { initNewCharacter, currentScreen } = useGameState();
 
 const name = ref('');
 const subStat = ref<'magic' | 'luck' | 'strength' | 'dexterity'>('magic');
+const strengthOption = ref<'twoHanded' | 'oneHandedShield'>('twoHanded');
+const dexterityOption = ref<'bow' | 'sling'>('bow');
+const weaponAttribute = ref<'slash' | 'strike'>('strike');
+
+watch(
+  subStat,
+  (val) => {
+    weaponAttribute.value =
+      val === 'magic' || val === 'dexterity' ? 'strike' : 'slash';
+  },
+  { immediate: true },
+);
 
 function handleCreate() {
-  initNewCharacter(name.value.trim(), subStat.value);
+  initNewCharacter(name.value.trim(), subStat.value, {
+    strengthOption: strengthOption.value,
+    dexterityOption: dexterityOption.value,
+    weaponAttribute: weaponAttribute.value,
+  });
 }
 </script>
 
@@ -63,7 +79,7 @@ function handleCreate() {
           <div v-if="subStat === 'strength'" class="active-badge">✓ 選択中</div>
           <div class="arch-header">💪 筋力点</div>
           <div class="arch-desc">屈強な肉体を持つ戦士。重い鎧をまとう。</div>
-          <div class="arch-gear">【初期装備】両手武器、板金鎧</div>
+          <div class="arch-gear">【初期装備】板金鎧 ＋ (両手武器 or 片手武器+丸盾)</div>
           <div class="arch-skill">【初期技能】全力攻撃、全力防御、かばう</div>
         </label>
 
@@ -72,10 +88,81 @@ function handleCreate() {
           <input type="radio" v-model="subStat" value="dexterity" class="hidden-radio" />
           <div v-if="subStat === 'dexterity'" class="active-badge">✓ 選択中</div>
           <div class="arch-header">🏹 器用点</div>
-          <div class="arch-desc">俊敏なレンジャー。弓矢を射ち、罠を外す。</div>
-          <div class="arch-gear">【初期装備】軽い武器、弓矢、革鎧</div>
+          <div class="arch-desc">俊敏なレンジャー。飛び道具を射ち、罠を外す。</div>
+          <div class="arch-gear">【初期装備】(弓矢 or スリング) ＋ 軽い武器、革鎧</div>
           <div class="arch-skill">【初期技能】全力射撃、宝物獲得、察知</div>
         </label>
+      </div>
+
+      <!-- 初期装備・武器属性の選択 (Rule 26 & 28) -->
+      <div class="initial-equip-box" data-testid="initial-equip-options">
+        <div v-if="subStat === 'strength'" class="equip-option-group">
+          <div class="equip-option-title">🛡️ 筋力型の初期武装選択 (Rule 26):</div>
+          <label class="equip-radio-label">
+            <input
+              type="radio"
+              v-model="strengthOption"
+              value="twoHanded"
+              data-testid="strength-opt-twoHanded"
+            />
+            <span>両手武器 ＋ 板金鎧（攻撃修正+1・両手使用）</span>
+          </label>
+          <label class="equip-radio-label">
+            <input
+              type="radio"
+              v-model="strengthOption"
+              value="oneHandedShield"
+              data-testid="strength-opt-oneHandedShield"
+            />
+            <span>片手武器 ＋ 丸盾 ＋ 板金鎧（生命力最大値+2・片手盾）</span>
+          </label>
+        </div>
+
+        <div v-if="subStat === 'dexterity'" class="equip-option-group">
+          <div class="equip-option-title">🏹 器用型の初期射撃武器選択 (Rule 26):</div>
+          <label class="equip-radio-label">
+            <input
+              type="radio"
+              v-model="dexterityOption"
+              value="bow"
+              data-testid="dexterity-opt-bow"
+            />
+            <span>弓と十分な矢 ＋ 軽い武器 ＋ 革鎧（射撃修正±0・斬撃）</span>
+          </label>
+          <label class="equip-radio-label">
+            <input
+              type="radio"
+              v-model="dexterityOption"
+              value="sling"
+              data-testid="dexterity-opt-sling"
+            />
+            <span>スリング (投石器) ＋ 軽い武器 ＋ 革鎧（射撃修正-1・打撃・片手）</span>
+          </label>
+        </div>
+
+        <div class="equip-option-group">
+          <div class="equip-option-title">🗡️ 初期近接武器の属性選択 (Rule 28):</div>
+          <div class="equip-radio-inline">
+            <label class="equip-radio-label">
+              <input
+                type="radio"
+                v-model="weaponAttribute"
+                value="slash"
+                data-testid="initial-weapon-attr-slash"
+              />
+              <span>斬撃 (Slash)</span>
+            </label>
+            <label class="equip-radio-label">
+              <input
+                type="radio"
+                v-model="weaponAttribute"
+                value="strike"
+                data-testid="initial-weapon-attr-strike"
+              />
+              <span>打撃 (Strike)</span>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -248,6 +335,44 @@ function handleCreate() {
 
 .arch-skill {
   color: #7c4424;
+}
+
+.initial-equip-box {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px dashed var(--ink-dark);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.equip-option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.equip-option-title {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: var(--ink-dark);
+}
+
+.equip-radio-inline {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.equip-radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: #3e2723;
+  cursor: pointer;
 }
 
 .submit-section {

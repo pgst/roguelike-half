@@ -1982,7 +1982,15 @@ function resetCombatState() {
   Object.assign(combatState, createDefaultCombatState());
 }
 
-function initNewCharacter(name: string, subStat: Character["subStatType"]) {
+function initNewCharacter(
+  name: string,
+  subStat: Character["subStatType"],
+  options?: {
+    strengthOption?: "twoHanded" | "oneHandedShield";
+    dexterityOption?: "bow" | "sling";
+    weaponAttribute?: "slash" | "strike";
+  },
+) {
   isCharacterCreated.value = true;
   character.value = createDefaultCharacter(name, subStat);
 
@@ -1998,15 +2006,21 @@ function initNewCharacter(name: string, subStat: Character["subStatType"]) {
   Object.assign(diceTray, createDefaultDiceTray());
   clearLogs();
 
-  // Set default initial equipment based on sub-stat
+  // Set default initial equipment based on sub-stat (Rule 26 & 28)
   if (subStat === "magic") {
-    character.value.weapons.push({ ...DEFAULT_WEAPONS.light });
+    const attr = options?.weaponAttribute ?? DEFAULT_WEAPONS.light.attribute;
+    character.value.weapons.push({ ...DEFAULT_WEAPONS.light, attribute: attr });
     character.value.armors.push({ ...DEFAULT_ARMORS.cloth });
     character.value.equippedWeapon = character.value.weapons[0];
     character.value.equippedArmor = character.value.armors[0];
     character.value.spells = []; // レベルアップ画面で習得するため、初期は空
   } else if (subStat === "luck") {
-    character.value.weapons.push({ ...DEFAULT_WEAPONS.oneHanded });
+    const attr =
+      options?.weaponAttribute ?? DEFAULT_WEAPONS.oneHanded.attribute;
+    character.value.weapons.push({
+      ...DEFAULT_WEAPONS.oneHanded,
+      attribute: attr,
+    });
     character.value.armors.push({ ...DEFAULT_ARMORS.chain });
     character.value.shields.push({ ...DEFAULT_SHIELDS.wood });
     character.value.equippedWeapon = character.value.weapons[0];
@@ -2014,13 +2028,37 @@ function initNewCharacter(name: string, subStat: Character["subStatType"]) {
     character.value.equippedShield = character.value.shields[0];
     character.value.miracles = []; // レベルアップ画面で習得するため、初期は空
   } else if (subStat === "strength") {
-    character.value.weapons.push({ ...DEFAULT_WEAPONS.twoHanded });
-    character.value.armors.push({ ...DEFAULT_ARMORS.plate });
-    character.value.equippedWeapon = character.value.weapons[0];
-    character.value.equippedArmor = character.value.armors[0];
+    if (options?.strengthOption === "oneHandedShield") {
+      const attr =
+        options?.weaponAttribute ?? DEFAULT_WEAPONS.oneHanded.attribute;
+      character.value.weapons.push({
+        ...DEFAULT_WEAPONS.oneHanded,
+        attribute: attr,
+      });
+      character.value.armors.push({ ...DEFAULT_ARMORS.plate });
+      character.value.shields.push({ ...DEFAULT_SHIELDS.round });
+      character.value.equippedWeapon = character.value.weapons[0];
+      character.value.equippedArmor = character.value.armors[0];
+      character.value.equippedShield = character.value.shields[0];
+    } else {
+      const attr =
+        options?.weaponAttribute ?? DEFAULT_WEAPONS.twoHanded.attribute;
+      character.value.weapons.push({
+        ...DEFAULT_WEAPONS.twoHanded,
+        attribute: attr,
+      });
+      character.value.armors.push({ ...DEFAULT_ARMORS.plate });
+      character.value.equippedWeapon = character.value.weapons[0];
+      character.value.equippedArmor = character.value.armors[0];
+    }
   } else if (subStat === "dexterity") {
-    character.value.weapons.push({ ...DEFAULT_WEAPONS.bow });
-    character.value.weapons.push({ ...DEFAULT_WEAPONS.light });
+    const attr = options?.weaponAttribute ?? DEFAULT_WEAPONS.light.attribute;
+    if (options?.dexterityOption === "sling") {
+      character.value.weapons.push({ ...DEFAULT_WEAPONS.sling });
+    } else {
+      character.value.weapons.push({ ...DEFAULT_WEAPONS.bow });
+    }
+    character.value.weapons.push({ ...DEFAULT_WEAPONS.light, attribute: attr });
     character.value.armors.push({ ...DEFAULT_ARMORS.leather });
     character.value.equippedWeapon = character.value.weapons[0];
     character.value.equippedArmor = character.value.armors[0];

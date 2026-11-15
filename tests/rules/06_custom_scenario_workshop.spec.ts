@@ -171,6 +171,7 @@ test.describe('シナリオエディタ & 拡張機能 (中間イベント・探
     await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
     await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // 第1部屋: 11 (空室)
@@ -263,6 +264,7 @@ test.describe('シナリオエディタ & 拡張機能 (中間イベント・探
     await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
     await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // d66 = 11 (戦闘突入)
@@ -344,6 +346,7 @@ test.describe('シナリオエディタ & 拡張機能 (中間イベント・探
 
     // 4. 冒険開始
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // HUDに進行度バッジが表示されていることを確認
@@ -480,6 +483,7 @@ test.describe('シナリオエディタ & 拡張機能 (中間イベント・探
     await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
     await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // 第1部屋目：休息部屋（d66=11）
@@ -571,6 +575,31 @@ test.describe('シナリオエディタ & 拡張機能 (中間イベント・探
 
     // リセット後は進捗バッジが非表示になることを検証
     await expect(targetCard.locator('.character-progress-badge')).not.toBeVisible();
+  });
+
+  test('【Phase 4: #7 & #22】シナリオエディタの既存シナリオ複製（黒蛇の洞窟）と出目53「大蛇の亡霊」表記統一の検証', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+
+    // シナリオエディタを新規作成で開く
+    await page.locator('.btn-workshop-create').click({ force: true });
+    await page.waitForSelector('.editor-window', { state: 'visible', timeout: 5000 });
+
+    // 「既存シナリオから複製...」で『黒蛇の洞窟』を選択 (#7)
+    const cloneSelect = page.getByTestId('clone-scenario-select');
+    await cloneSelect.selectOption('black_serpent');
+
+    // 新しいcustom_ IDが採番され、タイトル・部屋数・適正レベルが『黒蛇の洞窟』の内容になっていること
+    await expect(page.locator('.editing-id-badge')).toContainText('custom_');
+    const titleInput = page.locator('.editor-window input[type="text"]').first();
+    await expect(titleInput).toHaveValue(/黒蛇の洞窟 \(コピー\)/);
+    const roomsInput = page.locator('.editor-window input[type="number"]').first();
+    await expect(roomsInput).toHaveValue('6');
+
+    // d66イベント表タブへ移動し、出目53のタイトルと敵名が「大蛇の亡霊」に統一されていること (#22)
+    await page.locator('.editor-tabs button:has-text("d66")').click();
+    await page.locator('.grid-cell:has-text("53")').click();
+    await expect(page.locator('.room-editor-pane input[type="text"]').first()).toHaveValue('大蛇の亡霊');
   });
 
 });

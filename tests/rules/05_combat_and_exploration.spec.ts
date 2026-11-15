@@ -83,6 +83,7 @@ test.describe('基本ルール ver.5.1: 遭遇・戦闘・逃走・察知・ダ�
 
     // 冒険開始
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // d66 = 11 (ゴブリン斥候部隊: 3体)
@@ -166,6 +167,7 @@ test.describe('基本ルール ver.5.1: 遭遇・戦闘・逃走・察知・ダ�
 
     // 冒険開始
     await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
     await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
 
     // d66 = 11 (ゴブリン斥候部隊: Lv.2)
