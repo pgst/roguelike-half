@@ -15,7 +15,8 @@ export interface CombatMagicDependencies {
   endCombat: (isVictory: boolean, getLoot?: boolean) => void;
   executeFollowerAttacks: () => Promise<void>;
   executeEnemyAttacks: () => Promise<void>;
-  castCreateWeaponSpell: (category: 'weapon' | 'armor' | 'shield', itemKey: string) => boolean | void;
+  castCreateWeaponSpell: (category: 'weapon' | 'armor' | 'shield', itemKey: string) => boolean | Promise<boolean> | void;
+  resolveDefense?: (attackId: string, defenderId: 'hero' | string, isAllOut?: boolean, skipDeflect?: boolean) => Promise<void>;
 }
 
 export function useCombatMagic(deps: CombatMagicDependencies) {
@@ -35,6 +36,81 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
     castCreateWeaponSpell
   } = deps;
 
+  // Shared helper for Fireball target count & damage (Rule 19)
+  function applyFireballHits(enemies: Enemy[], roll: number, total: number, isNarrow: boolean, isFollower: boolean) {
+    const dealFireHit = (e: Enemy) => {
+      if (e.name.includes('キャットゴーレム')) {
+        addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
+      } else if (e.id === 'goblin_assault' || e.name.includes('突撃兵')) {
+        e.lifeCurrent = 0;
+        addLog(`💥 炎球の爆風が【${e.name}】の爆弾に引火・誘爆！ 木っ端みじんに吹き飛んだ！`, 'success');
+      } else {
+        e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
+        addLog(
+          isFollower
+            ? `🔥 ${e.name} に従者の炎球が炸裂！ 1点ダメージ！`
+            : `🔥 ${e.name} に炎球が炸裂！ 1点ダメージを与えた！`,
+          'success'
+        );
+      }
+    };
+
+    if (enemies.length === 0) return;
+
+    if (roll === 1) {
+      addLog(`💨 炎球は失敗し、霧散してしまった...(ファンブル)`, 'error');
+      return;
+    }
+
+    if (roll === 6) {
+      enemies.forEach((e: Enemy) => dealFireHit(e));
+      return;
+    }
+
+    if (isNarrow) {
+      // 狭い場所: 威力が敵のレベル以上で1体目に1ダメージ。さらにレベルを1点上回るごとに別の敵1体に1ダメージ (Rule 19)
+      const firstEnemy = enemies[0];
+      const firstLv = Math.max(1, firstEnemy.level);
+      const isAssault = firstEnemy.id === 'goblin_assault' || firstEnemy.name.includes('突撃兵');
+      if (!isAssault && total < firstLv) {
+        addLog(`💨 炎球は ${firstEnemy.name} に回避された。(ロール計: ${total} < ${firstEnemy.level})`, 'info');
+        return;
+      }
+      dealFireHit(firstEnemy);
+      let extraHits = Math.max(0, total - firstLv);
+      for (let i = 1; i < enemies.length; i++) {
+        const e = enemies[i];
+        const eAssault = e.id === 'goblin_assault' || e.name.includes('突撃兵');
+        if (eAssault) {
+          dealFireHit(e);
+        } else if (extraHits > 0 && total >= Math.max(1, e.level)) {
+          dealFireHit(e);
+          extraHits--;
+        }
+      }
+    } else {
+      // 広い場所: 威力が敵のレベルの整数倍になるごとに敵1体に1ダメージ（同じ敵に2度は当たらない）(Rule 19)
+      let remainingPower = total;
+      let hitAny = false;
+      for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        const lv = Math.max(1, e.level);
+        const eAssault = e.id === 'goblin_assault' || e.name.includes('突撃兵');
+        if (eAssault) {
+          dealFireHit(e);
+          hitAny = true;
+        } else if (remainingPower >= lv) {
+          dealFireHit(e);
+          remainingPower -= lv;
+          hitAny = true;
+        }
+      }
+      if (!hitAny) {
+        addLog(`💨 炎球は ${enemies[0].name} に回避された。(ロール計: ${total} < ${enemies[0].level})`, 'info');
+      }
+    }
+  }
+
   // Follower mage casting spell (Rule 33)
   async function castFollowerSpell(followerId: string, targetEnemyId?: string) {
     if (combatState.isOver) return;
@@ -51,27 +127,33 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
     }
 
     const spellName = (follower.magicList && follower.magicList.length > 0) ? follower.magicList[0] : '炎球';
-    addLog(`🔮 従者の魔術師 ${follower.name} が呪文 [${spellName}] を唱えた！ (魔術点消費。残り: ${follower.magicCurrent - 1})`, 'success');
-    
-    follower.magicCurrent--;
     const enemies = combatState.enemies;
 
+    // 事前バリデーション（消費前にチェック）
     if (spellName === '気絶') {
       const target = targetEnemyId ? enemies.find((e: Enemy) => e.id === targetEnemyId) : enemies[0];
-      if (!target) {
-        follower.magicCurrent++;
-        return;
-      }
+      if (!target) return;
       if (!target.tags.includes('weak')) {
         addLog('【気絶】は「弱いクリーチャー」にしか効果がありません。', 'error');
-        follower.magicCurrent++;
         return;
       }
       if (hasTag(target, 'undead') || hasTag(target, 'golem') || hasTag(target, 'plant')) {
         addLog('アンデッドやゴーレム、植物などには【気絶】の効果はありません！', 'error');
-        follower.magicCurrent++;
         return;
       }
+    } else if (spellName === '氷槍') {
+      const target = targetEnemyId ? enemies.find((e: Enemy) => e.id === targetEnemyId) : enemies[0];
+      if (!target) return;
+    }
+
+    // Rule 9 & 19 & 28: 従者魔術師の魔術ロールは消費前の魔術点現在値（1点）を用いて行い、その後に消費する
+    const mageMagicVal = follower.magicCurrent;
+    follower.magicCurrent--;
+    addLog(`🔮 従者の魔術師 ${follower.name} が呪文 [${spellName}] を唱えた！ (魔術点消費。残り: ${follower.magicCurrent})`, 'success');
+
+    if (spellName === '気絶') {
+      const target = targetEnemyId ? enemies.find((e: Enemy) => e.id === targetEnemyId) : enemies[0];
+      if (!target) return;
 
       const spellRoll = await rollD6(true);
       let modifier = 0;
@@ -79,8 +161,9 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
         modifier -= 2;
         addLog('暗闇のため従者の魔術判定に -2 のペナルティ！', 'error');
       }
-      const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0 + modifier;
+      const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + mageMagicVal + modifier;
       const spellHit = spellRoll === 6 || (spellRoll !== 1 && spellTotal >= target.level);
+      addLog(`🔮 従者魔術ロール: 出目 [${spellRoll}] + 魔術値 [${mageMagicVal}] + 補正 [${modifier}] = 計 [${spellRoll === 6 ? 'クリティカル' : spellRoll === 1 ? 'ファンブル' : spellTotal}] (目標値: ${target.level})`, 'info');
 
       if (spellHit) {
         addLog(`💤 成功！ ${target.name} は深い眠りに落ちた。(撃破扱い)`, 'success');
@@ -105,10 +188,7 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
 
     } else if (spellName === '氷槍') {
       const target = targetEnemyId ? enemies.find((e: Enemy) => e.id === targetEnemyId) : enemies[0];
-      if (!target) {
-        follower.magicCurrent++;
-        return;
-      }
+      if (!target) return;
 
       const spellRoll = await rollD6(true);
       let modifier = 0;
@@ -116,8 +196,9 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
         modifier -= 2;
         addLog('暗闇のため従者の魔術判定に -2 のペナルティ！', 'error');
       }
-      const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0 + modifier;
+      const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + mageMagicVal + modifier;
       const spellHit = spellRoll === 6 || (spellRoll !== 1 && spellTotal >= target.level);
+      addLog(`🔮 従者魔術ロール: 出目 [${spellRoll}] + 魔術値 [${mageMagicVal}] + 補正 [${modifier}] = 計 [${spellRoll === 6 ? 'クリティカル' : spellRoll === 1 ? 'ファンブル' : spellTotal}] (目標値: ${target.level})`, 'info');
 
       if (spellHit) {
         if (target.name.includes('キャットゴーレム')) {
@@ -158,50 +239,10 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
         modifier -= 2;
         addLog('暗闇のため従者の魔術判定に -2 のペナルティ！', 'error');
       }
-      const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + 0 + modifier;
+      const spellTotal = spellRoll === 6 ? 99 : spellRoll === 1 ? -99 : spellRoll + mageMagicVal + modifier;
+      addLog(`🔮 従者魔術ロール: 出目 [${spellRoll}] + 魔術値 [${mageMagicVal}] + 補正 [${modifier}] = 計 [${spellRoll === 6 ? 'クリティカル' : spellRoll === 1 ? 'ファンブル' : spellTotal}]`, 'info');
 
-      if (isNarrow) {
-        let hits = 1;
-        enemies.forEach((e: Enemy) => {
-          if (hits > 0 && spellTotal >= e.level) {
-            if (e.name.includes('キャットゴーレム')) {
-              addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
-            } else if (e.id === 'goblin_assault' || e.name.includes('突撃兵')) {
-              e.lifeCurrent = 0;
-              addLog(`💥 炎球の爆風が【${e.name}】の爆弾に引火・誘爆！ 木っ端みじんに吹き飛んだ！`, 'success');
-            } else {
-              e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
-              addLog(`🔥 ${e.name} に従者の炎球が炸裂！ 1点ダメージ！`, 'success');
-            }
-            hits--;
-          }
-        });
-      } else {
-        if (enemies.length > 0) {
-          const firstEnemy = enemies[0];
-          const spellHit = spellRoll === 6 || (spellRoll !== 1 && spellTotal >= firstEnemy.level);
-          if (spellHit) {
-            const totalHits = spellRoll === 6 ? enemies.length : Math.max(1, Math.floor(spellTotal / firstEnemy.level));
-            let hitCount = 0;
-            for (let i = 0; i < enemies.length; i++) {
-              if (hitCount >= totalHits) break;
-              const e = enemies[i];
-              if (e.name.includes('キャットゴーレム')) {
-                addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
-              } else if (e.id === 'goblin_assault' || e.name.includes('突撃兵')) {
-                e.lifeCurrent = 0;
-                addLog(`💥 炎球の爆風が【${e.name}】の爆弾に引火・誘爆！ 木っ端みじんに吹き飛んだ！`, 'success');
-              } else {
-                e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
-                addLog(`🔥 ${e.name} に炎球が直撃！ 1点ダメージ！`, 'success');
-              }
-              hitCount++;
-            }
-          } else {
-            addLog(`💨 炎球は ${firstEnemy.name} に回避された。(ロール計: ${spellRoll === 1 ? 'ファンブル' : spellTotal} < ${firstEnemy.level})`, 'info');
-          }
-        }
-      }
+      applyFireballHits(enemies, spellRoll, spellTotal, isNarrow, true);
 
       combatState.enemies = enemies.filter((e: Enemy) => {
         if (e.lifeCurrent <= 0) {
@@ -318,37 +359,7 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
       const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + magicVal + modifier;
       addLog(`🔮 魔術ロール: 出目 [${roll}] + 魔術値 [${magicVal}] + 補正 [${modifier}] = 計 [${roll === 6 ? 'クリティカル' : roll === 1 ? 'ファンブル' : total}]`, 'info');
 
-      if (isNarrow) {
-        let hits = 1;
-        enemies.forEach((e: Enemy) => {
-          if (e.id === 'goblin_assault' || e.name.includes('突撃兵')) {
-            e.lifeCurrent = 0;
-            addLog(`💥 炎球の爆風が【${e.name}】の爆弾に引火・誘爆！ 木っ端みじんに吹き飛んだ！`, 'success');
-          } else if (hits > 0 && total >= e.level) {
-            if (e.name.includes('キャットゴーレム')) {
-              addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
-            } else {
-              e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
-              addLog(`🔥 ${e.name} に炎球が炸裂！ 1点ダメージを与えた！`, 'success');
-            }
-            hits--;
-          }
-        });
-      } else {
-        enemies.forEach((e: Enemy) => {
-          if (e.id === 'goblin_assault' || e.name.includes('突撃兵')) {
-            e.lifeCurrent = 0;
-            addLog(`💥 炎球の爆風が【${e.name}】の爆弾に引火・誘爆！ 木っ端みじんに吹き飛んだ！`, 'success');
-          } else if (total >= e.level) {
-            if (e.name.includes('キャットゴーレム')) {
-              addLog(`🔥 ${e.name}は大理石の身体のため、炎のダメージを無効化した！`, 'error');
-            } else {
-              e.lifeCurrent = Math.max(0, e.lifeCurrent - 1);
-              addLog(`🔥 ${e.name} に炎球が直撃！ 1点ダメージ！`, 'success');
-            }
-          }
-        });
-      }
+      applyFireballHits(enemies, roll, total, isNarrow, false);
 
       combatState.enemies = enemies.filter((e: Enemy) => {
         if (e.lifeCurrent <= 0) {
@@ -440,8 +451,8 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
     }
   }
 
-  // Cast miracles (Rule 20)
-  async function castMiracle(miracleName: string, _targetEnemyId?: string) {
+  // Cast miracles (Rule 20 & Rule 21)
+  async function castMiracle(miracleName: string, targetOption?: string) {
     if (combatState.isOver) return;
     if (character.value.miracles.length === 0) return;
     if (character.value.subStatCurrent < 1) {
@@ -458,65 +469,92 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
     });
     if (isMagicPrevented) return;
 
+    // 事前バリデーション（幸運点消費前）
+    if (miracleName === 'そらし') {
+      addLog('【そらし】は敵の飛び道具を被弾した際にのみ、割り込んで発動できます。', 'error');
+      return;
+    }
+
+    if (miracleName === '祝福') {
+      const hasStatus =
+        (character.value.statusEffects && character.value.statusEffects.length > 0) ||
+        followers.value.some(f => f.statusEffects && f.statusEffects.length > 0);
+      if (!hasStatus) {
+        addLog('味方に治療すべき状態異常（呪い・石化・麻痺）はありません。', 'info');
+        return;
+      }
+    }
+
+    if (miracleName === '聖洗脳') {
+      const enemies = combatState.enemies;
+      const weakEnemies = enemies.filter((e: Enemy) => e.tags.includes('weak'));
+      if (weakEnemies.length !== 1 || enemies.length !== 1) {
+        addLog('【聖洗脳】は、敵が「残り1体の弱いクリーチャー」の状況でしか効果を発揮しません。', 'error');
+        return;
+      }
+      const target = weakEnemies[0];
+      if (hasTag(target, 'undead')) {
+        addLog('アンデッドには聖洗脳の効果はありません！', 'error');
+        return;
+      }
+      if (followers.value.length >= character.value.followerCurrent) {
+        addLog(`⚠️ 従者枠が上限（${followers.value.length} / ${character.value.followerCurrent}）に達しているため、【聖洗脳】を発動できません！`, 'error');
+        return;
+      }
+    }
+
+    if (miracleName === '招天') {
+      const hasUndead = combatState.enemies.some((e: Enemy) => hasTag(e, 'undead'));
+      if (!hasUndead) {
+        addLog('戦闘フィールドにアンデッドの敵が存在しないため、招天を発動できません。', 'error');
+        return;
+      }
+    }
+
+    // Rule 9 & 20: 幸運ロールは消費前の幸運点現在値を用いて行う
+    const luckVal = character.value.subStatType === 'luck'
+      ? character.value.subStatCurrent
+      : character.value.skillCurrent;
+
     addLog(`✨ 奇跡【${miracleName}】を発動！`, 'success');
     character.value.subStatCurrent--;
 
     if (miracleName === '防衛') {
-      combatState.buffs.defenseBonus += 1;
-      addLog('🛡️ 天使の加護が味方全員を包み込みました！ 【防御ロール】に+1のボーナスを得ます。(戦闘終了まで持続)', 'success');
-
-    } else if (miracleName === 'そらし') {
-      addLog('【そらし】は敵の飛び道具を被弾した際にのみ、割り込んで発動できます。', 'error');
-      character.value.subStatCurrent++;
-      return;
+      if (targetOption === 'followers') {
+        combatState.buffs.followerDefenseBonus = (combatState.buffs.followerDefenseBonus || 0) + 1;
+        addLog('🛡️ 天使の加護が戦う従者全員を包み込みました！ 戦う従者の【防御ロール】に+1のボーナスを得ます。(戦闘終了まで持続)', 'success');
+      } else {
+        combatState.buffs.heroDefenseBonus = (combatState.buffs.heroDefenseBonus || 0) + 1;
+        addLog('🛡️ 天使の加護が主人公を包み込みました！ 主人公の【防御ロール】に+1のボーナスを得ます。(戦闘終了まで持続)', 'success');
+      }
 
     } else if (miracleName === '祝福') {
-      let healed = false;
       if (character.value.statusEffects && character.value.statusEffects.length > 0) {
         const removed = character.value.statusEffects.shift();
         addLog(`✨ 祝福の光により、主人公の【${removed}】を治療しました！`, 'success');
-        healed = true;
       } else {
         for (const f of followers.value) {
           if (f.statusEffects && f.statusEffects.length > 0) {
             const removed = f.statusEffects.shift();
             addLog(`✨ 祝福の光により、従者 ${f.name} の【${removed}】を治療しました！`, 'success');
-            healed = true;
             break;
           }
         }
       }
-      if (!healed) {
-        addLog('味方に治療すべき状態異常（呪い・石化・麻痺）はありません。', 'info');
-        character.value.subStatCurrent++;
-        return;
-      }
 
     } else if (miracleName === '聖洗脳') {
       const enemies = combatState.enemies;
-      const weakEnemies = enemies.filter((e: Enemy) => e.tags.includes('weak'));
-      if (weakEnemies.length !== 1 || enemies.length !== 1) {
-        addLog('【聖洗脳】は、敵が「残り1体の弱いクリーチャー」の状況でしか効果を発揮しません。', 'error');
-        character.value.subStatCurrent++;
-        return;
-      }
-
-      const target = weakEnemies[0];
-      if (hasTag(target, 'undead')) {
-        addLog('アンデッドには聖洗脳の効果はありません！', 'error');
-        character.value.subStatCurrent++;
-        return;
-      }
+      const target = enemies[0];
 
       addLog(`洗脳の念を送ります！幸運判定ロール...`, 'info');
       const roll = await rollD6(true);
-      const val = character.value.subStatCurrent;
       let modifier = 0;
       if (!carriesLantern.value) {
         modifier -= 2;
         addLog('暗闇のため幸運判定に -2 のペナルティ！', 'error');
       }
-      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
+      const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + luckVal + modifier;
+      addLog(`✨ 幸運ロール: 出目 [${roll}] + 幸運値 [${luckVal}] + 補正 [${modifier}] = 計 [${roll === 6 ? 'クリティカル' : roll === 1 ? 'ファンブル' : total}] (目標値: ${target.level})`, 'info');
 
       if (roll === 6 || (roll !== 1 && total >= target.level)) {
         addLog(`✨ 成功！ ${target.name} は改心し、【捕虜】の従者として同行することになりました！`, 'success');
@@ -540,14 +578,8 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
       }
 
     } else if (miracleName === '招天') {
-      const hasUndead = combatState.enemies.some((e: Enemy) => hasTag(e, 'undead'));
-      if (!hasUndead) {
-        addLog('戦闘フィールドにアンデッドの敵が存在しないため、招天を発動できません。', 'error');
-        character.value.subStatCurrent++;
-        return;
-      }
-
       combatState.pendingHolyArrow = 2;
+      (combatState as any).holyArrowLuckVal = luckVal;
       addLog('⚡ 光り輝く2本の聖なる矢があなたの周囲に出現しました！ 対象のアンデッドを選択して発射してください。', 'success');
     }
 
@@ -581,7 +613,11 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
     if (!combatState.pendingDeflect) return;
     const p = combatState.pendingDeflect;
     combatState.pendingDeflect = null;
-    (p.deps as any).resolveDefense(p.attackId, p.defenderId, p.isAllOut, true);
+    if (deps.resolveDefense) {
+      await deps.resolveDefense(p.attackId, p.defenderId, p.isAllOut, true);
+    } else if (p.deps?.resolveDefense) {
+      await (p.deps as any).resolveDefense(p.attackId, p.defenderId, p.isAllOut, true);
+    }
   }
 
   // Execute deflect miracle
@@ -625,7 +661,7 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
     addLog(`⚡ ${target.name} に聖なる矢を放ちます！(残り矢数: ${combatState.pendingHolyArrow})`, 'combat');
 
     const roll = await rollD6(true);
-    const val = character.value.subStatCurrent;
+    const val = (combatState as any).holyArrowLuckVal ?? (character.value.subStatCurrent + 1);
     let modifier = 0;
     if (!carriesLantern.value) {
       modifier -= 2;
@@ -633,6 +669,7 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
     }
     const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + val + modifier;
     const success = roll === 6 || (roll !== 1 && total >= target.level);
+    addLog(`✨ 幸運ロール: 出目 [${roll}] + 幸運値 [${val}] + 補正 [${modifier}] = 計 [${roll === 6 ? 'クリティカル' : roll === 1 ? 'ファンブル' : total}] (目標値: ${target.level})`, 'info');
 
     if (success) {
       const isWeak = target.tags.includes('weak');

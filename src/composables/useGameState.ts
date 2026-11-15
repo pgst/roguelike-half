@@ -146,6 +146,7 @@ function createDefaultCombatState() {
       followerName: string;
       enemyName: string;
       enemyLevel: number;
+      isRanged?: boolean;
     } | null,
     pendingPerception: null as {
       rollValue: number;
@@ -162,8 +163,12 @@ function createDefaultCombatState() {
     hasRangedFired: false,
     playerHasFiredRanged: false,
     archerHasFiredRanged: false,
+    heroDefenseCount: 0,
+    followerDefenseCount: 0,
     buffs: {
       defenseBonus: 0,
+      heroDefenseBonus: 0,
+      followerDefenseBonus: 0,
       damageIgnoreCount: 0,
     },
     isEscaping: false,

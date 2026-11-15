@@ -166,7 +166,9 @@ export function useCombat() {
       const roll = await rollD6(true);
       let modifier = 0;
       if (character.value.equippedArmor) modifier += character.value.equippedArmor.modDef;
-      if (character.value.equippedShield) modifier += 1;
+      if (enemy.isRanged && character.value.equippedShield?.modDefRanged) {
+        modifier += character.value.equippedShield.modDefRanged;
+      }
       if (!carriesLantern.value) modifier -= 2;
 
       const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + character.value.skillCurrent + modifier;
@@ -529,7 +531,7 @@ export function useCombat() {
     await executeEnemyAttacks();
   }
 
-  // Follower combatant attacks (Rule 33)
+  // Follower combatant attacks (Rule 8 & Rule 33)
   async function executeFollowerAttacks() {
     if (combatState.isOver) return;
     const combatants = followers.value.filter(f => {
@@ -539,52 +541,69 @@ export function useCombat() {
     });
     for (const follower of combatants) {
       if (combatState.enemies.length === 0) break;
-      const target = combatState.enemies[0]; // Auto-target first enemy
-      
-
 
       // Archer specific rules (Rule 271)
       if (follower.type === 'archer') {
         if (combatState.round === 0) {
-          addLog(`🏹 従者の弓兵 ${follower.name} が弓矢で射撃攻撃を行います！ (目標: ${target.name})`, 'combat');
           combatState.archerHasFiredRanged = true;
-          const roll = await rollD6(true);
-          let modifier = 1; // Ranged bonus
-          if (!carriesLantern.value) {
-            modifier -= 2;
-            addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
-          }
-          const { hit, total } = calculateFollowerHit(follower, target, roll, modifier);
-          if (hit) {
-            target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
-            addLog(`🎯 従者弓兵の射撃が命中！ ${target.name} に1点のダメージ。(ロール計: ${roll === 6 ? 'クリティカル' : total})`, 'success');
-            if (target.lifeCurrent <= 0) {
-              addLog(`💀 ${target.name} は撃破されました。`, 'success');
-              combatState.enemies.shift();
+          let chainCount = 0;
+          while (combatState.enemies.length > 0 && chainCount < 20) {
+            const target = combatState.enemies[0];
+            addLog(`🏹 従者の弓兵 ${follower.name} が弓矢で射撃攻撃を行います！ (目標: ${target.name})`, 'combat');
+            const roll = await rollD6(true);
+            let modifier = 1; // Ranged bonus
+            if (!carriesLantern.value) {
+              modifier -= 2;
+              addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
             }
-          } else {
-            addLog(`💨 従者弓兵の射撃は外れた。(ロール計: ${roll === 1 ? 'ファンブル' : total})`, 'info');
+            const { hit, total } = calculateFollowerHit(follower, target, roll, modifier);
+            if (hit) {
+              target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
+              addLog(`🎯 従者弓兵の射撃が命中！ ${target.name} に1点のダメージ。(ロール計: ${roll === 6 ? 'クリティカル' : total})`, 'success');
+              if (target.lifeCurrent <= 0) {
+                addLog(`💀 ${target.name} は撃破されました。`, 'success');
+                combatState.enemies.shift();
+              }
+            } else {
+              addLog(`💨 従者弓兵の射撃は外れた。(ロール計: ${roll === 1 ? 'ファンブル' : total})`, 'info');
+            }
+            if (roll === 6 && combatState.enemies.length > 0) {
+              addLog('✨ 従者のクリティカル成功！ 即座にもう一度攻撃を行います！', 'success');
+              chainCount++;
+              continue;
+            }
+            break;
           }
         } else if (combatState.round === 1 && combatState.archerHasFiredRanged) {
           addLog(`⚔️ 従者の弓兵 ${follower.name} は、接近戦用武器への持ち替え中のため、このラウンドは攻撃できません。`, 'info');
         } else {
-          addLog(`🛡️ 従者の弓兵 ${follower.name} が接近戦用の軽い武器で攻撃します！ (目標: ${target.name})`, 'combat');
-          const roll = await rollD6(true);
-          let modifier = -1; // Light weapon penalty
-          if (!carriesLantern.value) {
-            modifier -= 2;
-            addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
-          }
-          const { hit, total } = calculateFollowerHit(follower, target, roll, modifier);
-          if (hit) {
-            target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
-            addLog(`🎯 従者の攻撃が命中！ ${target.name} に1点のダメージ。(ロール計: ${roll === 6 ? 'クリティカル' : total})`, 'success');
-            if (target.lifeCurrent <= 0) {
-              addLog(`💀 ${target.name} は撃破されました。`, 'success');
-              combatState.enemies.shift();
+          let chainCount = 0;
+          while (combatState.enemies.length > 0 && chainCount < 20) {
+            const target = combatState.enemies[0];
+            addLog(`🛡️ 従者の弓兵 ${follower.name} が接近戦用の軽い武器で攻撃します！ (目標: ${target.name})`, 'combat');
+            const roll = await rollD6(true);
+            let modifier = -1; // Light weapon penalty
+            if (!carriesLantern.value) {
+              modifier -= 2;
+              addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
             }
-          } else {
-            addLog(`💨 従者の攻撃は外れた。(ロール計: ${roll === 1 ? 'ファンブル' : total})`, 'info');
+            const { hit, total } = calculateFollowerHit(follower, target, roll, modifier);
+            if (hit) {
+              target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
+              addLog(`🎯 従者の攻撃が命中！ ${target.name} に1点のダメージ。(ロール計: ${roll === 6 ? 'クリティカル' : total})`, 'success');
+              if (target.lifeCurrent <= 0) {
+                addLog(`💀 ${target.name} は撃破されました。`, 'success');
+                combatState.enemies.shift();
+              }
+            } else {
+              addLog(`💨 従者の攻撃は外れた。(ロール計: ${roll === 1 ? 'ファンブル' : total})`, 'info');
+            }
+            if (roll === 6 && combatState.enemies.length > 0) {
+              addLog('✨ 従者のクリティカル成功！ 即座にもう一度攻撃を行います！', 'success');
+              chainCount++;
+              continue;
+            }
+            break;
           }
         }
         continue;
@@ -595,30 +614,45 @@ export function useCombat() {
         continue;
       }
 
-      addLog(`🛡️ 従者 ${follower.name} の援護攻撃！ (目標: ${target.name})`, 'combat');
-      const roll = await rollD6(true);
-      let modifier = 0;
+      const attackTimes = follower.attackCount || 1;
+      for (let atkIdx = 0; atkIdx < attackTimes; atkIdx++) {
+        if (combatState.enemies.length === 0) break;
+        let chainCount = 0;
+        while (combatState.enemies.length > 0 && chainCount < 20) {
+          const target = combatState.enemies[0];
+          addLog(`🛡️ 従者 ${follower.name} の援護攻撃！ (目標: ${target.name})`, 'combat');
+          const roll = await rollD6(true);
+          let modifier = 0;
 
-      // Mage light weapon penalty (-1)
-      if (follower.type === 'mage') {
-        modifier -= 1;
-      }
-      if (!carriesLantern.value) {
-        modifier -= 2;
-        addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
-      }
+          // Mage light weapon penalty (-1)
+          if (follower.type === 'mage') {
+            modifier -= 1;
+          }
+          if (!carriesLantern.value) {
+            modifier -= 2;
+            addLog('暗闇のため従者の攻撃判定に -2 のペナルティ！', 'error');
+          }
 
-      const { hit } = calculateFollowerHit(follower, target, roll, modifier);
+          const { hit } = calculateFollowerHit(follower, target, roll, modifier);
 
-      if (hit) {
-        target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
-        addLog(`🎯 従者の攻撃が命中！ ${target.name} に1ダメージ。`, 'success');
-        if (target.lifeCurrent <= 0) {
-          addLog(`💀 ${target.name} は崩れ落ちた。`, 'success');
-          combatState.enemies.shift();
+          if (hit) {
+            target.lifeCurrent = Math.max(0, target.lifeCurrent - 1);
+            addLog(`🎯 従者の攻撃が命中！ ${target.name} に1ダメージ。`, 'success');
+            if (target.lifeCurrent <= 0) {
+              addLog(`💀 ${target.name} は崩れ落ちた。`, 'success');
+              combatState.enemies.shift();
+            }
+          } else {
+            addLog(`💨 従者の攻撃は外れた。`, 'info');
+          }
+
+          if (roll === 6 && combatState.enemies.length > 0) {
+            addLog('✨ 従者のクリティカル成功！ 即座にもう一度攻撃を行います！', 'success');
+            chainCount++;
+            continue;
+          }
+          break;
         }
-      } else {
-        addLog(`💨 従者の攻撃は外れた。`, 'info');
       }
     }
   }
@@ -630,6 +664,8 @@ export function useCombat() {
     combatState.round++;
     combatState.hasCoveredInRound = false;
     combatState.hasWeaponCreatedThisRound = false;
+    combatState.heroDefenseCount = 0;
+    combatState.followerDefenseCount = 0;
     addLog(`--- ラウンド ${combatState.round}: クリーチャーの反撃フェーズ ---`, 'info');
 
     // 太刀持ち従者がいる場合、第0ラウンドの射撃後の第1ラウンド移行時に自動で接近戦用武器に持ち替える
@@ -717,6 +753,11 @@ export function useCombat() {
     let defSuccess = false;
 
     // Spacetime fang target checks
+    const isForcedTarget =
+      attack.type === 'spacetime_fang_hero' ||
+      attack.type === 'spacetime_fang_hero_2' ||
+      attack.type === 'spacetime_fang_follower';
+
     if (attack.type === 'spacetime_fang_hero' || attack.type === 'spacetime_fang_hero_2') {
       if (!isHero) {
         // Hero is targeted
@@ -730,19 +771,46 @@ export function useCombat() {
       }
     }
 
+    // Rule 36: 防御の均等割り振りチェック（主人公 vs 従者全体で最小回数の側のみ選択可能）
+    if (!isForcedTarget && !skipDeflect) {
+      const hasLivingFollowers = followers.value.some(fol => fol.lifeCurrent > 0);
+      const heroDefCount = combatState.heroDefenseCount ?? 0;
+      const folDefCount = combatState.followerDefenseCount ?? 0;
+      if (hasLivingFollowers) {
+        if (isHero && folDefCount < heroDefCount) {
+          addLog('⚠️ 防御回数を均等に割り振る必要があります！ 今回は従者に割り振ってください。(Rule 36)', 'error');
+          return;
+        }
+        if (!isHero && heroDefCount < folDefCount) {
+          addLog('⚠️ 防御回数を均等に割り振る必要があります！ 今回は主人公に割り振ってください。(Rule 36)', 'error');
+          return;
+        }
+      }
+      if (isHero) {
+        combatState.heroDefenseCount = heroDefCount + 1;
+      } else {
+        combatState.followerDefenseCount = folDefCount + 1;
+      }
+    }
+
+    const isRangedAttack = Boolean(enemy.isRanged || combatState.round === 0);
+
     if (!isPrevented) {
       const displayTitle = attack.targetName ? `${enemy.name} の〈時空牙〉 (対象: ${attack.targetName})` : enemy.name;
       addLog(`🛡️ ${defName} が ${displayTitle} の攻撃を防御します！ (目標値: ${enemy.level})`, 'combat');
       roll = await rollD6(true);
       if (isHero) {
         if (character.value.equippedArmor) modifier += character.value.equippedArmor.modDef;
-        if (character.value.equippedShield) modifier += 1; // shield armor block
+        if (isRangedAttack && (character.value.equippedShield?.modDefRanged || 0) > 0) {
+          modifier += character.value.equippedShield!.modDefRanged;
+          addLog(`🛡️ ${character.value.equippedShield!.name}の遠隔防御ボーナス +${character.value.equippedShield!.modDefRanged}！`, 'success');
+        }
         if ((character.value as any).heraclesLeftBuff && enemy.tags.includes('demon')) {
           modifier += 1;
           addLog('✊ 怪力王の左腕の魂：悪魔への防御ロール +1！', 'success');
         }
-        // Protection Miracle buff
-        modifier += combatState.buffs.defenseBonus;
+        // Protection Miracle buff (hero)
+        modifier += (combatState.buffs.heroDefenseBonus || 0) + (combatState.buffs.defenseBonus || 0);
 
         // Apply confusion berserk modifier
         if (attack.type === 'slash_eye' && (combatState as any).isBerserk) {
@@ -771,7 +839,14 @@ export function useCombat() {
       } else {
         const f = followers.value.find(fol => fol.id === defenderId);
         if (f && f.isCombatant) {
-          modifier += combatState.buffs.defenseBonus;
+          modifier += (combatState.buffs.followerDefenseBonus || 0) + (combatState.buffs.defenseBonus || 0);
+          const hasFollowerMagicShield =
+            character.value.items.some(i => i.type === 'magic_shield' || i.name === '魔法の大盾') ||
+            character.value.shields.some(s => s.name === '魔法の大盾');
+          if (isRangedAttack && hasFollowerMagicShield) {
+            modifier += 1;
+            addLog('🛡️ 魔法の大盾の遠隔防御ボーナス +1！', 'success');
+          }
         }
       }
       if (!carriesLantern.value) {
@@ -849,7 +924,8 @@ export function useCombat() {
               followerId: defenderId,
               followerName: defName,
               enemyName: enemy.name,
-              enemyLevel: enemy.level
+              enemyLevel: enemy.level,
+              isRanged: isRangedAttack
             };
             addLog(`🛡️ 従者 ${defName} が被弾！ 主人公は「かばう」を使用できます。`, 'error');
             return;
@@ -903,7 +979,8 @@ export function useCombat() {
     endCombat,
     executeFollowerAttacks,
     executeEnemyAttacks,
-    castCreateWeaponSpell
+    castCreateWeaponSpell,
+    resolveDefense
   });
 
   const castSpell = magicModule.castSpell;
@@ -939,24 +1016,33 @@ export function useCombat() {
 
 
 
-  async function rollSpellResistance(target = 5) {
-    const isMagic = character.value.subStatType === 'magic';
-    const subStatVal = isMagic ? character.value.subStatCurrent : 0;
-    
+  // Rule 9: 対魔法ロール（魔術ロールまたは幸運ロール、特に記述がない場合目標値は4）
+  async function rollSpellResistance(target = 4) {
+    const subType = character.value.subStatType;
+    const usedSubStat = (subType === 'magic' || subType === 'luck') && character.value.subStatCurrent > 0;
+    const statVal = usedSubStat ? character.value.subStatCurrent : character.value.skillCurrent;
+    const statLabel = usedSubStat ? (subType === 'magic' ? '魔術点' : '幸運点') : '技量点';
+
     const pluginBonus = runScenarioHook(activeScenario.value?.id, 'onGetSpellResistanceBonus', context, target);
-    let bonus = pluginBonus !== undefined ? pluginBonus : 0;
-    
-    addLog(`🔮 対魔法判定ロール開始 (目標値: ${target}, サブ魔力: +${subStatVal}, 特殊加算: +${bonus})`, 'info');
+    const bonus = pluginBonus !== undefined ? pluginBonus : 0;
+
+    addLog(`🔮 対魔法判定ロール開始 (目標値: ${target}, ${statLabel}: +${statVal}, 特殊加算: +${bonus})`, 'info');
     const roll = await rollD6(true);
-    const total = roll + subStatVal + bonus;
-    
+
+    if (usedSubStat) {
+      character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
+      addLog(`対魔法ロールにより、${statLabel}を1点消費しました。(残り: ${character.value.subStatCurrent}点)`, 'info');
+    }
+
+    const total = roll === 6 ? 99 : roll + statVal + bonus;
+
     if (roll === 1) {
       addLog(`🎲 ファンブル！ (出目: 1)`, 'error');
       return { success: false, fumble: true, roll, total };
     }
-    
-    if (total >= target) {
-      addLog(`✨ 判定成功！ (ロール計: ${total} >= ${target})`, 'success');
+
+    if (roll === 6 || total >= target) {
+      addLog(`✨ 判定成功！ (ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${target})`, 'success');
       return { success: true, fumble: false, roll, total };
     } else {
       addLog(`😢 判定失敗... (ロール計: ${total} < ${target})`, 'error');
@@ -1107,10 +1193,13 @@ export function useCombat() {
     addLog(`🛡️ 主人公が身を挺して 従者 ${followerName} をかばいます！ (目標値: ${enemyLevel})`, 'combat');
     const roll = await rollD6(true);
     let modifier = 0;
-    
+    const isRangedCover = Boolean((pending as any).isRanged || combatState.round === 0);
+
     if (character.value.equippedArmor) modifier += character.value.equippedArmor.modDef;
-    if (character.value.equippedShield) modifier += 1;
-    modifier += combatState.buffs.defenseBonus;
+    if (isRangedCover && (character.value.equippedShield?.modDefRanged || 0) > 0) {
+      modifier += character.value.equippedShield!.modDefRanged;
+    }
+    modifier += (combatState.buffs.heroDefenseBonus || 0) + (combatState.buffs.defenseBonus || 0);
 
     // Apply status effect modifiers to cover check
     playerActiveStatusEffectRules.value.forEach(rule => {
@@ -1211,15 +1300,18 @@ export function useCombat() {
     clearDiceTray();
     diceTray.sides = 6;
 
-    // 器用修正値の計算: 敏捷(dexterity)を持つ場合はその現在値、それ以外は技量点
-    const dexSkill = (character.value.subStatType === 'dexterity' && character.value.subStatCurrent > 0)
+    // 器用修正値の計算: 敏捷(dexterity)を持つ場合はその現在値（消費前）、それ以外は技量点
+    const usedDexSubStat = character.value.subStatType === 'dexterity' && character.value.subStatCurrent > 0;
+    const dexSkill = usedDexSubStat
       ? character.value.subStatCurrent
       : character.value.skillCurrent;
 
     let modifier = dexSkill;
 
     // 布鎧・革鎧の器用ボーナス (+1)
-    if (character.value.equippedArmor?.name === '布鎧' || character.value.equippedArmor?.name === '革鎧') {
+    if (character.value.equippedArmor?.modDex) {
+      modifier += character.value.equippedArmor.modDex;
+    } else if (character.value.equippedArmor?.name === '布鎧' || character.value.equippedArmor?.name === '革鎧') {
       modifier += 1;
     }
 
@@ -1229,6 +1321,10 @@ export function useCombat() {
     }
 
     const roll = await rollD6(true);
+    if (usedDexSubStat) {
+      character.value.subStatCurrent = Math.max(0, character.value.subStatCurrent - 1);
+      addLog(`器用ロールにより、器用点を1点消費しました。(残り: ${character.value.subStatCurrent}点)`, 'info');
+    }
     const isCritical = roll === 6;
     const isFumble = roll === 1;
     const total = roll + modifier;

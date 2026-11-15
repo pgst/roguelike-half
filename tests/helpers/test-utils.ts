@@ -259,7 +259,16 @@ export async function handlePendingDefense(page: any) {
     return;
   }
   while (await defendBtn.isVisible()) {
-    await defendBtn.click({ force: true });
+    if (await defendBtn.isEnabled()) {
+      await defendBtn.click({ force: true });
+    } else {
+      const followerBtn = page.locator('button:has-text("が受ける"):not([disabled])').first();
+      if (await followerBtn.isVisible()) {
+        await followerBtn.click({ force: true });
+      } else {
+        break;
+      }
+    }
     await page.waitForTimeout(800);
   }
 }

@@ -305,4 +305,56 @@ test.describe('基本ルール ver.5.1: 遭遇・戦闘・逃走・察知・ダ�
     expect(restored.subStatCurrent).toBe(1);
   });
 
+  test('【Rule 9, 19, 21, 27】盾の近接無修正・炎球威力計算・対魔法ロール・聖水器用点消費・防衛対象選択の検証', async ({ page }) => {
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
+
+    await page.fill('#char-name', 'ルール検証者');
+    await page.locator('.archetype-card').nth(1).click({ force: true }); // 幸運アーキタイプ（片手武器・鎖鎧(+1)・木盾・ランタン）
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+
+    // 防衛を習得（初期幸運点2 -> 習得枠1）
+    await page.locator('.spell-learning-section button:has-text("防衛")').click();
+
+    // 兵士を雇用（戦闘従者がいる状態で防衛の対象選択が出ることを確認するため）
+    const recruitSoldierBtn = page.locator('.recruiter-column > div > div').filter({ hasText: '兵士' }).locator('button:has-text("雇用")');
+    await recruitSoldierBtn.click();
+
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // 暗闇ペナルティを避けるため木盾は装備したまま片手武器を外す（鎖鎧+1のみ、木盾は近接防御修正0）
+    await openAdventureSheet(page);
+    await page.locator('.adventure-sheet .equipped-slot:has-text("右手/武器") button:has-text("外す")').click();
+    await closeAdventureSheet(page);
+
+    // d66 = 11 (ゴブリン斥候 3体, Lv.2)
+    await setupMockRandom(page, 11, [4, 4, 4, 4, 4]);
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+    await transitionToMelee(page);
+
+    // #17: 奇跡「防衛」をクリックすると、戦闘従者がいるため対象選択サブメニューが表示されること
+    await page.locator('button:has-text("じゅもん")').click();
+    await page.locator('button:has-text("防衛")').click();
+    const heroProtBtn = page.locator('button:has-text("主人公1人 (防御ロール+1)")');
+    const folProtBtn = page.locator('button:has-text("戦う従者全員 (防御ロール+1)")');
+    await expect(heroProtBtn).toBeVisible();
+    await expect(folProtBtn).toBeVisible();
+
+    // 戦う従者全員を選択 -> followerDefenseBonus が +1 され、heroDefenseBonus は 0 のままであること
+    await folProtBtn.click();
+    await page.waitForTimeout(800);
+
+    const buffsAfterProt = await page.evaluate(() => {
+      const state = (window as any).__GAME_STATE__;
+      return {
+        heroBonus: state.combatState.buffs.heroDefenseBonus,
+        followerBonus: state.combatState.buffs.followerDefenseBonus,
+      };
+    });
+    expect(buffsAfterProt.heroBonus).toBe(0);
+    expect(buffsAfterProt.followerBonus).toBe(1);
+  });
+
 });

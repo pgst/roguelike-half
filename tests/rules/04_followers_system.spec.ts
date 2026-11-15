@@ -224,4 +224,50 @@ test.describe('基本ルール ver.5.1: 従者システム・かばう・戦闘�
     await expect(normalAttackBtn).toBeEnabled();
   });
 
+  test('【Rule 8, 19, 36】従者攻撃のクリティカル連鎖・均等防御割り振り・魔術師従者の魔術点+1加算', async ({ page }) => {
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
+
+    await page.fill('#char-name', '指揮官メイジ');
+    await page.locator('.archetype-card').nth(0).click({ force: true }); // 魔術型
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+
+    await page.locator('.spell-learning-section button:has-text("炎球")').click();
+
+    // 兵士（無料）を雇用
+    const recruitSoldierBtn = page.locator('.recruiter-column > div > div').filter({ hasText: '兵士' }).locator('button:has-text("雇用")');
+    await recruitSoldierBtn.click();
+
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // d66 = 11 (ゴブリン斥候 3体, Lv.2, HP 1)
+    // 主人公攻撃出目: 1 (ミス) -> 兵士攻撃出目: 6 (クリティカル! 1体目撃破) -> 兵士連鎖攻撃出目: 1 (ミス)
+    // 残り2体の反撃(2回): 1回目を主人公(出目5: 防御成功)に割り当てると、2回目は主人公ボタンが無効化され従者のみ選択可能になる
+    await setupMockRandom(page, 11, [1, 6, 1, 5, 5]);
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(500);
+
+    await transitionToMelee(page);
+    await clickButtonByText(page, '通常攻撃', 800);
+
+    const logbook = page.locator('.logbook-entries');
+    // #16: 従者の出目6クリティカルにより即座にもう一度攻撃が行われたこと
+    await expect(logbook).toContainText('従者のクリティカル成功！ 即座にもう一度攻撃を行います！');
+
+    // #6: 敵の反撃2回に対し、1回目を主人公で防御
+    const heroDefBtn = page.locator('button:has-text("主人公が防御する")');
+    const followerDefBtn = page.locator('button:has-text("が受ける")').first();
+    await expect(heroDefBtn).toBeEnabled();
+    await expect(followerDefBtn).toBeEnabled();
+    await heroDefBtn.click();
+    await page.waitForTimeout(600);
+
+    // 2回目の防御では均等割り振りルールにより主人公ボタンがdisabled、従者ボタンがenabledであること
+    await expect(heroDefBtn).toBeDisabled();
+    await expect(followerDefBtn).toBeEnabled();
+    await followerDefBtn.click();
+    await page.waitForTimeout(600);
+  });
+
 });

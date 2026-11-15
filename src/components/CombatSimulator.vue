@@ -30,6 +30,24 @@ const isBattleResolved = computed(() => combatState.isOver && !isMessageWaiting.
 
 const autoDefenderMap = ref<Record<string, 'hero' | string>>({});
 
+const isHeroDefenseAllowed = computed(() => {
+  const currentAttack = activeAttacks.value[0];
+  if (!currentAttack) return true;
+  if (currentAttack.type === 'spacetime_fang_hero' || currentAttack.type === 'spacetime_fang_hero_2') return true;
+  if (currentAttack.type === 'spacetime_fang_follower') return false;
+  if (activeCombatFollowers.value.length === 0) return true;
+  return (combatState.heroDefenseCount ?? 0) <= (combatState.followerDefenseCount ?? 0);
+});
+
+const isFollowerDefenseAllowed = computed(() => {
+  const currentAttack = activeAttacks.value[0];
+  if (!currentAttack) return true;
+  if (currentAttack.type === 'spacetime_fang_hero' || currentAttack.type === 'spacetime_fang_hero_2') return false;
+  if (currentAttack.type === 'spacetime_fang_follower') return true;
+  if (activeCombatFollowers.value.length === 0) return false;
+  return (combatState.followerDefenseCount ?? 0) <= (combatState.heroDefenseCount ?? 0);
+});
+
 const currentAttackDefenderId = computed(() => {
   if (!autoCombatDefenseAllocation.value || activeAttacks.value.length === 0) return null;
   const currentAttack = activeAttacks.value[0];
@@ -43,16 +61,24 @@ const currentAttackDefenderId = computed(() => {
     return currentAttack.targetFollowerId;
   }
 
-  // 既にこの攻撃の担当者が選定済みなら再利用
+  // 既にこの攻撃の担当者が選定済みで、かつ均等割り振りルールに適合しているなら再利用
   if (autoDefenderMap.value[currentAttack.id]) {
     const existing = autoDefenderMap.value[currentAttack.id];
-    if (existing === 'hero') return 'hero';
-    if (activeCombatFollowers.value.some(f => f.id === existing)) return existing;
+    if (existing === 'hero' && isHeroDefenseAllowed.value) return 'hero';
+    if (existing !== 'hero' && isFollowerDefenseAllowed.value && activeCombatFollowers.value.some(f => f.id === existing)) return existing;
   }
 
-  // 候補: 主人公 + 生存中の戦闘従者
-  const candidates: ('hero' | string)[] = ['hero'];
-  activeCombatFollowers.value.forEach(f => candidates.push(f.id));
+  // 候補: 均等割り振りルール（最小防御回数の側のみ）
+  const candidates: ('hero' | string)[] = [];
+  if (isHeroDefenseAllowed.value) {
+    candidates.push('hero');
+  }
+  if (isFollowerDefenseAllowed.value) {
+    activeCombatFollowers.value.forEach(f => candidates.push(f.id));
+  }
+  if (candidates.length === 0) {
+    candidates.push('hero');
+  }
 
   const chosen = candidates[randomInt(0, candidates.length - 1)];
   autoDefenderMap.value[currentAttack.id] = chosen;
@@ -65,6 +91,19 @@ const currentSelectedFollower = computed(() => {
 });
 
 const showSummonSelector = ref(false);
+const showProtectionSelector = ref(false);
+const hasCombatFollowers = computed(() =>
+  followers.value.some(f => f.lifeCurrent > 0 && f.isCombatant)
+);
+function handleProtectionClick() {
+  if (hasCombatFollowers.value) {
+    showProtectionSelector.value = true;
+    showMagicSubmenu.value = false;
+  } else {
+    castMiracle('防衛', 'hero');
+    showMagicSubmenu.value = false;
+  }
+}
 
 const selectedEnemyId = ref<string>('');
 const targetEnemy = computed(() => {
@@ -536,14 +575,14 @@ function closeRangedRound() {
               </div>
               <!-- 手動選定時（全ボタン一覧） -->
               <div v-else class="cmd-btn-grid" style="grid-template-columns: 1fr;">
-                <button @click="resolveDefense(activeAttacks[0].id, 'hero')" class="btn-ink cmd-btn btn-def" :disabled="diceTray.isRolling">
+                <button @click="resolveDefense(activeAttacks[0].id, 'hero')" class="btn-ink cmd-btn btn-def" :disabled="diceTray.isRolling || !isHeroDefenseAllowed">
                   🛡️ 主人公が防御する
                 </button>
                 <button 
                   v-if="character.subStatType === 'strength' && character.subStatCurrent > 0"
                   @click="resolveDefense(activeAttacks[0].id, 'hero', true)" 
                   class="btn-ink cmd-btn btn-def btn-strength"
-                  :disabled="diceTray.isRolling"
+                  :disabled="diceTray.isRolling || !isHeroDefenseAllowed"
                 >
                   💪 全力防御 (筋力1消費)
                 </button>
@@ -552,7 +591,7 @@ function closeRangedRound() {
                   :key="fol.id"
                   @click="resolveDefense(activeAttacks[0].id, fol.id)" 
                   class="btn-ink cmd-btn btn-def btn-secondary"
-                  :disabled="diceTray.isRolling"
+                  :disabled="diceTray.isRolling || !isFollowerDefenseAllowed"
                 >
                   👤 従者 [{{ fol.name }}] が受ける (技量: {{ fol.skill }})
                 </button>
@@ -604,7 +643,7 @@ function closeRangedRound() {
                 </button>
               </template>
               <template v-if="character.subStatType === 'luck'">
-                <button v-if="character.miracles.includes('防衛')" @click="castMiracle('防衛'); showMagicSubmenu = false" class="btn-ink cmd-btn btn-miracle" :disabled="isRound0SpellDisabled">
+                <button v-if="character.miracles.includes('防衛')" @click="handleProtectionClick" class="btn-ink cmd-btn btn-miracle" :disabled="isRound0SpellDisabled">
                   ✨ 防衛
                 </button>
                 <button v-if="character.miracles.includes('祝福')" @click="castMiracle('祝福'); showMagicSubmenu = false" class="btn-ink cmd-btn btn-miracle">
@@ -613,10 +652,26 @@ function closeRangedRound() {
                 <button v-if="character.miracles.includes('招天')" @click="castMiracle('招天'); showMagicSubmenu = false" class="btn-ink cmd-btn btn-miracle" :disabled="isRound0SpellDisabled">
                   ✨ 招天
                 </button>
-                <button v-if="character.miracles.includes('聖洗脳') && combatState.enemies.length === 1" @click="castMiracle('聖洗脳'); showMagicSubmenu = false" class="btn-ink cmd-btn btn-miracle" :disabled="isRound0SpellDisabled">
+                <button v-if="character.miracles.includes('聖洗脳') && combatState.enemies.length === 1" @click="castMiracle('聖洗脳'); showMagicSubmenu = false" class="btn-ink cmd-btn btn-miracle" :disabled="isRound0SpellDisabled || followers.length >= character.followerCurrent" :title="followers.length >= character.followerCurrent ? '従者枠が上限に達しているため使用できません' : ''">
                   ✨ 聖洗脳
                 </button>
               </template>
+            </div>
+          </div>
+
+          <!-- 防衛の対象選択サブメニュー展開中 -->
+          <div v-else-if="showProtectionSelector" class="cmd-magic-menu">
+            <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; color: var(--ink-dark); display: flex; justify-content: space-between; align-items: center;">
+              <span>✨ 奇跡【防衛】の対象選択 (幸運点1消費)</span>
+              <button @click="showProtectionSelector = false" class="btn-mini btn-ink" style="font-size: 0.7rem; padding: 2px 6px;">✕ 戻る</button>
+            </div>
+            <div class="cmd-btn-grid" style="grid-template-columns: 1fr;">
+              <button @click="castMiracle('防衛', 'hero'); showProtectionSelector = false" class="btn-ink cmd-btn btn-miracle">
+                🛡️ 主人公1人 (防御ロール+1)
+              </button>
+              <button @click="castMiracle('防衛', 'followers'); showProtectionSelector = false" class="btn-ink cmd-btn btn-miracle">
+                👥 戦う従者全員 (防御ロール+1)
+              </button>
             </div>
           </div>
 
