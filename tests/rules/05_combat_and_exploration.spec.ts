@@ -15,7 +15,12 @@ test.describe('基本ルール ver.5.1: 遭遇・戦闘・逃走・察知・ダ�
 
   test.beforeEach(async ({ page }) => {
     page.on('dialog', dialog => dialog.accept());
-    await page.addInitScript(() => localStorage.clear());
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem('__test_initialized__')) {
+        localStorage.clear();
+        sessionStorage.setItem('__test_initialized__', '1');
+      }
+    });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await disableAnimations(page);
   });
@@ -247,6 +252,57 @@ test.describe('基本ルール ver.5.1: 遭遇・戦闘・逃走・察知・ダ�
     const advSheet = page.locator('.adventure-sheet');
     await expect(advSheet).toContainText('器用点1 / 2');
     await closeAdventureSheet(page);
+  });
+
+  test('【セーブ復元・冒険者表示・別シナリオ警告】戦闘勝利＆宝物獲得後のリロードでも状態が保持され、トップ画面表示と警告モーダルが機能する', async ({ page }) => {
+    await selectScenarioInUI(page, '黒蛇の洞窟');
+
+    await page.fill('#char-name', '不屈の探索者');
+    await page.locator('.archetype-card').nth(3).click({ force: true }); // 器用点
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // 戦闘後の宝物獲得・器用点消費状態をシミュレート（金貨25G、器用点1/2）
+    await page.evaluate(() => {
+      const state = (window as any).__GAME_STATE__;
+      if (state) {
+        state.character.value.gold = 25;
+        state.character.value.subStatCurrent = 1;
+      }
+    });
+
+    // ページを再読込してトップ画面へ
+    await page.reload();
+    await page.waitForSelector('.scenario-selector', { state: 'visible', timeout: 5000 });
+
+    // #9: 進行中の冒険がある状態で、トップの冒険者欄にキャラクター名が表示されていること
+    await expect(page.locator('.current-character-card')).toContainText('不屈の探索者');
+    await expect(page.locator('.saved-session-banner')).toBeVisible();
+
+    // #24: 別シナリオを選ぼうとすると確認モーダルが表示され、キャンセルで戻れること
+    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
+    await page.locator('.scenario-detail-panel button:has-text("このシナリオに挑む")').first().click({ force: true });
+    const confirmModal = page.locator('[data-testid="confirm-modal"]');
+    await expect(confirmModal).toBeVisible();
+    await page.locator('[data-testid="confirm-modal-cancel"]').click();
+    await expect(confirmModal).toBeHidden();
+
+    // #2: 「進行中の冒険を再開する」で復元すると、金貨25G・器用点1/2が巻き戻らず保持されていること
+    await page.locator('button.btn-resume').click();
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    const restored = await page.evaluate(() => {
+      const state = (window as any).__GAME_STATE__;
+      return {
+        gold: state.character.value.gold,
+        subStatCurrent: state.character.value.subStatCurrent,
+      };
+    });
+    expect(restored.gold).toBe(25);
+    expect(restored.subStatCurrent).toBe(1);
   });
 
 });

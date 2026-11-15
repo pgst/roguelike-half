@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { disableAnimations, setupMockRandom, handlePendingDefense, selectScenarioInUI, openAdventureSheet, closeAdventureSheet, rollD66AndSkipPerception, transitionToMelee, clickButtonByText } from './helpers/test-utils';
+import { disableAnimations, setupMockRandom, handlePendingDefense, selectScenarioInUI, openAdventureSheet, closeAdventureSheet, rollD66AndSkipPerception, transitionToMelee, clickButtonByText } from '../helpers/test-utils';
 
 test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行使テスト', () => {
 
@@ -69,7 +69,7 @@ test.describe('従者魔術師（Mage）の呪文カスタマイズ＆戦闘行�
     // ログに氷槍のキャストとダメージが記録されていることを確認
     const logbook = page.locator('.logbook-entries');
     await expect(logbook).toContainText('氷槍', { timeout: 5000 });
-    await expect(logbook).toContainText('2点ダメージ', { timeout: 5000 });
+    await expect(logbook).toContainText('2点のダメージ', { timeout: 5000 });
   });
 
   test('魔術師従者：気絶を習得して雇用し、弱い敵に対して気絶を唱えること', async ({ page }) => {

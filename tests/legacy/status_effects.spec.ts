@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { disableAnimations, setupMockRandom, selectScenarioInUI, openAdventureSheet, closeAdventureSheet, rollD66AndSkipPerception, proceedToNextRoom, clickButtonByText, transitionToMelee, handlePendingDefense } from './helpers/test-utils';
+import { disableAnimations, setupMockRandom, selectScenarioInUI, openAdventureSheet, closeAdventureSheet, rollD66AndSkipPerception, proceedToNextRoom, clickButtonByText, transitionToMelee, handlePendingDefense } from '../helpers/test-utils';
 
 test.describe('状態異常システム (Status Effect Rules) 検証テスト', () => {
 
@@ -51,19 +51,23 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
     await rollD66AndSkipPerception(page);
     await page.waitForTimeout(500);
 
-    // 反応チェックを行う
-    await clickButtonByText(page, '反応チェックを行う', 1000);
+    // 反応チェックボタンがある場合のみ実行（d66=11のゴブリンは直接戦闘または第0Rへ遷移）
+    const reactionBtn = page.locator('button:has-text("反応チェックを行う"), button:has-text("反応表を振る")').first();
+    if (await reactionBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (await reactionBtn.isEnabled().catch(() => false)) {
+        await reactionBtn.click({ force: true });
+        await page.waitForTimeout(500);
+        const confirmReactionBtn = page.locator('button:has-text("結果を承認して進む")').first();
+        if (await confirmReactionBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+          await confirmReactionBtn.click({ force: true });
+        }
+      }
+    }
 
-    // 戦闘開始をクリック
+    // 戦闘開始をクリック（旧UI互換）
     const combatStartBtn = page.locator('button:has-text("戦闘開始")');
     if (await combatStartBtn.count() > 0) {
       await clickButtonByText(page, '戦闘開始', 1000);
-    } else {
-      const escapeBtn = page.locator('button:has-text("戦闘から逃走する")');
-      if (await escapeBtn.isVisible({ timeout: 2000 })) {
-        await escapeBtn.click({ force: true });
-        return; // Skip further combat steps as escape occurred
-      }
     }
     await page.waitForTimeout(1000);
 
@@ -168,7 +172,7 @@ test.describe('状態異常システム (Status Effect Rules) 検証テスト', 
 
     // 金貨が0枚になり、状態異常が消え、ログが残ることを確認
     const postGoldText = await page.locator('.town-market').textContent();
-    expect(postGoldText).toContain('所持金貨: 0 枚');
+    expect(postGoldText).toMatch(/所持金貨:\s*0\s*枚/);
 
     const logbook = page.locator('.logbook-entries');
     await expect(logbook).toContainText('教会で『祝福の魔法』を受け、すべての状態異常が回復しました', { timeout: 5000 });

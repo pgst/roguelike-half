@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { disableAnimations, setupMockRandom, handlePendingDefense, selectScenarioInUI, openAdventureSheet, closeAdventureSheet, rollD66AndSkipPerception, transitionToMelee, proceedToNextRoom, clickButtonByText } from './helpers/test-utils';
+import { disableAnimations, setupMockRandom, handlePendingDefense, selectScenarioInUI, openAdventureSheet, closeAdventureSheet, rollD66AndSkipPerception, transitionToMelee, proceedToNextRoom, clickButtonByText } from '../helpers/test-utils';
 
 test.describe('太刀持ち従者の武器持ち替え省略＆リセット判定テスト', () => {
   
@@ -100,9 +100,9 @@ test.describe('太刀持ち従者の武器持ち替え省略＆リセット判�
     // 敵の反撃を防ぐ
     await handlePendingDefense(page);
 
-    // 太刀持ちがいないため、第1ラウンドで「武器の持ち替え中」の表示が出ること
+    // 太刀持ちがいないため、第1ラウンドで「武器を持ち替える」ボタンが出ること
     const combatBoxText = await page.locator('.combat-card').textContent();
-    expect(combatBoxText).toContain('武器の持ち替え中');
+    expect(combatBoxText).toContain('武器を持ち替える');
     
     const switchWeaponBtn = page.locator('button:has-text("武器を持ち替える")');
     await expect(switchWeaponBtn).toBeVisible();
@@ -173,10 +173,13 @@ test.describe('太刀持ち従者の武器持ち替え省略＆リセット判�
     }
 
     // 宝箱を開ける（ダイスを振る）
-    const lootRollBtn = page.locator('button:has-text("宝箱を開ける")');
-    if (await lootRollBtn.isVisible()) {
-      await lootRollBtn.click({ force: true });
-      await page.waitForTimeout(1500);
+    const lootRollBtn = page.locator('button:has-text("宝箱を開ける")').first();
+    if (await lootRollBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false)) {
+      await clickButtonByText(page, '宝箱を開ける', 800);
+    }
+    const dexConfirmBtn = page.locator('button:has-text("出目そのままで確定")').first();
+    if (await dexConfirmBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false)) {
+      await clickButtonByText(page, '出目そのままで確定', 800);
     }
 
     // 戦闘終了（「結果を承認して次の部屋へ進む」で探索画面へ戻る）

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { disableAnimations, setupMockRandom, safeClick, selectScenarioInUI, openAdventureSheet, closeAdventureSheet } from './helpers/test-utils';
+import { disableAnimations, setupMockRandom, safeClick, selectScenarioInUI, openAdventureSheet, closeAdventureSheet } from '../helpers/test-utils';
 
 test.describe('砂掃きの骸骨 (Sand Cleaning Skeleton) 取引＆アドバイス機能テスト', () => {
 

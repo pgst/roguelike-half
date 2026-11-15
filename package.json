@@ -12,7 +12,7 @@
     "format:check": "prettier --check .",
     "test:e2e": "playwright test",
     "test:personas": "playwright test --config=playwright.config.personas.ts",
-    "test:legacy": "playwright test tests/legacy",
+    "test:legacy": "playwright test --config=playwright.config.legacy.ts",
     "test:unit": "vitest run",
     "show-report": "playwright show-report --host 0.0.0.0"
   },

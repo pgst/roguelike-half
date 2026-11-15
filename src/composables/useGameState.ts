@@ -637,21 +637,23 @@ const pyramidBossSnapshot = computed<any>({
 });
 
 // Session Management & Autosave logic
-function saveSession() {
+function saveSession(immediateCloud = false) {
+  if (typeof localStorage === "undefined") return;
   if (
     isCharacterCreated.value &&
     currentScreen.value !== "scenario_select" &&
+    currentScreen.value !== "creator" &&
+    currentScreen.value !== "gameover" &&
+    currentScreen.value !== "success" &&
     activeScenario.value !== null
   ) {
     activeSession.value.saveToLocalStorage();
     try {
       const { saveToCloud } = useCloudSync();
-      saveToCloud(activeSession.value, false);
+      saveToCloud(activeSession.value, immediateCloud);
     } catch (e) {
       // Offline fallback silent
     }
-  } else {
-    clearSavedSession();
   }
 }
 
@@ -713,16 +715,55 @@ function hasSavedSession(): boolean {
   return false;
 }
 
-// Watch screen, depth, events, and combat state to trigger autosave or clear saved session
+// Watch screen transitions for gameover/success cleanup, and watch key gameplay state scalars for O(1) immediate autosave
+watch(currentScreen, (screen) => {
+  if (screen === "gameover" || screen === "success") {
+    clearSavedSession();
+  } else {
+    saveSession();
+  }
+});
+
 watch(
-  [currentScreen, dungeonDepth, activeEvent, () => combatState.active],
+  () => [
+    currentScreen.value,
+    dungeonDepth.value,
+    activeEvent.value?.d66Code,
+    activeEvent.value?.isResolved,
+    (activeEvent.value as any)?.isChestUnlocked,
+    (activeEvent.value as any)?.isTrapChestFailed,
+    combatState.active,
+    combatState.isOver,
+    combatState.round,
+    combatState.lootRolled,
+    Boolean(combatState.pendingDexLootChoice),
+    combatState.enemies.length,
+    character.value.gold,
+    character.value.food,
+    character.value.exp,
+    character.value.level,
+    character.value.lifeCurrent,
+    character.value.lifeMax,
+    character.value.skillCurrent,
+    character.value.subStatCurrent,
+    character.value.weapons.length,
+    character.value.armors.length,
+    character.value.shields.length,
+    character.value.items.length,
+    character.value.items.reduce((acc, i) => acc + (i.chargesCurrent ?? 0) + (i.charges ?? 0), 0),
+    character.value.equippedWeapon?.name,
+    character.value.equippedArmor?.name,
+    character.value.equippedShield?.name,
+    character.value.spells.length,
+    character.value.miracles.length,
+    character.value.statusEffects?.length ?? 0,
+    followers.value.length,
+  ],
   () => {
     if (
-      currentScreen.value === "gameover" ||
-      currentScreen.value === "success"
+      currentScreen.value !== "gameover" &&
+      currentScreen.value !== "success"
     ) {
-      clearSavedSession();
-    } else {
       saveSession();
     }
   },
@@ -1647,8 +1688,9 @@ function castCreateWeaponSpell(
     const summon: Weapon = {
       ...base,
       name: `創られた${base.name}`,
-      isMagic: true,
-      description: `【武具創造】によって生み出された魔法の武具。冒険終了後に消滅する。`,
+      isMagic: false,
+      isCreated: true,
+      description: `【武具創造】によって生み出された武具。冒険終了後に消滅する。`,
     };
     character.value.weapons.push(summon);
     addLog(
@@ -1661,8 +1703,9 @@ function castCreateWeaponSpell(
     const summon: Armor = {
       ...base,
       name: `創られた${base.name}`,
-      isMagic: true,
-      description: `【武具創造】によって生み出された魔法の防具。冒険終了後に消滅する。`,
+      isMagic: false,
+      isCreated: true,
+      description: `【武具創造】によって生み出された防具。冒険終了後に消滅する。`,
     };
     character.value.armors.push(summon);
     addLog(
@@ -1675,8 +1718,9 @@ function castCreateWeaponSpell(
     const summon: Shield = {
       ...base,
       name: `創られた${base.name}`,
-      isMagic: true,
-      description: `【武具創造】によって生み出された魔法の盾。冒険終了後に消滅する。`,
+      isMagic: false,
+      isCreated: true,
+      description: `【武具創造】によって生み出された盾。冒険終了後に消滅する。`,
     };
     character.value.shields.push(summon);
     addLog(
@@ -1690,11 +1734,11 @@ function castCreateWeaponSpell(
 
 // Dungeon completion stats restore
 function restoreStatsAfterAdventure() {
-  // Unequip magic items first to safely adjust stats
-  if (character.value.equippedWeapon?.isMagic) {
+  // Unequip created items first to safely adjust stats (purchased magic gear is preserved)
+  if (character.value.equippedWeapon?.isCreated) {
     character.value.equippedWeapon = null;
   }
-  if (character.value.equippedArmor?.isMagic) {
+  if (character.value.equippedArmor?.isCreated) {
     const oldArmor = character.value.equippedArmor;
     character.value.equippedArmor = null;
     character.value.lifeMax = Math.max(
@@ -1702,7 +1746,7 @@ function restoreStatsAfterAdventure() {
       character.value.lifeMax - oldArmor.modLife,
     );
   }
-  if (character.value.equippedShield?.isMagic) {
+  if (character.value.equippedShield?.isCreated) {
     const oldShield = character.value.equippedShield;
     character.value.equippedShield = null;
     character.value.lifeMax = Math.max(
@@ -1711,10 +1755,10 @@ function restoreStatsAfterAdventure() {
     );
   }
 
-  // Remove magic items from inventory lists
-  character.value.weapons = character.value.weapons.filter((w) => !w.isMagic);
-  character.value.armors = character.value.armors.filter((a) => !a.isMagic);
-  character.value.shields = character.value.shields.filter((s) => !s.isMagic);
+  // Remove created items from inventory lists (keep purchased magic items)
+  character.value.weapons = character.value.weapons.filter((w) => !w.isCreated);
+  character.value.armors = character.value.armors.filter((a) => !a.isCreated);
+  character.value.shields = character.value.shields.filter((s) => !s.isCreated);
 
   character.value.skillCurrent = character.value.skillMax;
   character.value.lifeCurrent = character.value.lifeMax;
@@ -2300,6 +2344,14 @@ if (typeof window !== "undefined") {
     character,
     followers,
     currentScreen,
+    dungeonDepth,
+    activeEvent,
+    activeScenario,
+    combatState,
     backpackBreakdown,
+    castCreateWeaponSpell,
+    restoreStatsAfterAdventure,
+    saveSession,
+    loadSession,
   };
 }

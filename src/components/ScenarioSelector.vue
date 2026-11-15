@@ -2,6 +2,8 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useGameState } from '../composables/useGameState';
 import { useAuth } from '../composables/useAuth';
+import { useConfirmModal } from '../composables/useConfirmModal';
+import { GameSession } from '../domain';
 import CloudSyncModal from './CloudSyncModal.vue';
 import HallOfFameModal from './HallOfFameModal.vue';
 import ScenarioEditor from './ScenarioEditor.vue';
@@ -15,13 +17,17 @@ const {
   activeScenario, 
   currentScreen, 
   character,
+  followers,
   isCharacterCreated, 
   hasSavedSession, 
   loadSession, 
+  clearSavedSession,
+  restoreStatsAfterAdventure,
   skipAllMessages,
   resetSessionForNewCharacter,
   resetScenarioProgress
 } = useGameState();
+const { requestConfirm } = useConfirmModal();
 const { initAuth, userDisplayName, userPhotoURL } = useAuth();
 const avatarLoadError = ref(false);
 watch(userPhotoURL, () => {
@@ -68,23 +74,41 @@ function getSubStatIcon(subType: string): string {
   }
 }
 
-function handleResetProgress(scenarioId: string) {
+async function handleResetProgress(scenarioId: string) {
   const sc = officialScenarios.value.find(s => s.id === scenarioId) || customScenarios.value.find(s => s.id === scenarioId);
   const name = sc ? `「${sc.title}」` : 'このシナリオ';
-  if (!confirm(`${name}の周回進捗をリセットして第1周目からやり直しますか？`)) {
-    return;
-  }
+  const ok = await requestConfirm({
+    title: '⚠️ 周回進捗のリセット確認',
+    message: `${name}の周回進捗をリセットして第1周目からやり直しますか？`,
+    confirmText: 'リセットする',
+    cancelText: 'キャンセル',
+    danger: true,
+  });
+  if (!ok) return;
   resetScenarioProgress(scenarioId);
 }
 
-function handleStartNewCharacter() {
+async function handleStartNewCharacter() {
   if (hasSaved.value) {
-    const ok = confirm(`⚠️ 進行中の冒険データ（${savedScenarioTitle.value}・第${savedDepth.value}部屋）があります。\n新しい冒険者を作成すると、現在のキャラクターおよび進行中の冒険データは破棄されます。\n本当に新しい冒険者を作成しますか？`);
+    const ok = await requestConfirm({
+      title: '⚠️ 進行中の冒険データの破棄確認',
+      message: `進行中の冒険データ（${savedScenarioTitle.value}・第${savedDepth.value}部屋）があります。\n新しい冒険者を作成すると、現在のキャラクターおよび進行中の冒険データは破棄されます。\n本当に新しい冒険者を作成しますか？`,
+      confirmText: '破棄して新規作成',
+      cancelText: 'キャンセル',
+      danger: true,
+    });
     if (!ok) return;
   } else if (character.value.name) {
-    const ok = confirm(`現在の冒険者「${character.value.name} (Lv.${character.value.level})」をリセットし、新しい冒険者を作成しますか？`);
+    const ok = await requestConfirm({
+      title: '⚠️ 冒険者のリセット確認',
+      message: `現在の冒険者「${character.value.name} (Lv.${character.value.level})」をリセットし、新しい冒険者を作成しますか？`,
+      confirmText: 'リセットして新規作成',
+      cancelText: 'キャンセル',
+      danger: true,
+    });
     if (!ok) return;
   }
+  hasSaved.value = false;
   resetSessionForNewCharacter();
 }
 
@@ -114,11 +138,15 @@ onMounted(async () => {
   hasSaved.value = hasSavedSession();
   if (hasSaved.value) {
     try {
-      const jsonStr = localStorage.getItem('roguelike_half_saved_session');
-      if (jsonStr) {
-        const data = JSON.parse(jsonStr);
-        savedScenarioTitle.value = data.activeScenario?.title || '不明なシナリオ';
-        savedDepth.value = data.dungeonDepth || 1;
+      const saved = GameSession.loadFromLocalStorage();
+      if (saved) {
+        savedScenarioTitle.value = saved.activeScenario?.title || '不明なシナリオ';
+        savedDepth.value = (saved.dungeonDepth || 0) + 1;
+        if (!isCharacterCreated.value && saved.isCharacterCreated && saved.character?.name) {
+          character.value = saved.character;
+          followers.value = (saved.followers || []).filter(f => f.lifeCurrent > 0);
+          isCharacterCreated.value = true;
+        }
       }
     } catch (e) {
       console.error('Failed to parse saved session metadata:', e);
@@ -133,7 +161,20 @@ function resumeAdventure() {
   }
 }
 
-function selectScenario(scenario: Scenario) {
+async function selectScenario(scenario: Scenario) {
+  if (hasSaved.value) {
+    const ok = await requestConfirm({
+      title: '⚠️ 進行中の冒険データの破棄確認',
+      message: `現在進行中の冒険データ（${savedScenarioTitle.value}・第${savedDepth.value}部屋）があります。\n別のシナリオを選択して開始すると、進行中の探索状況は破棄されます。\n本当に「${scenario.title}」へ進みますか？`,
+      confirmText: '進行中の冒険を破棄して進む',
+      cancelText: 'キャンセル',
+      danger: true,
+    });
+    if (!ok) return;
+    clearSavedSession();
+    hasSaved.value = false;
+    restoreStatsAfterAdventure();
+  }
   skipAllMessages();
   activeScenario.value = scenario;
   

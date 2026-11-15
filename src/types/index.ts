@@ -5,6 +5,7 @@ export interface Weapon {
   attribute: 'strike' | 'slash';
   goldCost: number;
   isMagic: boolean;
+  isCreated?: boolean;
   magicChargesCurrent?: number;
   magicChargesMax?: number;
   description: string;
@@ -21,6 +22,7 @@ export interface Armor {
   modDef: number;  // defense roll modifier
   goldCost: number;
   isMagic?: boolean;
+  isCreated?: boolean;
   description: string;
 }
 
@@ -31,13 +33,14 @@ export interface Shield {
   modDefRanged: number; // ranged defense modifier
   goldCost: number;
   isMagic?: boolean;
+  isCreated?: boolean;
   description: string;
 }
 
 export interface GeneralItem {
   id: string;
   name: string;
-  type: 'lantern' | 'rope' | 'holywater' | 'healingpotion' | 'accessory' | 'gem_small' | 'gem_large' | 'magic_flute' | 'magic_staff' | 'magic_monocle' | 'magic_shield' | 'magic_doll' | 'clue' | 'quest' | 'consumable';
+  type: 'lantern' | 'rope' | 'holywater' | 'magic_bullet' | 'healingpotion' | 'accessory' | 'gem_small' | 'gem_large' | 'magic_flute' | 'magic_staff' | 'magic_monocle' | 'magic_shield' | 'magic_doll' | 'clue' | 'quest' | 'consumable';
   goldCost: number;
   chargesCurrent?: number;
   chargesMax?: number;
@@ -79,11 +82,14 @@ export interface Character {
 export interface Follower {
   id: string;
   name: string;
-  type: 'soldier' | 'swordsman' | 'archer' | 'mage' | 'lantern' | 'swordbearer' | 'porter' | 'scout' | 'captive';
+  type: 'soldier' | 'swordsman' | 'archer' | 'mage' | 'lantern' | 'swordbearer' | 'porter' | 'scout' | 'captive' | 'golem';
   isCombatant: boolean;
   skill: number;
   lifeMax: number; // always 1
   lifeCurrent: number; // always 1, dies if 0
+  attackCount?: number;
+  damageIgnoreCount?: number;
+  tags?: string[];
   magicMax?: number;
   magicCurrent?: number;
   magicList?: string[];
@@ -122,7 +128,7 @@ export interface DungeonEvent {
   description: string;
   type: 'encounter' | 'trap' | 'rest' | 'treasure' | 'empty' | 'npc' | 'search';
   enemies?: (Omit<Enemy, 'id'> & { id?: string })[];
-  trapStat?: 'dexterity' | 'strength' | 'magic' | 'luck' | 'skill';
+  trapStat?: 'dexterity' | 'strength' | 'magic' | 'luck' | 'skill' | 'life';
   trapTarget?: number;
   trapDamage?: number;
   lootModifier?: number;
@@ -133,7 +139,7 @@ export interface DungeonEvent {
   statusEffect?: string; // 【追加】 罠によって受ける状態異常（例: '呪い', '石化', '麻痺'）
   customChoices?: any[]; // 【追加】 シナリオ固有の選択肢を注入するためのフィールド
   // 【追加】 探索・調査（search）部屋用パラメータ
-  searchStat?: 'dexterity' | 'strength' | 'magic' | 'luck' | 'skill';
+  searchStat?: 'dexterity' | 'strength' | 'magic' | 'luck' | 'skill' | 'life';
   searchTarget?: number;
   searchRewardGold?: number;
   searchRewardItem?: string;

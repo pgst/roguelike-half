@@ -41,6 +41,13 @@ export function createDefaultCombatState() {
     } | null,
     lootText: '',
     lootRolled: false,
+    isOver: false,
+    buffs: {
+      attackBonus: 0,
+      defenseBonus: 0,
+      heroDefenseBonus: 0,
+      followerDefenseBonus: 0,
+    },
   };
 }
 
@@ -88,13 +95,34 @@ export class PlayerCharacter implements Character {
     this.followerCurrent = data?.followerCurrent ?? 7;
     this.spells = data?.spells ? [...data.spells] : [];
     this.miracles = data?.miracles ? [...data.miracles] : [];
-    this.weapons = data?.weapons ? [...data.weapons] : [];
-    this.armors = data?.armors ? [...data.armors] : [];
-    this.shields = data?.shields ? [...data.shields] : [];
-    this.items = data?.items ? [...data.items] : [];
-    this.equippedWeapon = data?.equippedWeapon || null;
-    this.equippedArmor = data?.equippedArmor || null;
-    this.equippedShield = data?.equippedShield || null;
+    const migrateCreated = <T extends { name?: string; isMagic?: boolean; isCreated?: boolean }>(item: T | null): T | null => {
+      if (!item) return null;
+      const cloned = { ...item };
+      if (cloned.name?.startsWith('創られた') && cloned.isCreated === undefined) {
+        cloned.isCreated = true;
+        cloned.isMagic = false;
+      }
+      return cloned;
+    };
+
+    this.weapons = data?.weapons ? data.weapons.map(w => migrateCreated(w)!) : [];
+    this.armors = data?.armors ? data.armors.map(a => migrateCreated(a)!) : [];
+    this.shields = data?.shields ? data.shields.map(s => migrateCreated(s)!) : [];
+    this.items = data?.items
+      ? data.items.map(i => {
+          const item = { ...i };
+          if (item.name?.includes('貫きの石弾') && item.type === 'holywater') {
+            item.type = 'magic_bullet';
+            if ((item.chargesCurrent ?? 5) === 5 && item.value === 12) {
+              item.value = 60;
+            }
+          }
+          return item;
+        })
+      : [];
+    this.equippedWeapon = migrateCreated(data?.equippedWeapon || (data as any)?.weapon || null);
+    this.equippedArmor = migrateCreated(data?.equippedArmor || (data as any)?.armor || null);
+    this.equippedShield = migrateCreated(data?.equippedShield || (data as any)?.shield || null);
     this.hasActiveLantern = data?.hasActiveLantern ?? true;
     this.statusEffects = data?.statusEffects ? [...data.statusEffects] : [];
     this.scenarioProgress = data?.scenarioProgress ? { ...data.scenarioProgress } : {};
@@ -182,11 +210,18 @@ export class PlayerCharacter implements Character {
   }
 
   public equipArmor(armor: Armor | null): void {
+    const oldBonus = this.equippedArmor?.modLife || 0;
+    const newBonus = armor?.modLife || 0;
     this.equippedArmor = armor;
     this.recalculateLife();
+    if (newBonus > oldBonus) {
+      this.lifeCurrent = Math.min(this.lifeMax, this.lifeCurrent + (newBonus - oldBonus));
+    }
   }
 
   public equipShield(shield: Shield | null): void {
+    const oldBonus = this.equippedShield?.modLife || 0;
+    const newBonus = shield?.modLife || 0;
     if (!shield) {
       this.equippedShield = null;
     } else {
@@ -196,6 +231,9 @@ export class PlayerCharacter implements Character {
       this.equippedShield = shield;
     }
     this.recalculateLife();
+    if (newBonus > oldBonus) {
+      this.lifeCurrent = Math.min(this.lifeMax, this.lifeCurrent + (newBonus - oldBonus));
+    }
   }
 
   public static fromJSON(data: any): PlayerCharacter {
@@ -258,12 +296,36 @@ export class GameSession {
     this.isCharacterCreated = data?.isCharacterCreated ?? false;
     this.nextRoomTensDigitOverride = data?.nextRoomTensDigitOverride ?? null;
     this.character = data?.character ? new PlayerCharacter(data.character) : new PlayerCharacter();
-    this.followers = data?.followers || [];
+    this.followers = Array.isArray(data?.followers)
+      ? data.followers.map((f: any) => {
+          if (f && f.name === 'ウォー・ドール') {
+            return {
+              ...f,
+              type: 'golem',
+              attackCount: f.attackCount ?? 2,
+              damageIgnoreCount: f.damageIgnoreCount ?? 1,
+              tags: Array.isArray(f.tags) && f.tags.includes('golem') ? f.tags : ['golem'],
+            };
+          }
+          return f;
+        })
+      : [];
     this.activeEvent = data?.activeEvent || null;
     this.dungeonDepth = data?.dungeonDepth ?? 1;
     this.logs = data?.logs || [];
-    this.diceTray = data?.diceTray || createDefaultDiceTray();
-    this.combatState = data?.combatState || createDefaultCombatState();
+    this.diceTray = {
+      ...createDefaultDiceTray(),
+      ...(data?.diceTray || {}),
+      isRolling: false,
+    };
+    this.combatState = {
+      ...createDefaultCombatState(),
+      ...(data?.combatState || {}),
+      buffs: {
+        ...createDefaultCombatState().buffs,
+        ...(data?.combatState?.buffs || {}),
+      },
+    };
     this.activeScenario = data?.activeScenario || null;
     this.pyramidRunCount = data?.pyramidRunCount ?? 1;
     this.pyramidBossSnapshot = data?.pyramidBossSnapshot || null;
@@ -281,8 +343,14 @@ export class GameSession {
       activeEvent: this.activeEvent,
       dungeonDepth: this.dungeonDepth,
       logs: this.logs,
-      diceTray: this.diceTray,
-      combatState: this.combatState,
+      diceTray: {
+        ...this.diceTray,
+        isRolling: false,
+      },
+      combatState: {
+        ...this.combatState,
+        pendingDeflect: null,
+      },
       activeScenario: this.activeScenario,
       pyramidRunCount: this.pyramidRunCount,
       pyramidBossSnapshot: this.pyramidBossSnapshot,

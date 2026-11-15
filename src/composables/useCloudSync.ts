@@ -19,6 +19,8 @@ const syncError = ref<string | null>(null);
 const cloudSaveMetadata = ref<CloudSaveMetadata | null>(null);
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingSession: GameSession | null = null;
+let isVisibilityListenerBound = false;
 const DEBOUNCE_INTERVAL_MS = 30000; // 30秒の最小同期間隔（課金防止）
 
 export function useCloudSync() {
@@ -26,6 +28,19 @@ export function useCloudSync() {
 
   // Googleアカウントでログイン済みの場合のみクラウド利用可能
   const isCloudAvailable = computed(() => db !== null && isLoggedIn.value && currentUser.value !== null);
+
+  if (!isVisibilityListenerBound && typeof document !== 'undefined') {
+    isVisibilityListenerBound = true;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden' && debounceTimer && pendingSession) {
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
+        const latest = pendingSession;
+        pendingSession = null;
+        void executeSaveToCloud(latest);
+      }
+    });
+  }
 
   // Firestore 用にセーブデータを軽量化（過去全ログをカット）
   function sanitizeForCloud(session: GameSession): any {
@@ -56,11 +71,15 @@ export function useCloudSync() {
       return false;
     }
 
+    pendingSession = session;
+
     if (!immediate) {
-      if (debounceTimer) return true; // すでに待機中の場合はスキップ
+      if (debounceTimer) return true; // 待機中の場合も pendingSession は最新化済み
       debounceTimer = setTimeout(async () => {
         debounceTimer = null;
-        await executeSaveToCloud(session);
+        const target = pendingSession || session;
+        pendingSession = null;
+        await executeSaveToCloud(target);
       }, DEBOUNCE_INTERVAL_MS);
       return true;
     } else {
@@ -68,6 +87,7 @@ export function useCloudSync() {
         clearTimeout(debounceTimer);
         debounceTimer = null;
       }
+      pendingSession = null;
       return await executeSaveToCloud(session);
     }
   }

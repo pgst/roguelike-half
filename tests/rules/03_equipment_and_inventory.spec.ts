@@ -463,4 +463,58 @@ test.describe("基本ルール ver.5.1: 装備品・所持品・食料・暗闇 
 
     await closeAdventureSheet(page);
   });
+
+  test("【Rule 19/44】購入した魔法装備は冒険終了後も保持され、武具創造の生成品のみが消滅する", async ({
+    page,
+  }) => {
+    await selectScenarioInUI(page, "魔将アラザスの迷宮");
+
+    await page.fill("#char-name", "魔法武具検証者");
+    await page.locator(".archetype-card").nth(0).click({ force: true }); // 魔術型
+    await page
+      .locator('button:has-text("キャラクターの命運を紡ぎ出す")')
+      .click({ force: true });
+    await page.waitForSelector(".levelup-card", {
+      state: "visible",
+      timeout: 5000,
+    });
+
+    // 金貨を100Gにし、魔法の片手武器（25G）を購入し、さらに武具創造で「創られた片手武器」を生成
+    await page.evaluate(() => {
+      const state = (window as any).__GAME_STATE__;
+      if (state) {
+        state.character.value.gold = 100;
+      }
+    });
+
+    const buyMagicWeaponBtn = page
+      .locator('.shop-column span:has-text("魔法の片手武器") + button')
+      .first();
+    await buyMagicWeaponBtn.click();
+
+    await page.evaluate(() => {
+      const state = (window as any).__GAME_STATE__;
+      if (state) {
+        state.castCreateWeaponSpell("weapon", "oneHanded");
+        const created = state.character.value.weapons.find((w: any) =>
+          w.name.startsWith("創られた"),
+        );
+        // 冒険終了時の後処理を実行
+        state.restoreStatsAfterAdventure();
+      }
+    });
+
+    const weapons = await page.evaluate(() => {
+      const state = (window as any).__GAME_STATE__;
+      return state.character.value.weapons.map((w: any) => ({
+        name: w.name,
+        isMagic: w.isMagic,
+        isCreated: w.isCreated,
+      }));
+    });
+
+    // 購入した「魔法の片手武器」は残っており、「創られた片手武器」は消滅していること
+    expect(weapons.some((w: any) => w.name === "魔法の片手武器")).toBe(true);
+    expect(weapons.some((w: any) => w.name.startsWith("創られた"))).toBe(false);
+  });
 });

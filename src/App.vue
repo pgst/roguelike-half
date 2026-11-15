@@ -17,6 +17,7 @@ import DungeonExplorer from "./components/DungeonExplorer.vue";
 import CombatSimulator from "./components/CombatSimulator.vue";
 import MiniStatusHud from "./components/MiniStatusHud.vue";
 import MessageWindow from "./components/MessageWindow.vue";
+import ConfirmModal from "./components/ConfirmModal.vue";
 
 const {
   currentScreen,
@@ -392,6 +393,7 @@ function startAdventure() {
 </script>
 
 <template>
+  <ConfirmModal />
   <MiniStatusHud
     v-if="currentScreen !== 'creator' && currentScreen !== 'scenario_select'"
   />

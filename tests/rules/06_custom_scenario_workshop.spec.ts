@@ -563,6 +563,10 @@ test.describe('シナリオエディタ & 拡張機能 (中間イベント・探
     const resetBtn = targetCard.locator('.btn-reset-progress');
     await expect(resetBtn).toBeVisible();
     await resetBtn.click();
+    const confirmModalBtn = page.getByTestId('confirm-modal-ok');
+    if (await confirmModalBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false)) {
+      await confirmModalBtn.click();
+    }
     await page.waitForTimeout(500);
 
     // リセット後は進捗バッジが非表示になることを検証

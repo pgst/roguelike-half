@@ -94,4 +94,34 @@ describe('GameSession Serialization', () => {
     expect(loadedSession.dungeonDepth).toBe(3);
     expect(loadedSession.seed).toBe(session.seed);
   });
+
+  it('should migrate legacy created weapons and normalize diceTray.isRolling on deserialize', () => {
+    const session = new GameSession({
+      character: {
+        name: 'Mage Hero',
+        weapons: [
+          { name: '創られた片手武器', type: 'one-handed', modAttack: 0, attribute: 'slash', goldCost: 5, isMagic: true, description: '' },
+          { name: '魔法の片手武器', type: 'one-handed', modAttack: 0, attribute: 'slash', goldCost: 25, isMagic: true, description: '' },
+        ],
+        items: [
+          { id: '1', name: '貫きの石弾 (5個)', type: 'holywater', goldCost: 15, value: 12, chargesCurrent: 5, chargesMax: 5, description: '' },
+        ],
+      },
+      followers: [
+        { id: 'f1', name: 'ウォー・ドール', type: 'soldier', isCombatant: true, skill: 1, lifeMax: 1, lifeCurrent: 1, weaponAttribute: 'slash', goldCost: 0, description: '' },
+      ],
+      diceTray: { isRolling: true, d1: 4, d2: 0, sides: 6, resultText: '', isCritical: false, isFumble: false },
+    });
+
+    expect(session.character.weapons[0].isCreated).toBe(true);
+    expect(session.character.weapons[0].isMagic).toBe(false);
+    expect(session.character.weapons[1].isCreated).toBeUndefined();
+    expect(session.character.weapons[1].isMagic).toBe(true);
+    expect(session.character.items[0].type).toBe('magic_bullet');
+    expect(session.character.items[0].value).toBe(60);
+    expect(session.followers[0].type).toBe('golem');
+    expect(session.followers[0].attackCount).toBe(2);
+    expect(session.followers[0].damageIgnoreCount).toBe(1);
+    expect(session.diceTray.isRolling).toBe(false);
+  });
 });

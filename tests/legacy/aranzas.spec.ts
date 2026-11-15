@@ -1,5 +1,5 @@
 import { test, expect, type Locator } from '@playwright/test';
-import { safeClick, disableAnimations, selectScenarioInUI, checkCannotAttack } from './helpers/test-utils';
+import { safeClick, disableAnimations, selectScenarioInUI, checkCannotAttack } from '../helpers/test-utils';
 
 async function isElementEnabled(locator: Locator): Promise<boolean> {
   try {
