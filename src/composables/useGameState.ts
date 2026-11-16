@@ -683,16 +683,89 @@ function loadSession(): boolean {
   return false;
 }
 
+const SAVED_CHARACTER_KEY = "roguelike_half_saved_character";
+
+function saveCharacterRecord() {
+  if (typeof localStorage === "undefined") return;
+  if (
+    !isCharacterCreated.value ||
+    !character.value?.name ||
+    currentScreen.value === "gameover"
+  ) {
+    return;
+  }
+  try {
+    const serializedChar =
+      typeof (character.value as any).toJSON === "function"
+        ? (character.value as any).toJSON()
+        : JSON.parse(JSON.stringify(character.value));
+    const livingFollowers = Array.isArray(followers.value)
+      ? followers.value
+          .filter((f) => f.lifeCurrent > 0)
+          .map((f) => JSON.parse(JSON.stringify(f)))
+      : [];
+    localStorage.setItem(
+      SAVED_CHARACTER_KEY,
+      JSON.stringify({
+        version: 1,
+        character: serializedChar,
+        followers: livingFollowers,
+        savedAt: Date.now(),
+      }),
+    );
+  } catch (e) {
+    console.warn("[useGameState] Failed to save character record:", e);
+  }
+}
+
+function loadCharacterRecord(): boolean {
+  if (typeof localStorage === "undefined") return false;
+  try {
+    const raw = localStorage.getItem(SAVED_CHARACTER_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data?.character?.name) return false;
+    const restoredChar = PlayerCharacter.fromJSON(data.character);
+    if (!restoredChar.name) return false;
+    const restoredFollowers = Array.isArray(data.followers)
+      ? data.followers.filter((f: any) => f && f.lifeCurrent > 0)
+      : [];
+    character.value = restoredChar;
+    followers.value = restoredFollowers;
+    isCharacterCreated.value = true;
+    return true;
+  } catch (e) {
+    console.warn("[useGameState] Failed to load character record:", e);
+    return false;
+  }
+}
+
+function clearSavedCharacter() {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.removeItem(SAVED_CHARACTER_KEY);
+  } catch (e) {
+    console.warn("[useGameState] Failed to clear character record:", e);
+  }
+}
+
 function clearSavedSession() {
   GameSession.clearLocalStorage();
 }
 
 function resetSessionForNewCharacter() {
   clearSavedSession();
+  clearSavedCharacter();
   activeSession.value = new GameSession();
   activeSession.value.currentScreen = "creator";
   activeSession.value.isCharacterCreated = false;
   activeSession.value.character.name = "";
+  try {
+    const { saveToCloud } = useCloudSync();
+    saveToCloud(activeSession.value, false);
+  } catch (e) {
+    // Offline fallback silent
+  }
 }
 
 function hasSavedSession(): boolean {
@@ -723,7 +796,16 @@ function hasSavedSession(): boolean {
 
 // Watch screen transitions for gameover/success cleanup, and watch key gameplay state scalars for O(1) immediate autosave
 watch(currentScreen, (screen) => {
-  if (screen === "gameover" || screen === "success") {
+  if (screen === "gameover") {
+    clearSavedSession();
+    clearSavedCharacter();
+    try {
+      const { saveToCloud } = useCloudSync();
+      saveToCloud(activeSession.value, true);
+    } catch (e) {
+      // Offline fallback silent
+    }
+  } else if (screen === "success") {
     clearSavedSession();
   } else {
     saveSession();
@@ -771,6 +853,7 @@ watch(
       currentScreen.value !== "success"
     ) {
       saveSession();
+      saveCharacterRecord();
     }
   },
 );
@@ -2085,6 +2168,7 @@ function initNewCharacter(
   );
   triggerLevelUp();
   saveSession();
+  saveCharacterRecord();
 }
 
 function transitionTo(
@@ -2165,12 +2249,28 @@ function transitionToSuccess() {
     };
   }
 
-  transitionTo("success");
   try {
     if (activeScenario.value) {
       const { registerClearRecord } = useHallOfFame();
       registerClearRecord(character.value, activeScenario.value);
     }
+  } catch (e) {
+    // Offline silent
+  }
+
+  // クリア確定時に冒険後回復・創造武具消去・クリア報酬(+1 EXP / +1 Lv)を一本化して適用
+  restoreStatsAfterAdventure();
+  dungeonDepth.value = 0;
+  character.value.exp += 1;
+  character.value.level += 1;
+  addLog(
+    `🎉 ダンジョンクリア報酬！ 経験値 +1。新しいレベルは ${character.value.level} です。`,
+    "success",
+  );
+  saveCharacterRecord();
+
+  transitionTo("success");
+  try {
     const { saveToCloud } = useCloudSync();
     saveToCloud(activeSession.value, true);
   } catch (e) {
@@ -2260,6 +2360,7 @@ function retrySession() {
   character.value.lifeCurrent = character.value.lifeMax;
 
   saveSession();
+  saveCharacterRecord();
   transitionTo("levelup");
 }
 
@@ -2406,6 +2507,9 @@ export function useGameState() {
     saveSession,
     loadSession,
     clearSavedSession,
+    saveCharacterRecord,
+    loadCharacterRecord,
+    clearSavedCharacter,
     resetSessionForNewCharacter,
     hasSavedSession,
 
@@ -2430,5 +2534,7 @@ if (typeof window !== "undefined") {
     restoreStatsAfterAdventure,
     saveSession,
     loadSession,
+    transitionToSuccess,
+    triggerGameOver,
   };
 }

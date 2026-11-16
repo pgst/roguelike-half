@@ -273,3 +273,114 @@ test.describe('基本ルール ver.5.1: キャラクター作成・成長・チ�
   });
 
 });
+
+test.describe('クリア後キャラクター永続化とリロード復元の検証', () => {
+  test.beforeEach(async ({ page }) => {
+    page.on('dialog', dialog => dialog.accept());
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.evaluate(() => localStorage.clear());
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+  });
+
+  test('【追加要件】クリア後のキャラクター記録永続化・リロード復元・新規作成破棄・死亡削除と再挑戦の検証', async ({ page }) => {
+    // 1. キャラクター作成 -> 黒蛇の洞窟開始
+    await selectScenarioInUI(page, '黒蛇の洞窟');
+    await page.fill('#char-name', 'クリア後保存勇者');
+    await page.locator('.archetype-card').nth(2).click({ force: true }); // 筋力型
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+
+    // 所持金を少し使い、冒険開始
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // ダメージを受けた状態＆クリア確定 (transitionToSuccess)
+    await page.evaluate(() => {
+      const gs = (window as any).__GAME_STATE__;
+      gs.character.value.lifeCurrent = 2;
+      gs.character.value.gold = 16;
+      gs.transitionToSuccess();
+    });
+    await page.waitForSelector('.victory-card', { state: 'visible', timeout: 5000 });
+
+    // success画面の時点で、セッションは削除され、独立キャラクター記録には報酬適用済み(Lv.2, HP全回復, 16G)が保存されていること
+    const savedAfterClear = await page.evaluate(() => ({
+      session: localStorage.getItem('roguelike_half_saved_session'),
+      charRaw: localStorage.getItem('roguelike_half_saved_character'),
+    }));
+    expect(savedAfterClear.session).toBeNull();
+    expect(savedAfterClear.charRaw).not.toBeNull();
+    const parsedChar = JSON.parse(savedAfterClear.charRaw!).character;
+    expect(parsedChar.name).toBe('クリア後保存勇者');
+    expect(parsedChar.level).toBe(11);
+    expect(parsedChar.exp).toBe(11);
+    expect(parsedChar.gold).toBe(16);
+    expect(parsedChar.lifeCurrent).toBe(parsedChar.lifeMax);
+
+    // 2. success画面のままリロード（トップへ戻る／タブを閉じる相当）
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+
+    // トップ画面の冒険者欄にクリア後のキャラクター（Lv.11）が表示されていること
+    const charCard = page.locator('.current-character-card');
+    await expect(charCard).toContainText('クリア後保存勇者');
+    await expect(charCard).toContainText('Lv.11');
+
+    // 3. 「新規作成」ボタンをキャンセルした場合はキャラクター記録が消えないこと
+    await charCard.locator('button:has-text("新規作成")').click({ force: true });
+    await expect(page.getByTestId('confirm-modal')).toBeVisible();
+    await page.getByTestId('confirm-modal-cancel').click({ force: true });
+    await expect(charCard).toContainText('クリア後保存勇者');
+    expect(await page.evaluate(() => localStorage.getItem('roguelike_half_saved_character'))).not.toBeNull();
+
+    // 4. そのまま別シナリオ（「魔将アラザスの迷宮」）を新規作成フローなしで開始できること
+    await page.locator('.scenario-card').filter({ hasText: '魔将アラザスの迷宮' }).first().click({ force: true });
+    await page.locator('.scenario-detail-panel button:has-text("このシナリオに挑む")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+    await expect(page.locator('.exp-pool')).toContainText('11');
+
+    // 冒険開始 -> ゲームオーバー発生でキャラクター記録も削除されること
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+    await page.evaluate(() => {
+      const gs = (window as any).__GAME_STATE__;
+      gs.character.value.lifeCurrent = 0;
+      gs.triggerGameOver();
+    });
+    await page.waitForSelector('.gameover-card', { state: 'visible', timeout: 5000 });
+
+    const savedAfterDeath = await page.evaluate(() => ({
+      session: localStorage.getItem('roguelike_half_saved_session'),
+      charRaw: localStorage.getItem('roguelike_half_saved_character'),
+    }));
+    expect(savedAfterDeath.session).toBeNull();
+    expect(savedAfterDeath.charRaw).toBeNull();
+
+    // 5. ゲームオーバー画面から Rule 41 再挑戦を実行すると、レベルを引き継いで復帰しキャラクター記録も再保存されること
+    await page.locator('.btn-retry').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+    const savedAfterRetry = await page.evaluate(() => localStorage.getItem('roguelike_half_saved_character'));
+    expect(savedAfterRetry).not.toBeNull();
+    expect(JSON.parse(savedAfterRetry!).character.level).toBe(11);
+
+    // 6. 旧セーブデータ互換: キャラクター記録を削除して旧セッションのみ残した状態でリロードしても復元・マイグレーションされること
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+    await page.evaluate(() => {
+      localStorage.removeItem('roguelike_half_saved_character');
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await disableAnimations(page);
+    await expect(page.locator('.current-character-card')).toContainText('クリア後保存勇者');
+    expect(await page.evaluate(() => localStorage.getItem('roguelike_half_saved_character'))).not.toBeNull();
+
+    // 7. 「新規作成」を確定するとキャラクター記録もセッションも削除されること
+    await charCard.locator('button:has-text("新規作成")').click({ force: true });
+    await page.getByTestId('confirm-modal-ok').click({ force: true });
+    await page.waitForSelector('#char-name', { state: 'visible', timeout: 5000 });
+    expect(await page.evaluate(() => localStorage.getItem('roguelike_half_saved_character'))).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem('roguelike_half_saved_session'))).toBeNull();
+  });
+
+});

@@ -22,6 +22,8 @@ const {
   hasSavedSession, 
   loadSession, 
   clearSavedSession,
+  saveCharacterRecord,
+  loadCharacterRecord,
   restoreStatsAfterAdventure,
   skipAllMessages,
   resetSessionForNewCharacter,
@@ -146,11 +148,17 @@ onMounted(async () => {
           character.value = saved.character;
           followers.value = (saved.followers || []).filter(f => f.lifeCurrent > 0);
           isCharacterCreated.value = true;
+          saveCharacterRecord(); // 旧セーブデータからの自動マイグレーション
         }
       }
     } catch (e) {
       console.error('Failed to parse saved session metadata:', e);
     }
+  }
+
+  // 進行中セッションがない場合（クリア後や別シナリオ選択前など）でも独立したキャラクター記録から復元
+  if (!isCharacterCreated.value) {
+    loadCharacterRecord();
   }
 });
 

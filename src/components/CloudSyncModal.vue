@@ -10,7 +10,7 @@ const emit = defineEmits<{
 
 const { isAnonymous, isLoggedIn, userDisplayName, userPhotoURL, isLinking, signInWithGoogle, logout } = useAuth();
 const { syncStatus, syncError, cloudSaveMetadata, saveToCloud, checkCloudSave, loadFromCloud } = useCloudSync();
-const { activeSession, saveSession } = useGameState();
+const { activeSession, saveSession, saveCharacterRecord, clearSavedCharacter } = useGameState();
 
 const avatarLoadError = ref(false);
 watch(userPhotoURL, () => {
@@ -108,10 +108,36 @@ async function handleRestoreFromCloud() {
     return;
   }
   message.value = null;
-  const restored = await loadFromCloud();
-  if (restored) {
+  const cloudResult = await loadFromCloud();
+  if (cloudResult) {
+    const { session: restored, hasCharacterRecordField, characterRecord } = cloudResult;
+    if (restored.currentScreen === 'gameover') {
+      restored.currentScreen = 'scenario_select';
+      restored.activeScenario = null;
+      restored.isCharacterCreated = false;
+    } else if (restored.currentScreen === 'success') {
+      restored.currentScreen = 'scenario_select';
+      restored.activeScenario = null;
+    }
+
+    if (hasCharacterRecordField) {
+      if (characterRecord === null) {
+        clearSavedCharacter();
+        restored.isCharacterCreated = false;
+        restored.character.name = '';
+        restored.activeScenario = null;
+        restored.currentScreen = 'scenario_select';
+      }
+    }
+
     activeSession.value = restored;
     saveSession();
+
+    // 新形式(characterRecordフィールドあり)かつ有効な記録がある場合のみローカル記録を更新
+    // 旧形式(!hasCharacterRecordField)ではローカルのキャラクター記録を消さず対象外として保持
+    if (hasCharacterRecordField && characterRecord && characterRecord.character?.name) {
+      saveCharacterRecord();
+    }
     hasConflict.value = false;
     message.value = { text: '🚪 クラウドから冒険データを正常に復元しました！', type: 'success' };
     setTimeout(() => {

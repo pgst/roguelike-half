@@ -36,7 +36,6 @@ const {
   checkpointFollowerMax,
   checkpointSpells,
   checkpointMiracles,
-  restoreStatsAfterAdventure,
   buyFollower,
   replaceArmorWithConfirm,
   addLog,
@@ -339,16 +338,6 @@ function proceedToNextAdventure() {
     triggerGameOver,
   };
   runScenarioHook(activeScenario.value?.id, "onAdventureEnd", context);
-  restoreStatsAfterAdventure();
-  // Clear depth
-  dungeonDepth.value = 0;
-  // Award 1 EXP for victory
-  character.value.exp += 1;
-  character.value.level += 1;
-  addLog(
-    `🎉 ダンジョンクリア報酬！ 経験値 +1。新しいレベルは ${character.value.level} です。`,
-    "success",
-  );
   activeScenario.value = null; // シナリオの選択状態をクリア
   triggerLevelUp(); // 直接レベルアップ/街の市場画面へ遷移
 }

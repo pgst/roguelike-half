@@ -45,6 +45,17 @@ export function useCloudSync() {
   // Firestore 用にセーブデータを軽量化（過去全ログをカット）
   function sanitizeForCloud(session: GameSession): any {
     const serialized = session.toJSON();
+    const isCleared =
+      serialized.currentScreen === 'gameover' ||
+      !serialized.isCharacterCreated ||
+      !serialized.character?.name;
+    const characterRecord = isCleared
+      ? null
+      : {
+          version: 1,
+          character: serialized.character,
+          followers: (serialized.followers || []).filter((f: any) => f && f.lifeCurrent > 0),
+        };
     // 巨大化するログ履歴を除外してドキュメントサイズを数KBに抑える
     return {
       sessionId: serialized.sessionId,
@@ -57,6 +68,7 @@ export function useCloudSync() {
       activeEvent: serialized.activeEvent,
       combatState: serialized.combatState,
       pyramidRunCount: serialized.pyramidRunCount,
+      characterRecord,
       // ログは最新5件のみ保持
       logs: (serialized.logs || []).slice(-5),
       updatedAt: serverTimestamp(),
@@ -160,7 +172,11 @@ export function useCloudSync() {
   }
 
   // クラウドからセーブデータを復元
-  async function loadFromCloud(): Promise<GameSession | null> {
+  async function loadFromCloud(): Promise<{
+    session: GameSession;
+    hasCharacterRecordField: boolean;
+    characterRecord: any;
+  } | null> {
     if (!isCloudAvailable.value || !db || !currentUser.value) return null;
     syncStatus.value = 'syncing';
 
@@ -174,9 +190,14 @@ export function useCloudSync() {
         if (restored.currentScreen !== 'scenario_select' && !restored.activeScenario) {
           restored.currentScreen = 'scenario_select';
         }
+        const hasCharacterRecordField = Object.prototype.hasOwnProperty.call(data, 'characterRecord');
         syncStatus.value = 'saved';
         lastSyncedAt.value = new Date();
-        return restored;
+        return {
+          session: restored,
+          hasCharacterRecordField,
+          characterRecord: hasCharacterRecordField ? data.characterRecord : undefined,
+        };
       }
       syncStatus.value = 'idle';
       return null;
@@ -188,6 +209,14 @@ export function useCloudSync() {
     }
   }
 
+  function cancelPendingCloudSync() {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    pendingSession = null;
+  }
+
   return {
     syncStatus,
     lastSyncedAt,
@@ -195,6 +224,7 @@ export function useCloudSync() {
     cloudSaveMetadata,
     isCloudAvailable,
     saveToCloud,
+    cancelPendingCloudSync,
     checkCloudSave,
     loadFromCloud
   };
