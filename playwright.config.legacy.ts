@@ -6,6 +6,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   timeout: 60000,
   testDir: './tests/legacy',
+  // ピラミッド（『刻の悪魔のピラミッド』）は著作権・TOS遵守のため本番非公開シナリオ（DEV限定）であり、
+  // 公開シナリオを通しで検証するレガシーテストスイートの対象外とする。
+  testIgnore: ['**/pyramid_of_chronodemon.spec.ts'],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
