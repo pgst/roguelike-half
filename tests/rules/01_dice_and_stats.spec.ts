@@ -248,4 +248,36 @@ test.describe('基本ルール ver.5.1: 判定ロール・出目・副能力消�
     await expect(logbook).toContainText('【逃走成立】');
   });
 
+  test('【追加表示修正】罠判定ファンブル（出目1）時にダメージ割り振り後の補正等が-100にならず実際の能力値+修正で表示されること', async ({ page }) => {
+    await selectScenarioInUI(page, '魔将アラザスの迷宮');
+
+    // 器用型（革鎧 modDex=+1, 技量=0）で作成
+    await page.fill('#char-name', '罠ファンブル検証勇者');
+    await page.locator('.archetype-card').nth(3).click({ force: true });
+    await page.locator('button:has-text("キャラクターの命運を紡ぎ出す")').click({ force: true });
+    await page.waitForSelector('.levelup-card', { state: 'visible', timeout: 5000 });
+
+    // 従者（兵士）を1人雇用して、罠ダメージ割り振り選択画面(resolveTrapDamageTarget)を経由させる
+    await page.locator('.recruiter-column > div > div').filter({ hasText: '兵士' }).locator('button:has-text("雇用")').click({ force: true });
+    await page.locator('button:has-text("冒険を開始する")').click({ force: true });
+    await page.waitForSelector('.explorer-card', { state: 'visible', timeout: 5000 });
+
+    // d66 = 32 (毒矢トラップ), 技量判定出目 = 1 (ファンブル)
+    await setupMockRandom(page, 32, [1]);
+    await rollD66AndSkipPerception(page);
+    await page.waitForTimeout(400);
+
+    await clickButtonByText(page, '技量点', 600);
+
+    // 対象選択で主人公を選択
+    const heroTargetBtn = page.locator('.trap-damage-target-select button:has-text("主人公が受ける")');
+    await expect(heroTargetBtn).toBeVisible({ timeout: 5000 });
+    await clickButtonByText(page, '主人公が受ける', 600);
+
+    // 結果テキストで補正等が-100ではなく実際の値(1)で表示されていること
+    const explorerCard = page.locator('.explorer-card');
+    await expect(explorerCard).toContainText('判定ロール: 🎲出目 [ 1 ] + 補正等 [ 1 ] = [ ファンブル失敗 ]');
+    await expect(explorerCard).not.toContainText('-100');
+  });
+
 });

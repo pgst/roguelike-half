@@ -202,6 +202,7 @@ function createDefaultCombatState() {
       target: number;
       roll: number;
       total: number;
+      bonusTotal?: number;
       chooseCount?: number;
       chosenIds?: string[];
     } | null,

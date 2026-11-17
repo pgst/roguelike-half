@@ -643,6 +643,7 @@ export function useDungeon() {
             target,
             roll,
             total,
+            bonusTotal: statVal + modifier,
             chooseCount: countRoll,
             chosenIds: []
           };
@@ -662,7 +663,8 @@ export function useDungeon() {
             stat,
             target,
             roll,
-            total
+            total,
+            bonusTotal: statVal + modifier
           };
           if (autoTrapTargetAllocation.value) {
             autoResolveAllTrapDamage();
@@ -748,7 +750,8 @@ export function useDungeon() {
     if (!combatState.pendingTrapDamage || !activeEvent.value) return;
 
     const pending = combatState.pendingTrapDamage;
-    const { damage, statusEffect, stat, target, roll, total } = pending;
+    const { damage, statusEffect, stat, target, roll, total, bonusTotal } = pending;
+    const displayBonus = bonusTotal ?? (roll === 1 || roll === 6 ? 0 : total - roll);
 
     // Check if it's a multi-choice trap
     if (pending.chooseCount && pending.chooseCount > 1) {
@@ -827,7 +830,7 @@ export function useDungeon() {
       (activeEvent.value as any).isTrapChestFailed = true;
       (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
 判定能力: ${stat.toUpperCase()} (目標値: ${target})
-判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${total - roll} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
+判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${displayBonus} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 罠を発動させてしまい、${resolutionNames.join('、')} がダメージを受けました！
 宝箱はまだ開いていません。もう一度開錠を試みる（再挑戦）か、諦めて先へ進むかを選択できます。${getTrapTensDigitNotice()}`;
@@ -835,7 +838,7 @@ export function useDungeon() {
       (activeEvent.value as any).isResolved = true;
       (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
 判定能力: ${stat.toUpperCase()} (目標値: ${target})
-判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${total - roll} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
+判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${displayBonus} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 罠を発動させてしまい、${resolutionNames.join('、')} がダメージを受けました！${getTrapTensDigitNotice()}`;
     }
