@@ -173,6 +173,7 @@ function createDefaultCombatState() {
       damageIgnoreCount: 0,
     },
     isEscaping: false,
+    enemiesRetreated: false,
     combatType: "melee" as "melee" | "ranged_only",
     isOver: false,
     resultType: null as "victory" | "escaped" | "peaceful" | null,

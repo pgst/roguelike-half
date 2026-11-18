@@ -356,20 +356,25 @@ function closeRangedRound() {
 
     <!-- Active Enemies Row -->
     <div class="enemies-section">
-      <h3 class="section-title">👾 出現したクリーチャー</h3>
+      <h3 class="section-title">
+        {{ isBattleResolved && combatState.enemiesRetreated ? '🏃 逃走したクリーチャー' : '👾 出現したクリーチャー' }}
+      </h3>
       <div class="enemies-grid">
         <div 
           v-for="enemy in combatState.enemies" 
           :key="enemy.id" 
           class="enemy-card"
-          :class="{ 'is-selected-target': (targetEnemy && targetEnemy.id === enemy.id) }"
-          @click="selectedEnemyId = enemy.id"
-          title="クリックで攻撃目標に指定"
+          :class="{
+            'is-selected-target': !isBattleResolved && (targetEnemy && targetEnemy.id === enemy.id),
+            'is-retreated': isBattleResolved && combatState.enemiesRetreated
+          }"
+          @click="!isBattleResolved && (selectedEnemyId = enemy.id)"
+          :title="isBattleResolved ? '' : 'クリックで攻撃目標に指定'"
         >
           <div class="enemy-header">
             <span class="enemy-name">
-              <span v-if="targetEnemy && targetEnemy.id === enemy.id" class="target-indicator">👉 </span>
-              {{ enemy.name }}
+              <span v-if="!isBattleResolved && targetEnemy && targetEnemy.id === enemy.id" class="target-indicator">👉 </span>
+              {{ enemy.name }}<span v-if="isBattleResolved && combatState.enemiesRetreated" class="retreat-badge" data-testid="enemy-retreated-badge">（逃走）</span>
             </span>
             <span class="enemy-level">Lv.{{ enemy.level }}</span>
           </div>
@@ -444,6 +449,9 @@ function closeRangedRound() {
       
       <!-- Victory Screen -->
       <div v-if="combatState.resultType === 'victory'">
+        <p v-if="combatState.enemiesRetreated" class="retreat-victory-notice" data-testid="retreat-victory-notice" style="font-size: 0.92rem; color: #5c4b3d; background: rgba(255, 248, 225, 0.7); border: 1px dashed #b8860b; padding: 8px 12px; border-radius: 4px; margin-bottom: 12px;">
+          🏃 敵の生命力／人数が初期の半分以下になったため、残存していた敵は恐怖して逃走しました！（Rule 38：戦利品は通常どおり獲得できます）
+        </p>
         <div v-if="combatState.getLootAfterVictory && !combatState.lootRolled" style="margin-bottom: 15px;">
           <p style="font-size: 1rem; color: var(--ink-dark); margin-bottom: 5px;">
             敵の遺品や宝箱から戦利品を獲得できます。<br/>
@@ -1209,6 +1217,20 @@ function closeRangedRound() {
   background-color: #388e3c;
   transition: width 0.35s ease, background-color 0.35s ease;
   border-radius: 3px;
+}
+
+.enemy-card.is-retreated {
+  opacity: 0.72;
+  border-style: dashed;
+  background: rgba(225, 218, 205, 0.35);
+}
+
+.retreat-badge {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #8c5a1c;
 }
 
 .enemy-hp-bar.hp-warn {

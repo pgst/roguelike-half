@@ -153,6 +153,11 @@ test.describe('基本ルール ver.5.1: 遭遇・戦闘・逃走・察知・ダ�
     const victoryClaimBtn = page.locator('button:has-text("宝箱を開ける")');
     const claimResultBtn = page.locator('button:has-text("結果を承認")');
     await expect(victoryClaimBtn.or(claimResultBtn)).toBeVisible({ timeout: 5000 });
+
+    // 結果画面で、残存していた敵カードに「（逃走）」が表示され、Rule 38の逃走案内が表示されていること
+    await expect(page.locator('.enemies-section .section-title')).toContainText('逃走したクリーチャー');
+    await expect(page.getByTestId('enemy-retreated-badge')).toContainText('（逃走）');
+    await expect(page.getByTestId('retreat-victory-notice')).toContainText('恐怖して逃走しました');
   });
 
   test('【Rule 42】プレイヤーの【逃走】：戦闘からの離脱判定と逃走成功の検証', async ({ page }) => {

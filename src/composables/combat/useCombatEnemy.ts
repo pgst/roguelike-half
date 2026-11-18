@@ -61,6 +61,7 @@ export function useCombatEnemy(deps: CombatEnemyDependencies) {
     });
 
     if (totalCurrentLife <= totalStartLife / 2) {
+      combatState.enemiesRetreated = true;
       addLog('⚔️ 敵の生命力/人数が初期の半分以下になったため、敵は恐怖して【逃走】しました！', 'success');
       endCombat(true);
     }
