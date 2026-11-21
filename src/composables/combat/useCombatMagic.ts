@@ -17,6 +17,18 @@ export interface CombatMagicDependencies {
   executeEnemyAttacks: () => Promise<void>;
   castCreateWeaponSpell: (category: 'weapon' | 'armor' | 'shield', itemKey: string) => boolean | Promise<boolean> | void;
   resolveDefense?: (attackId: string, defenderId: 'hero' | string, isAllOut?: boolean, skipDeflect?: boolean) => Promise<void>;
+  resolveDefenseHitAfterDeflect?: (pending: any) => Promise<void>;
+  completeDefenseAttack?: (params: {
+    attackId: string;
+    defSuccess: boolean;
+    isHero: boolean;
+    defenderId: string;
+    enemy: Enemy;
+    attack: any;
+    roll: number;
+    total: number;
+  }) => Promise<void>;
+  handleRoundEndEffects?: () => Promise<void>;
 }
 
 export function useCombatMagic(deps: CombatMagicDependencies) {
@@ -614,10 +626,10 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
     if (!combatState.pendingDeflect) return;
     const p = combatState.pendingDeflect;
     combatState.pendingDeflect = null;
-    if (deps.resolveDefense) {
+    if (deps.resolveDefenseHitAfterDeflect) {
+      await deps.resolveDefenseHitAfterDeflect(p);
+    } else if (deps.resolveDefense) {
       await deps.resolveDefense(p.attackId, p.defenderId, p.isAllOut, true);
-    } else if (p.deps?.resolveDefense) {
-      await (p.deps as any).resolveDefense(p.attackId, p.defenderId, p.isAllOut, true);
     }
   }
 
@@ -633,16 +645,30 @@ export function useCombatMagic(deps: CombatMagicDependencies) {
     character.value.subStatCurrent--;
     addLog(`✨ 奇跡【そらし】を発動！ 飛び道具を奇跡の光で弾き、無傷で回避しました！ (残り幸運点: ${character.value.subStatCurrent})`, 'success');
 
-    const attackId = combatState.pendingDeflect.attackId;
+    const pending = combatState.pendingDeflect;
     combatState.pendingDeflect = null;
 
-    const queue = combatState.activeAttacks || [];
-    const idx = queue.findIndex((a: any) => a.id === attackId);
-    if (idx !== -1) {
-      queue.splice(idx, 1);
-    }
-    if (queue.length === 0) {
-      combatState.roundActive = false;
+    if (deps.completeDefenseAttack) {
+      await deps.completeDefenseAttack({
+        attackId: pending.attackId,
+        defSuccess: true,
+        isHero: pending.isHero ?? pending.defenderId === 'hero',
+        defenderId: pending.defenderId,
+        enemy: pending.enemy,
+        attack: pending.attack,
+        roll: pending.roll ?? 0,
+        total: pending.total ?? 0,
+      });
+    } else {
+      const queue = combatState.activeAttacks || [];
+      const idx = queue.findIndex((a: any) => a.id === pending.attackId);
+      if (idx !== -1) {
+        queue.splice(idx, 1);
+        combatState.activeAttacks = queue;
+      }
+      if (queue.length === 0 && deps.handleRoundEndEffects) {
+        await deps.handleRoundEndEffects();
+      }
     }
   }
 

@@ -641,6 +641,7 @@ export const twilightKnightPlugin: ScenarioPlugin = {
       const balloonIndex = character.value.items.findIndex(it => it.name === '囮の風船');
       const follower = followers.value.find(f => f.id === defenderId);
       const isNonCombatant = follower && (
+        follower.isCombatant === false ||
         follower.type === 'porter' ||
         follower.type === 'lantern' ||
         follower.name.includes('荷運び') ||
