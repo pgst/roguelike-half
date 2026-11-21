@@ -148,6 +148,10 @@ function createDefaultCombatState() {
       enemyName: string;
       enemyLevel: number;
       isRanged?: boolean;
+      enemy?: any;
+      attack?: any;
+      roll?: number;
+      total?: number;
     } | null,
     pendingPerception: null as {
       rollValue: number;
@@ -160,6 +164,12 @@ function createDefaultCombatState() {
       attackId: string;
       defenderId: string;
       enemy: any;
+      attack?: any;
+      roll?: number;
+      total?: number;
+      isHero?: boolean;
+      isRangedAttack?: boolean;
+      isAllOut?: boolean;
     } | null,
     hasRangedFired: false,
     playerHasFiredRanged: false,
@@ -1694,8 +1704,11 @@ function discardArmor(armorName: string) {
   if (idx !== -1) {
     const a = character.value.armors[idx];
     character.value.armors.splice(idx, 1);
-    if (character.value.equippedArmor?.name === armorName) {
-      character.value.equippedArmor = null;
+    if (
+      character.value.equippedArmor?.name === armorName &&
+      !character.value.armors.some((item) => item.name === armorName)
+    ) {
+      equipArmor(null);
     }
     addLog(`🎒 背負い袋から防具 [${a.name}] を廃棄しました。`, "info");
   }
@@ -1706,8 +1719,11 @@ function discardShield(shieldName: string) {
   if (idx !== -1) {
     const s = character.value.shields[idx];
     character.value.shields.splice(idx, 1);
-    if (character.value.equippedShield?.name === shieldName) {
-      character.value.equippedShield = null;
+    if (
+      character.value.equippedShield?.name === shieldName &&
+      !character.value.shields.some((item) => item.name === shieldName)
+    ) {
+      equipShield(null);
     }
     addLog(`🎒 背負い袋から盾 [${s.name}] を廃棄しました。`, "info");
   }

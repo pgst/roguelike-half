@@ -900,12 +900,21 @@ export function useCombat() {
 
     if (defSuccess) {
       addLog(`🛡️ 防御成功！ ${defName} は無傷です。(ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${enemy.level})${defBreakdownSuffix}`, 'success');
+      await completeDefenseAttack({
+        attackId,
+        defSuccess: true,
+        isHero,
+        defenderId,
+        enemy,
+        attack,
+        roll,
+        total
+      });
     } else {
       addLog(`💥 防御失敗！ ${defName} が被弾しました。(ロール計: ${roll === 1 ? 'ファンブル' : total} < ${enemy.level})${defBreakdownSuffix}`, 'error');
 
       // 【そらし】の奇跡チェック
       // 敵が飛び道具タイプであるか、または第0ラウンド（遠距離フェーズ）の攻撃であること
-      const isRangedAttack = enemy.isRanged || combatState.round === 0;
       const hasDeflect = character.value.miracles.includes('そらし');
       const canDeflect = !skipDeflect && isRangedAttack && hasDeflect && character.value.subStatCurrent >= 1;
 
@@ -913,97 +922,216 @@ export function useCombat() {
         combatState.pendingDeflect = {
           attackId,
           defenderId,
-          enemy
+          enemy,
+          attack,
+          roll,
+          total,
+          isHero,
+          isRangedAttack,
+          isAllOut
         };
         addLog(`🏹 飛び道具の攻撃が直撃！ 奇跡【そらし】を割り込んで行使できます。`, 'error');
         return;
       }
 
-      // Check if War Doll ignores damage
-      if (isHero && combatState.buffs.damageIgnoreCount > 0) {
-        combatState.buffs.damageIgnoreCount--;
-        addLog('✨ ウォー・ドールの身代わり魔術により、生命力へのダメージを無視しました！', 'success');
-      } else {
-        if (isHero) {
-          const amulet = character.value.items.find(i => i.id === 'substitute_amulet' && i.charges !== undefined && i.charges > 0);
-          const isStrikeAttack = enemy.weaponAttribute === 'strike' ||
-                                 enemy.name.includes('ゴーレム') ||
-                                 enemy.name.includes('ヘラクレオス') ||
-                                 enemy.name.includes('スフィンクス') ||
-                                 enemy.name.includes('骸骨');
-          if (amulet && isStrikeAttack && amulet.charges !== undefined) {
-            amulet.charges--;
-            addLog(`🛡️ 『身代わりのアミュレット』が身代わりになり、打撃ダメージを無効化しました！ (残り使用可能回数: ${amulet.charges}回)`, 'success');
-            if (amulet.charges <= 0) {
-              character.value.items = character.value.items.filter(i => i !== amulet);
-              addLog('💥 『身代わりのアミュレット』は使い果たされて崩れ落ちました。', 'error');
-            }
-          } else {
-            character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
-            addLog(`主人公の生命力残り: ${character.value.lifeCurrent}`, 'damage');
-            if (character.value.lifeCurrent <= 0) {
-              handleDeath();
-              return;
-            }
-          }
-        } else {
-          // Rule 40: ウォー・ドールは1回の冒険に1度だけダメージを無視する
-          const hitFollower = followers.value.find(fol => fol.id === defenderId);
-          if (hitFollower && (hitFollower.damageIgnoreCount ?? 0) > 0) {
-            hitFollower.damageIgnoreCount!--;
-            addLog(`✨ ${hitFollower.name} の魔術的装甲により、この冒険で1回だけダメージを無視しました！(残り無視回数: ${hitFollower.damageIgnoreCount}回)`, 'success');
-          } else {
-            // Check if Strength cover skill can be triggered (Rule 22)
-            const canCover = character.value.subStatType === 'strength' &&
-                              character.value.subStatCurrent >= 1 &&
-                              !combatState.hasCoveredInRound;
-
-            if (canCover) {
-              combatState.pendingCover = {
-                attackId,
-                followerId: defenderId,
-                followerName: defName,
-                enemyName: enemy.name,
-                enemyLevel: enemy.level,
-                isRanged: isRangedAttack
-              };
-              addLog(`🛡️ 従者 ${defName} が被弾！ 主人公は「かばう」を使用できます。`, 'error');
-              return;
-            } else {
-              // Followers have only 1 HP and immediately die (Rule 33)
-              const fIdx = followers.value.findIndex(fol => fol.id === defenderId);
-              if (fIdx !== -1) {
-                addLog(`💀 従者 ${followers.value[fIdx].name} は致命傷を受け、息絶えました...`, 'error');
-                followers.value.splice(fIdx, 1);
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Remove from queue
-    queue.splice(idx, 1);
-    (combatState as any).activeAttacks = queue;
-
-    if (!defSuccess) {
-      await runScenarioHook(
-        activeScenario.value?.id,
-        'onResolveDefenseAttack',
-        context,
+      await applyFailedDefenseHit({
+        attackId,
+        defenderId,
+        defName,
         enemy,
         attack,
-        defSuccess,
         roll,
         total,
         isHero,
-        defenderId
-      );
+        isRangedAttack
+      });
+    }
+  }
+
+  /**
+   * Consume one resolved attack from the queue, invoke scenario hit hooks,
+   * clean up fatally wounded followers afterwards, and trigger round-end effects when empty.
+   */
+  async function completeDefenseAttack(params: {
+    attackId: string;
+    defSuccess: boolean;
+    isHero: boolean;
+    defenderId: string;
+    enemy: Enemy;
+    attack: any;
+    roll: number;
+    total: number;
+  }) {
+    const { attackId, defSuccess, isHero, defenderId, enemy, attack, roll, total } = params;
+    const queue = (combatState as any).activeAttacks || [];
+    const idx = queue.findIndex((a: any) => a.id === attackId);
+    if (idx !== -1) {
+      queue.splice(idx, 1);
+      (combatState as any).activeAttacks = queue;
+    }
+
+    if (!defSuccess) {
+      if (enemy && attack) {
+        await runScenarioHook(
+          activeScenario.value?.id,
+          'onResolveDefenseAttack',
+          context,
+          enemy,
+          attack,
+          defSuccess,
+          roll,
+          total,
+          isHero,
+          defenderId
+        );
+      }
+
+      // Remove fatally wounded follower after scenario hook so substitute effects (e.g. 囮の風船) can intercept
+      if (!isHero) {
+        const fIdx = followers.value.findIndex(fol => fol.id === defenderId);
+        if (fIdx !== -1 && followers.value[fIdx].lifeCurrent <= 0) {
+          addLog(`💀 従者 ${followers.value[fIdx].name} は致命傷を受け、息絶えました...`, 'error');
+          followers.value.splice(fIdx, 1);
+        }
+      }
     }
 
     if (queue.length === 0) {
       await handleRoundEndEffects();
     }
+  }
+
+  /**
+   * Apply hit damage, substitute/cover checks, and post-defense resolution after deflect check is passed or skipped.
+   */
+  async function applyFailedDefenseHit(params: {
+    attackId: string;
+    defenderId: string;
+    defName: string;
+    enemy: Enemy;
+    attack: any;
+    roll: number;
+    total: number;
+    isHero: boolean;
+    isRangedAttack: boolean;
+  }) {
+    const { attackId, defenderId, defName, enemy, attack, roll, total, isHero, isRangedAttack } = params;
+
+    // Check if War Doll ignores damage
+    if (isHero && combatState.buffs.damageIgnoreCount > 0) {
+      combatState.buffs.damageIgnoreCount--;
+      addLog('✨ ウォー・ドールの身代わり魔術により、生命力へのダメージを無視しました！', 'success');
+    } else if (isHero) {
+      const amulet = character.value.items.find(i => i.id === 'substitute_amulet' && i.charges !== undefined && i.charges > 0);
+      const isStrikeAttack = enemy.weaponAttribute === 'strike' ||
+                             enemy.name.includes('ゴーレム') ||
+                             enemy.name.includes('ヘラクレオス') ||
+                             enemy.name.includes('スフィンクス') ||
+                             enemy.name.includes('骸骨');
+      if (amulet && isStrikeAttack && amulet.charges !== undefined) {
+        amulet.charges--;
+        addLog(`🛡️ 『身代わりのアミュレット』が身代わりになり、打撃ダメージを無効化しました！ (残り使用可能回数: ${amulet.charges}回)`, 'success');
+        if (amulet.charges <= 0) {
+          character.value.items = character.value.items.filter(i => i !== amulet);
+          addLog('💥 『身代わりのアミュレット』は使い果たされて崩れ落ちました。', 'error');
+        }
+      } else {
+        character.value.lifeCurrent = Math.max(0, character.value.lifeCurrent - 1);
+        addLog(`主人公の生命力残り: ${character.value.lifeCurrent}`, 'damage');
+        if (character.value.lifeCurrent <= 0) {
+          handleDeath();
+          return;
+        }
+      }
+    } else {
+      // Rule 40: ウォー・ドールは1回の冒険に1度だけダメージを無視する
+      const hitFollower = followers.value.find(fol => fol.id === defenderId);
+      if (hitFollower && (hitFollower.damageIgnoreCount ?? 0) > 0) {
+        hitFollower.damageIgnoreCount!--;
+        addLog(`✨ ${hitFollower.name} の魔術的装甲により、この冒険で1回だけダメージを無視しました！(残り無視回数: ${hitFollower.damageIgnoreCount}回)`, 'success');
+      } else {
+        // Check if Strength cover skill can be triggered (Rule 22)
+        const canCover = character.value.subStatType === 'strength' &&
+                          character.value.subStatCurrent >= 1 &&
+                          !combatState.hasCoveredInRound;
+
+        if (canCover) {
+          combatState.pendingCover = {
+            attackId,
+            followerId: defenderId,
+            followerName: defName,
+            enemyName: enemy.name,
+            enemyLevel: enemy.level,
+            isRanged: isRangedAttack,
+            enemy,
+            attack,
+            roll,
+            total
+          };
+          addLog(`🛡️ 従者 ${defName} が被弾！ 主人公は「かばう」を使用できます。`, 'error');
+          return;
+        } else {
+          // Followers have only 1 HP and die after hook evaluation unless saved (Rule 33)
+          if (hitFollower) {
+            hitFollower.lifeCurrent = 0;
+          }
+        }
+      }
+    }
+
+    await completeDefenseAttack({
+      attackId,
+      defSuccess: false,
+      isHero,
+      defenderId,
+      enemy,
+      attack,
+      roll,
+      total
+    });
+  }
+
+  /**
+   * Resume a failed defense resolution after the player skips 【そらし】 without re-rolling defense.
+   */
+  async function resolveDefenseHitAfterDeflect(pending: NonNullable<typeof combatState.pendingDeflect>) {
+    const isHero = pending.isHero ?? pending.defenderId === 'hero';
+    let defName = '主人公';
+    if (!isHero) {
+      const f = followers.value.find(fol => fol.id === pending.defenderId);
+      if (!f) {
+        await completeDefenseAttack({
+          attackId: pending.attackId,
+          defSuccess: true,
+          isHero: false,
+          defenderId: pending.defenderId,
+          enemy: pending.enemy,
+          attack: pending.attack,
+          roll: pending.roll ?? 1,
+          total: pending.total ?? -99
+        });
+        return;
+      }
+      defName = f.name;
+    }
+
+    const queue = (combatState as any).activeAttacks || [];
+    const queuedAttack = queue.find((a: any) => a.id === pending.attackId);
+    const enemy = pending.enemy ?? queuedAttack?.source;
+    const attack = pending.attack ?? queuedAttack;
+    const isRangedAttack = pending.isRangedAttack ?? Boolean(enemy?.isRanged || combatState.round === 0);
+
+    await applyFailedDefenseHit({
+      attackId: pending.attackId,
+      defenderId: pending.defenderId,
+      defName,
+      enemy,
+      attack,
+      roll: pending.roll ?? 1,
+      total: pending.total ?? -99,
+      isHero,
+      isRangedAttack
+    });
   }
 
   // Magic and miracles sub-module
@@ -1021,7 +1149,10 @@ export function useCombat() {
     executeFollowerAttacks,
     executeEnemyAttacks,
     castCreateWeaponSpell,
-    resolveDefense
+    resolveDefense,
+    resolveDefenseHitAfterDeflect,
+    completeDefenseAttack,
+    handleRoundEndEffects
   });
 
   const castSpell = magicModule.castSpell;
@@ -1216,7 +1347,9 @@ export function useCombat() {
 
     const { attackId, followerId, followerName, enemyLevel } = pending;
     const queue = (combatState as any).activeAttacks || [];
-    const idx = queue.findIndex((a: any) => a.id === attackId);
+    const queuedAttack = queue.find((a: any) => a.id === attackId);
+    const enemy = pending.enemy ?? queuedAttack?.source;
+    const attack = pending.attack ?? queuedAttack;
 
     let isCoverPrevented = false;
     playerActiveStatusEffectRules.value.forEach(rule => {
@@ -1226,7 +1359,7 @@ export function useCombat() {
       }
     });
     if (isCoverPrevented) {
-      cancelCover();
+      await cancelCover();
       return;
     }
 
@@ -1271,44 +1404,52 @@ export function useCombat() {
       addLog(`🛡️ かばう成功！ 主人公が攻撃を防ぎきり、従者 ${followerName} は無傷です。(ロール計: ${roll === 6 ? 'クリティカル' : total} >= ${enemyLevel})`, 'success');
     } else {
       addLog(`💥 かばう失敗！ 主人公は攻撃を防げませんでした。(ロール計: ${roll === 1 ? 'ファンブル' : total} < ${enemyLevel})`, 'error');
-      // Follower dies
       const fIdx = followers.value.findIndex(fol => fol.id === followerId);
       if (fIdx !== -1) {
-        addLog(`💀 従者 ${followers.value[fIdx].name} は致命傷を受け、息絶えました...`, 'error');
-        followers.value.splice(fIdx, 1);
+        followers.value[fIdx].lifeCurrent = 0;
       }
     }
 
-    // Clear pending state and remove attack from queue
     combatState.pendingCover = null;
-    if (idx !== -1) {
-      queue.splice(idx, 1);
-      (combatState as any).activeAttacks = queue;
-    }
+    await completeDefenseAttack({
+      attackId,
+      defSuccess: coverSuccess,
+      isHero: false,
+      defenderId: followerId,
+      enemy,
+      attack,
+      roll: pending.roll ?? roll,
+      total: pending.total ?? total
+    });
   }
 
-  function cancelCover() {
+  async function cancelCover() {
     const pending = combatState.pendingCover;
     if (!pending) return;
 
     const { attackId, followerId } = pending;
     const queue = (combatState as any).activeAttacks || [];
-    const idx = queue.findIndex((a: any) => a.id === attackId);
+    const queuedAttack = queue.find((a: any) => a.id === attackId);
+    const enemy = pending.enemy ?? queuedAttack?.source;
+    const attack = pending.attack ?? queuedAttack;
 
     addLog(`主人公はかばうのを見送りました。`, 'info');
-    // Follower dies
     const fIdx = followers.value.findIndex(fol => fol.id === followerId);
     if (fIdx !== -1) {
-      addLog(`💀 従者 ${followers.value[fIdx].name} は致命傷を受け、息絶えました...`, 'error');
-      followers.value.splice(fIdx, 1);
+      followers.value[fIdx].lifeCurrent = 0;
     }
 
-    // Clear pending state and remove attack from queue
     combatState.pendingCover = null;
-    if (idx !== -1) {
-      queue.splice(idx, 1);
-      (combatState as any).activeAttacks = queue;
-    }
+    await completeDefenseAttack({
+      attackId,
+      defSuccess: false,
+      isHero: false,
+      defenderId: followerId,
+      enemy,
+      attack,
+      roll: pending.roll ?? 1,
+      total: pending.total ?? -99
+    });
   }
 
   async function useHolyWater(targetEnemyId: string) {
