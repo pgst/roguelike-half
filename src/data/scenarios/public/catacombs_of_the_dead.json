@@ -119,7 +119,7 @@
       "description": "冷たい風と共に、嘆きの亡霊が突風のように襲いかかってきました！",
       "type": "encounter",
       "enemies": [
-        { "name": "墓守のゴースト", "level": 3, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "strike" }
+        { "name": "納骨堂のゴースト", "level": 3, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "strike" }
       ]
     },
     "32": {
@@ -179,8 +179,8 @@
       "description": "生気を失い死霊となった獰猛な番犬たちが牙を剥いて飛びかかってきます！",
       "type": "encounter",
       "enemies": [
-        { "name": "ゾンビハウンド A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "slash" },
-        { "name": "ゾンビハウンド B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "slash" }
+        { "name": "ゾンビドッグ A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "slash" },
+        { "name": "ゾンビドッグ B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1, "weaponAttribute": "slash" }
       ]
     },
     "43": {

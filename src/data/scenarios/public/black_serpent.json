@@ -253,7 +253,7 @@
       "description": "洞窟の湿地帯から、ドロドロの泥をまとった死体が這い出してきました！しぶとい【アンデッド】です。",
       "type": "encounter",
       "enemies": [
-        { "name": "沼ゾンビ", "level": 3, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong", "undead"], "count": 1 }
+        { "name": "湿地のゾンビ", "level": 3, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong", "undead"], "count": 1 }
       ]
     },
     "61": {
@@ -294,7 +294,7 @@
       "description": "オロチを信仰し、侵入者を殺戮する邪蛇教の暗殺者が影から忍び寄ってきました！",
       "type": "encounter",
       "enemies": [
-        { "name": "蛇神教暗殺者", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong"], "count": 1 }
+        { "name": "邪蛇教の暗殺者", "level": 4, "lifeMax": 2, "lifeCurrent": 2, "attackCount": 1, "tags": ["strong"], "count": 1 }
       ]
     },
     "66": {

@@ -181,6 +181,10 @@ export interface Scenario {
   bossEvent: DungeonEvent;
   bossPhases?: BossPhaseConfig[]; // 【追加】 複数回クリア（周回）でボスや物語が変化する設定
   completeClearMessage?: string;   // 【追加】 全フェーズ完全制覇時のエピローグテキスト
+  startMessage?: string;           // シナリオ固有の開始ログメッセージ
+  corridorMessage?: string;        // シナリオ固有の探索通路描写
+  gameOverMessage?: string;        // シナリオ固有のゲームオーバー文
+  victoryMessage?: string;         // シナリオ固有のクリア文
   midpointEvent?: { roomNumber: number; event: DungeonEvent }; // 【追加】 中間地点イベント
   statusEffectRules?: Record<string, StatusEffectRule>; // 【追加】 シナリオ固有の状態異常ルール定義
   runCountMax?: number;

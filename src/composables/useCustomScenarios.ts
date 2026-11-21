@@ -297,6 +297,10 @@ export function useCustomScenarios() {
       bossEvent: safeBossEvent,
       bossPhases: sanitizedBossPhases,
       completeClearMessage: sanitizedCompleteClearMessage,
+      startMessage: data.startMessage ? String(data.startMessage) : undefined,
+      corridorMessage: data.corridorMessage ? String(data.corridorMessage) : undefined,
+      gameOverMessage: data.gameOverMessage ? String(data.gameOverMessage) : undefined,
+      victoryMessage: data.victoryMessage ? String(data.victoryMessage) : undefined,
       midpointEvent: sanitizedMidpoint
     };
 

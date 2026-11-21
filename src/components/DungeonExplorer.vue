@@ -15,6 +15,12 @@ import {
   buildMercenaryResolutionText,
   buildPriestResolutionText,
 } from '../domain/npcEventText';
+import {
+  getCheckStatLabel,
+  getCheckStatPointLabel,
+  getCheckStatIcon,
+  buildSubStatCheckLog,
+} from '../domain/checkStatText';
 
 const {
   character,
@@ -676,7 +682,7 @@ function resolveRestRoom(option: 'life' | 'sub') {
 
 async function handleCustomChoiceClick(choice: any) {
   if (choice.checkStat) {
-    addLog(`🧭 独自判定開始: 【${choice.checkStat.toUpperCase()}】判定ロール (目標値: ${choice.checkTarget || 3})`, 'info');
+    addLog(`🧭 独自判定開始: 【${getCheckStatLabel(choice.checkStat)}】判定ロール (目標値: ${choice.checkTarget || 3})`, 'info');
     const roll = await rollD6(true);
     let modifier = 0;
 
@@ -714,23 +720,22 @@ async function handleCustomChoiceClick(choice: any) {
     let isUsingSubStat = false;
     if (choice.checkStat === 'skill') {
       statVal = character.value.skillCurrent;
+      addLog(`技量点を使用して【技量】判定を行います。(現在値: ${statVal})`, 'info');
     } else if (choice.checkStat === 'life') {
       statVal = Math.max(character.value.lifeCurrent, character.value.skillCurrent);
-      addLog(`現在の生命点を使用して【生命ロール】を行います。(現在値: ${statVal}、消費なし)`, 'success');
+      addLog(`現在の生命点を使用して【生命】判定を行います。(現在値: ${statVal}、消費なし)`, 'success');
     } else {
       const isSubMatch = character.value.subStatType === choice.checkStat;
-      if (isSubMatch && character.value.subStatCurrent > 0) {
-        statVal = character.value.subStatCurrent;
-        isUsingSubStat = true;
-        addLog(`得意な副能力値【${choice.checkStat.toUpperCase()}】を技量点の代わりに使用します。(現在値: ${statVal})`, 'success');
-      } else {
-        statVal = character.value.skillCurrent;
-        if (isSubMatch) {
-          addLog(`副能力値が0点以下のため、技量点を使用します。`, 'error');
-        } else {
-          addLog(`技量点を使用して判定を行います。(現在値: ${statVal})`, 'info');
-        }
-      }
+      statVal = isSubMatch && character.value.subStatCurrent > 0
+        ? character.value.subStatCurrent
+        : character.value.skillCurrent;
+      const selectionLog = buildSubStatCheckLog(choice.checkStat, statVal, {
+        isSubMatch,
+        useSubStat: true,
+        subStatCurrent: character.value.subStatCurrent,
+      });
+      isUsingSubStat = selectionLog.isUsingSubStat;
+      addLog(selectionLog.text, selectionLog.type);
     }
     
     const target = choice.checkTarget || 3;
@@ -1055,14 +1060,14 @@ function resolveSkeletonEvent() {
             </div>
             <div v-else-if="activeEvent.trapStat && character.subStatType === activeEvent.trapStat && character.subStatCurrent > 0" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
               <button @click="resolveTrapCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
-                {{ activeEvent.trapStat === 'strength' ? '💪' : activeEvent.trapStat === 'dexterity' ? '🏹' : activeEvent.trapStat === 'magic' ? '🔮' : '✨' }} 副能力値【{{ activeEvent.trapStat === 'strength' ? '筋力点' : activeEvent.trapStat === 'dexterity' ? '器用点' : activeEvent.trapStat === 'magic' ? '魔術点' : activeEvent.trapStat === 'luck' ? '幸運点' : activeEvent.trapStat }}】で挑戦 (判定値: {{ character.subStatCurrent }} / 1点消費)
+                {{ getCheckStatIcon(activeEvent.trapStat) }} 副能力値【{{ getCheckStatPointLabel(activeEvent.trapStat) }}】で挑戦 (判定値: {{ character.subStatCurrent }} / 1点消費)
               </button>
               <button @click="resolveTrapCheck(false)" class="btn-ink" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
-                🎲 技量点で挑戦 (判定値: {{ character.skillCurrent }} / 消費なし)
+                🎲 {{ getCheckStatLabel(activeEvent.trapStat) }}判定に技量点で挑戦 (判定値: {{ character.skillCurrent }} / 消費なし)
               </button>
             </div>
             <button v-else @click="resolveTrapCheck(true)" class="btn-ink" style="width: 100%; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
-              🎲 判定ロールに挑戦する (技量点判定値: {{ character.skillCurrent }} / 目標値: {{ activeEvent.trapTarget }})
+              🎲 {{ getCheckStatLabel(activeEvent.trapStat || 'dexterity') }}判定ロールに挑戦する ({{ (activeEvent.trapStat || 'dexterity') === 'skill' ? '技量点' : '技量点で代用' }}: {{ character.skillCurrent }} / 目標値: {{ activeEvent.trapTarget }})
             </button>
             <button 
               v-if="activeEvent.lootModifier !== undefined"
@@ -1088,14 +1093,14 @@ function resolveSkeletonEvent() {
           </div>
           <div v-else-if="activeEvent.searchStat && character.subStatType === activeEvent.searchStat && character.subStatCurrent > 0" class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button @click="resolveSearchCheck(true)" class="btn-ink btn-strength" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
-              {{ activeEvent.searchStat === 'strength' ? '💪' : activeEvent.searchStat === 'dexterity' ? '🏹' : activeEvent.searchStat === 'magic' ? '🔮' : '✨' }} 副能力値【{{ activeEvent.searchStat === 'strength' ? '筋力点' : activeEvent.searchStat === 'dexterity' ? '器用点' : activeEvent.searchStat === 'magic' ? '魔術点' : activeEvent.searchStat === 'luck' ? '幸運点' : activeEvent.searchStat }}】で調査 (判定値: {{ character.subStatCurrent }} / 1点消費)
+              {{ getCheckStatIcon(activeEvent.searchStat) }} 副能力値【{{ getCheckStatPointLabel(activeEvent.searchStat) }}】で調査 (判定値: {{ character.subStatCurrent }} / 1点消費)
             </button>
             <button @click="resolveSearchCheck(false)" class="btn-ink" style="flex: 1; min-width: 200px; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
-              🎲 技量点で調査 (判定値: {{ character.skillCurrent }} / 消費なし)
+              🎲 {{ getCheckStatLabel(activeEvent.searchStat) }}の調査に技量点を使用 (判定値: {{ character.skillCurrent }} / 消費なし)
             </button>
           </div>
           <button v-else @click="resolveSearchCheck(true)" class="btn-ink" style="width: 100%; justify-content: center;" :disabled="activeEvent.isResolved || diceTray.isRolling">
-            🎲 調査判定を行う (技量点判定値: {{ character.skillCurrent }} / 目標値: {{ activeEvent.searchTarget || 4 }})
+            🎲 {{ getCheckStatLabel(activeEvent.searchStat || 'dexterity') }}の調査判定を行う ({{ (activeEvent.searchStat || 'dexterity') === 'skill' ? '技量点' : '技量点で代用' }}: {{ character.skillCurrent }} / 目標値: {{ activeEvent.searchTarget || 4 }})
           </button>
         </div>
 
@@ -1534,7 +1539,7 @@ function resolveSkeletonEvent() {
       <template v-else>
         <div class="adventure-text corridor-view" style="text-align: center; padding: 25px 10px;">
           <p style="font-size: 1.05rem; font-family: 'Noto Serif JP', serif; color: var(--ink-dark); margin: 0 0 15px 0;">
-            🏰 暗い石造りの迷宮通路が奥へと続いています。
+            {{ activeScenario?.corridorMessage || '🏰 暗い石造りの迷宮通路が奥へと続いています。' }}
           </p>
           <button 
             @click="exploreNextRoom" 
