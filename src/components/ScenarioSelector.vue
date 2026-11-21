@@ -21,12 +21,11 @@ const {
   isCharacterCreated, 
   hasSavedSession, 
   loadSession, 
-  clearSavedSession,
   saveCharacterRecord,
   loadCharacterRecord,
-  restoreStatsAfterAdventure,
   skipAllMessages,
   resetSessionForNewCharacter,
+  discardSavedAdventure,
   resetScenarioProgress
 } = useGameState();
 const { requestConfirm } = useConfirmModal();
@@ -179,9 +178,8 @@ async function selectScenario(scenario: Scenario) {
       danger: true,
     });
     if (!ok) return;
-    clearSavedSession();
+    discardSavedAdventure();
     hasSaved.value = false;
-    restoreStatsAfterAdventure();
   }
   skipAllMessages();
   activeScenario.value = scenario;

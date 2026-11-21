@@ -311,7 +311,7 @@ export class GameSession {
         })
       : [];
     this.activeEvent = data?.activeEvent || null;
-    this.dungeonDepth = data?.dungeonDepth ?? 1;
+    this.dungeonDepth = data?.dungeonDepth ?? 0;
     this.logs = data?.logs || [];
     this.diceTray = {
       ...createDefaultDiceTray(),

@@ -78,14 +78,17 @@ export function useCloudSync() {
 
   // クラウドへの即時またはデバウンス保存
   async function saveToCloud(session: GameSession, immediate = false): Promise<boolean> {
+    if (immediate) {
+      cancelPendingCloudSync();
+    }
+
     if (!isCloudAvailable.value || !currentUser.value) {
       // 未ログイン（ゲスト）時は正常にローカルのみ維持
       return false;
     }
 
-    pendingSession = session;
-
     if (!immediate) {
+      pendingSession = session;
       if (debounceTimer) return true; // 待機中の場合も pendingSession は最新化済み
       debounceTimer = setTimeout(async () => {
         debounceTimer = null;
@@ -95,11 +98,6 @@ export function useCloudSync() {
       }, DEBOUNCE_INTERVAL_MS);
       return true;
     } else {
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-        debounceTimer = null;
-      }
-      pendingSession = null;
       return await executeSaveToCloud(session);
     }
   }
@@ -145,11 +143,15 @@ export function useCloudSync() {
           updatedDate = new Date(data.clientTimestamp);
         }
 
+        const isActiveDungeonScreen =
+          data.currentScreen === 'explore' ||
+          data.currentScreen === 'combat' ||
+          (data.currentScreen === 'levelup' && (data.pyramidRunCount ?? 1) > 1);
         const hasActiveAdventure = Boolean(
+          data.isCharacterCreated !== false &&
           data.activeScenario &&
           data.activeScenario.title &&
-          data.currentScreen &&
-          data.currentScreen !== 'scenario_select'
+          isActiveDungeonScreen
         );
 
         cloudSaveMetadata.value = {
