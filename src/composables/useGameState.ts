@@ -655,14 +655,22 @@ const pyramidBossSnapshot = computed<any>({
 });
 
 // Session Management & Autosave logic
+function isActiveAdventureScreen(
+  screen: GameSession["currentScreen"],
+  runCount = 1,
+): boolean {
+  return (
+    screen === "explore" ||
+    screen === "combat" ||
+    (screen === "levelup" && runCount > 1)
+  );
+}
+
 function saveSession(immediateCloud = false) {
   if (typeof localStorage === "undefined") return;
   if (
     isCharacterCreated.value &&
-    currentScreen.value !== "scenario_select" &&
-    currentScreen.value !== "creator" &&
-    currentScreen.value !== "gameover" &&
-    currentScreen.value !== "success" &&
+    isActiveAdventureScreen(currentScreen.value, pyramidRunCount.value) &&
     activeScenario.value !== null
   ) {
     activeSession.value.saveToLocalStorage();
@@ -773,11 +781,41 @@ function resetSessionForNewCharacter() {
   activeSession.value.isCharacterCreated = false;
   activeSession.value.character.name = "";
   try {
-    const { saveToCloud } = useCloudSync();
-    saveToCloud(activeSession.value, false);
+    const { cancelPendingCloudSync, saveToCloud } = useCloudSync();
+    cancelPendingCloudSync();
+    void saveToCloud(activeSession.value, true);
   } catch (e) {
     // Offline fallback silent
   }
+}
+
+function discardSavedAdventure() {
+  clearSavedSession();
+  restoreStatsAfterAdventure();
+  activeScenario.value = null;
+  dungeonDepth.value = createDefaultDungeonDepth();
+  pyramidRunCount.value = createDefaultPyramidRunCount();
+  pyramidBossSnapshot.value = createDefaultPyramidBossSnapshot();
+  nextRoomTensDigitOverride.value = createDefaultNextRoomTensDigitOverride();
+  activeEvent.value = createDefaultActiveEvent();
+  resetCombatState();
+  Object.assign(diceTray, createDefaultDiceTray());
+  clearLogs();
+  try {
+    const { cancelPendingCloudSync, saveToCloud } = useCloudSync();
+    cancelPendingCloudSync();
+    void saveToCloud(activeSession.value, true);
+  } catch (e) {
+    // Offline fallback silent
+  }
+}
+
+function returnToScenarioSelect() {
+  activeScenario.value = null;
+  if (pyramidRunCount.value <= 1) {
+    clearSavedSession();
+  }
+  currentScreen.value = "scenario_select";
 }
 
 function hasSavedSession(): boolean {
@@ -788,7 +826,7 @@ function hasSavedSession(): boolean {
       if (
         !data.isCharacterCreated ||
         !data.activeScenario ||
-        data.currentScreen === "scenario_select"
+        !isActiveAdventureScreen(data.currentScreen, data.pyramidRunCount ?? 1)
       )
         return false;
       // 本番環境で「刻の悪魔のピラミッド」のセーブデータがある場合は再開バナーを出さない
@@ -812,8 +850,9 @@ watch(currentScreen, (screen) => {
     clearSavedSession();
     clearSavedCharacter();
     try {
-      const { saveToCloud } = useCloudSync();
-      saveToCloud(activeSession.value, true);
+      const { cancelPendingCloudSync, saveToCloud } = useCloudSync();
+      cancelPendingCloudSync();
+      void saveToCloud(activeSession.value, true);
     } catch (e) {
       // Offline fallback silent
     }
@@ -2529,6 +2568,8 @@ export function useGameState() {
     loadCharacterRecord,
     clearSavedCharacter,
     resetSessionForNewCharacter,
+    discardSavedAdventure,
+    returnToScenarioSelect,
     hasSavedSession,
 
     // Multi-Phase Boss Progression

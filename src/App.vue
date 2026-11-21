@@ -51,6 +51,7 @@ const {
   triggerGameOver,
   retrySession,
   lastClearResult,
+  returnToScenarioSelect,
 } = useGameState();
 
 const ALL_SPELLS = [
@@ -804,7 +805,7 @@ async function startAdventure() {
                 {{ activeScenario.totalRoomsToClear }} 部屋 + 決戦)</span
               >
               <button
-                @click="currentScreen = 'scenario_select'"
+                @click="returnToScenarioSelect"
                 class="btn-ink btn-mini"
                 style="font-size: 0.75rem"
               >
