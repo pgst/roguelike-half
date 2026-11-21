@@ -235,7 +235,7 @@
       "description": "壁からすり抜けて、冷気をまとった幽霊兵士が現れました！武器が効きにくい【アンデッド】です。",
       "type": "encounter",
       "enemies": [
-        { "name": "さまよう亡霊", "level": 4, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["undead"], "count": 1 }
+        { "name": "幽霊兵の亡霊", "level": 4, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["undead"], "count": 1 }
       ]
     },
     "54": {
@@ -255,7 +255,7 @@
       "npcType": "captive"
     },
     "56": {
-      "title": "古代のミイラ男",
+      "title": "古代のミイラ",
       "d66Code": "56",
       "description": "石棺から、乾いた包帯に包まれたミイラが這い出してきました！非常にしぶとい【アンデッド】の強敵です。",
       "type": "encounter",

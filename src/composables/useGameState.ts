@@ -210,6 +210,7 @@ function createDefaultCombatState() {
       damage: number;
       statusEffect?: string;
       stat: string;
+      usedStatLabel?: string;
       target: number;
       roll: number;
       total: number;

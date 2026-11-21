@@ -4,6 +4,10 @@
   "description": "永久凍土の果てにそびえ立つ、全てを凍てつかせる絶対零度の魔塔。荒れ狂う吹雪の罠と氷の魔物の軍勢を突破し、最上階に君臨する氷蓮の魔女王セリアを討て。",
   "recommendedLevel": "適正レベル：12-13",
   "totalRoomsToClear": 8,
+  "startMessage": "🧭 さあ、吹雪舞う氷結の魔塔へと足を踏み入れましょう！ 最上階を目指して。",
+  "corridorMessage": "❄️ 凍てつく氷の回廊が魔塔の上階へと続いています。",
+  "gameOverMessage": "極寒の吹雪と魔物の猛攻に倒れ、生命力が0となりました。凍てつく魔塔の氷壁に骸が残されます。",
+  "victoryMessage": "最上階の氷蓮の魔女王セリアを打ち倒し、氷結の魔塔の秘宝を抱えて生還しました！",
   "d66EventTable": {
     "11": {
       "title": "氷獣の急襲",
@@ -53,9 +57,9 @@
       "description": "氷の鎧を身にまとった骸骨兵が3体、剣を構えて立ち上がりました！冷気を帯びた【アンデッド】です。",
       "type": "encounter",
       "enemies": [
-        { "name": "氷骨剣士 A", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1 },
-        { "name": "氷骨剣士 B", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1 },
-        { "name": "氷骨剣士 C", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1 }
+        { "name": "氷結のスケルトン A", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1 },
+        { "name": "氷結のスケルトン B", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1 },
+        { "name": "氷結のスケルトン C", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak", "undead"], "count": 1 }
       ]
     },
     "21": {
@@ -132,10 +136,10 @@
       "description": "天井の氷柱に擬態していた青い大コウモリ4体が、超音波を放ちながら一斉に襲いかかってきました！",
       "type": "encounter",
       "enemies": [
-        { "name": "氷大コウモリ A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
-        { "name": "氷大コウモリ B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
-        { "name": "氷大コウモリ C", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
-        { "name": "氷大コウモリ D", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+        { "name": "フロスト・バット A", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "フロスト・バット B", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "フロスト・バット C", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "フロスト・バット D", "level": 2, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
       ]
     },
     "35": {
@@ -208,10 +212,10 @@
       "description": "青い皮膚をした氷原ゴブリンの戦士4体が、容赦なく武器を構えて襲いかかってきました！",
       "type": "encounter",
       "enemies": [
-        { "name": "凍土ゴブリン A", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
-        { "name": "凍土ゴブリン B", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
-        { "name": "凍土ゴブリン C", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
-        { "name": "凍土ゴブリン D", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
+        { "name": "氷原ゴブリン A", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "氷原ゴブリン B", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "氷原ゴブリン C", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 },
+        { "name": "氷原ゴブリン D", "level": 3, "lifeMax": 1, "lifeCurrent": 1, "attackCount": 1, "tags": ["weak"], "count": 1 }
       ]
     },
     "51": {

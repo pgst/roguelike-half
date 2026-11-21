@@ -370,7 +370,8 @@ async function startAdventure() {
   character.value.food = 2; // Rule 26 & 31: シナリオ開始ごとに食料は2食にリセット
   transitionToExplore();
   addLog(
-    "🧭 さあ、暗い地下迷宮へと歩みを進めましょう！ 生きて宝を持ち帰るために。",
+    activeScenario.value?.startMessage ||
+      "🧭 さあ、暗い地下迷宮へと歩みを進めましょう！ 生きて宝を持ち帰るために。",
     "success",
   );
   const context = {
@@ -1312,7 +1313,10 @@ async function startAdventure() {
         >
           <h2 class="dead-title">💀 冒険者は息絶えた...</h2>
           <p class="dead-desc">
-            地下の闇に飲まれ、生命力が0となりました。アランツァの冷酷な地底に骸が残されます。
+            {{
+              activeScenario?.gameOverMessage ||
+              "過酷な冒険の果てに力尽き、生命力が0となりました。アランツァの冷酷な地に骸が残されます。"
+            }}
           </p>
 
           <div class="dead-stats">
@@ -1412,7 +1416,10 @@ async function startAdventure() {
           <template v-else>
             <h2 class="victory-title">🏆 迷宮踏破！ 冒険成功！</h2>
             <p class="victory-desc">
-              最深部のボスを打ち倒し、迷宮の生ける宝物を抱えて地上へと生還しました！
+              {{
+                activeScenario?.victoryMessage ||
+                "最深部のボスを打ち倒し、迷宮の生ける宝物を抱えて地上へと生還しました！"
+              }}
             </p>
           </template>
 

@@ -3,6 +3,11 @@ import { useSettings } from './useSettings';
 import type { Enemy } from '../types';
 import { runScenarioHook } from './scenarioPlugins';
 import { generateId, randomInt } from '../domain/random';
+import {
+  getCheckStatLabel,
+  buildSubStatCheckLog,
+  formatCheckResolutionAbilityLine,
+} from '../domain/checkStatText';
 export function useDungeon() {
   const { autoTrapTargetAllocation } = useSettings();
   const { 
@@ -339,7 +344,7 @@ export function useDungeon() {
     const target = activeEvent.value.trapTarget || 4;
     const damage = activeEvent.value.trapDamage !== undefined ? activeEvent.value.trapDamage : 1;
 
-    addLog(`トラップ判定開始: 【${stat.toUpperCase()}】判定ロール (目標値: ${target})`, 'info');
+    addLog(`トラップ判定開始: 【${getCheckStatLabel(stat)}】判定ロール (目標値: ${target})`, 'info');
 
     // Roll d6
     const roll = await rollD6(true);
@@ -379,37 +384,36 @@ export function useDungeon() {
     // Determine stat value
     let statVal = 0;
     let isUsingSubStat = false;
+    let usedStatLabel = '技量点';
 
     if (stat === 'skill') {
       statVal = character.value.skillCurrent;
+      usedStatLabel = '技量点';
+      addLog(`技量点を使用して【技量】判定を行います。(現在値: ${statVal})`, 'info');
     } else if (stat === 'life') {
       if (useSubStat) {
         statVal = character.value.lifeCurrent;
-        addLog(`現在の生命点を使用して【生命ロール】を行います。(現在生命点: ${statVal}、消費なし)`, 'success');
+        usedStatLabel = '生命点';
+        addLog(`現在の生命点を使用して【生命】判定を行います。(現在生命点: ${statVal}、消費なし)`, 'success');
       } else {
         statVal = character.value.skillCurrent;
-        addLog(`技量点で代用して【生命ロール】を行います。(現在技量点: ${statVal})`, 'info');
+        usedStatLabel = '技量点';
+        addLog(`技量点で代用して【生命】判定を行います。(現在技量点: ${statVal})`, 'info');
       }
     } else {
       // Check if sub-stat matches and player chose to use it
       const isSubMatch = character.value.subStatType === stat;
-      if (isSubMatch && useSubStat) {
-        if (character.value.subStatCurrent > 0) {
-          statVal = character.value.subStatCurrent;
-          isUsingSubStat = true;
-          addLog(`得意な副能力値【${stat.toUpperCase()}】を技量点の代わりに使用します。(現在値: ${statVal})`, 'success');
-        } else {
-          statVal = character.value.skillCurrent;
-          addLog(`副能力値が0点以下のため、技量点を使用します。`, 'error');
-        }
-      } else {
-        statVal = character.value.skillCurrent;
-        if (isSubMatch && !useSubStat) {
-          addLog(`副能力値【${stat.toUpperCase()}】を使用せず、技量点を使用して判定を行います。(現在値: ${statVal})`, 'info');
-        } else {
-          addLog(`技量点を使用して判定を行います。(現在値: ${statVal})`, 'info');
-        }
-      }
+      statVal = isSubMatch && useSubStat && character.value.subStatCurrent > 0
+        ? character.value.subStatCurrent
+        : character.value.skillCurrent;
+      const selectionLog = buildSubStatCheckLog(stat, statVal, {
+        isSubMatch,
+        useSubStat,
+        subStatCurrent: character.value.subStatCurrent,
+      });
+      isUsingSubStat = selectionLog.isUsingSubStat;
+      usedStatLabel = selectionLog.usedStatLabel;
+      addLog(selectionLog.text, selectionLog.type);
     }
 
     const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + statVal + modifier;
@@ -421,20 +425,22 @@ export function useDungeon() {
       addLog(`判定終了後、副能力値を1点消費しました。(残り: ${character.value.subStatCurrent}点)`, 'info');
     }
 
+    const abilityLine = formatCheckResolutionAbilityLine(stat, usedStatLabel, target);
+
     if (isSuccess) {
       addLog(`🎉 トラップ判定に成功しました！ (ロール計: ${roll === 6 ? 'クリティカル' : total} >= 目標: ${target})`, 'success');
       if (activeEvent.value) {
         if (activeEvent.value.lootModifier !== undefined) {
           (activeEvent.value as any).isChestUnlocked = true;
           (activeEvent.value as any).resolutionText = `🎉 トラップの解除に成功しました！
-判定能力: ${stat.toUpperCase()} (目標値: ${target})
+${abilityLine}
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 6 ? 'クリティカル成功' : total} ]
 
 罠を作動させることなく、安全に宝箱を開錠しました。宝物を獲得できます！`;
         } else {
           (activeEvent.value as any).isResolved = true;
           (activeEvent.value as any).resolutionText = `🎉 トラップ判定に成功しました！
-判定能力: ${stat.toUpperCase()} (目標値: ${target})
+${abilityLine}
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 6 ? 'クリティカル成功' : total} ]
 
 無事に罠を感知・回避し、無傷で先へ進むことができます！`;
@@ -482,7 +488,7 @@ export function useDungeon() {
         if (activeEvent.value) {
           (activeEvent.value as any).isResolved = true;
           (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
-判定能力: ${stat.toUpperCase()} (目標値: ${target})
+${abilityLine}
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 全体トラップが発動し、主人公と生存しているすべての従者がダメージを受けました。${getTrapTensDigitNotice()}`;
@@ -526,7 +532,7 @@ export function useDungeon() {
         if (activeEvent.value) {
           (activeEvent.value as any).isResolved = true;
           (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
-判定能力: ${stat.toUpperCase()} (目標値: ${target})
+${abilityLine}
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 ランダム選択の罠により、${targetName} がダメージを受けました。${getTrapTensDigitNotice()}`;
@@ -583,7 +589,7 @@ export function useDungeon() {
         if (activeEvent.value) {
           (activeEvent.value as any).isResolved = true;
           (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
-判定能力: ${stat.toUpperCase()} (目標値: ${target})
+${abilityLine}
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 非戦闘員優先の罠により、${targetName} がダメージを受けました。${getTrapTensDigitNotice()}`;
@@ -628,7 +634,7 @@ export function useDungeon() {
           if (activeEvent.value) {
             (activeEvent.value as any).isResolved = true;
             (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
-判定能力: ${stat.toUpperCase()} (目標値: ${target})
+${abilityLine}
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 対象者数（1d3: ${countRoll}人）がパーティメンバー数以上のための全員が対象となり、ダメージを受けました。`;
@@ -640,6 +646,7 @@ export function useDungeon() {
             damage,
             statusEffect: (activeEvent.value as any).statusEffect,
             stat,
+            usedStatLabel,
             target,
             roll,
             total,
@@ -661,6 +668,7 @@ export function useDungeon() {
             damage,
             statusEffect: (activeEvent.value as any).statusEffect,
             stat,
+            usedStatLabel,
             target,
             roll,
             total,
@@ -702,7 +710,7 @@ export function useDungeon() {
             if (activeEvent.value.lootModifier !== undefined) {
               (activeEvent.value as any).isTrapChestFailed = true;
               (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
-判定能力: ${stat.toUpperCase()} (目標値: ${target})
+${abilityLine}
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 罠を発動させてしまい、${damageTaken > 0 ? `生命力に ${damageTaken} 点のダメージを受けました！` : ''}${effectApplied ? `さらに状態異常【${effectApplied}】を受けました！` : ''}${damageTaken === 0 && !effectApplied ? '何も起こりませんでした。' : ''} (残り生命力: ${character.value.lifeCurrent})
@@ -710,7 +718,7 @@ export function useDungeon() {
             } else {
               (activeEvent.value as any).isResolved = true;
               (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
-判定能力: ${stat.toUpperCase()} (目標値: ${target})
+${abilityLine}
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 罠を発動させてしまい、${damageTaken > 0 ? `生命力に ${damageTaken} 点のダメージを受けました！` : ''}${effectApplied ? `さらに状態異常【${effectApplied}】を受けました！` : ''}${damageTaken === 0 && !effectApplied ? '何も起こりませんでした。' : ''} (残り生命力: ${character.value.lifeCurrent})${getTrapTensDigitNotice()}`;
@@ -750,8 +758,9 @@ export function useDungeon() {
     if (!combatState.pendingTrapDamage || !activeEvent.value) return;
 
     const pending = combatState.pendingTrapDamage;
-    const { damage, statusEffect, stat, target, roll, total, bonusTotal } = pending;
+    const { damage, statusEffect, stat, usedStatLabel, target, roll, total, bonusTotal } = pending;
     const displayBonus = bonusTotal ?? (roll === 1 || roll === 6 ? 0 : total - roll);
+    const abilityLine = formatCheckResolutionAbilityLine(stat, usedStatLabel, target);
 
     // Check if it's a multi-choice trap
     if (pending.chooseCount && pending.chooseCount > 1) {
@@ -829,7 +838,7 @@ export function useDungeon() {
     if (activeEvent.value.lootModifier !== undefined) {
       (activeEvent.value as any).isTrapChestFailed = true;
       (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
-判定能力: ${stat.toUpperCase()} (目標値: ${target})
+${abilityLine}
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${displayBonus} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 罠を発動させてしまい、${resolutionNames.join('、')} がダメージを受けました！
@@ -837,7 +846,7 @@ export function useDungeon() {
     } else {
       (activeEvent.value as any).isResolved = true;
       (activeEvent.value as any).resolutionText = `💥 トラップ判定に失敗しました！
-判定能力: ${stat.toUpperCase()} (目標値: ${target})
+${abilityLine}
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${displayBonus} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 罠を発動させてしまい、${resolutionNames.join('、')} がダメージを受けました！${getTrapTensDigitNotice()}`;
@@ -900,7 +909,7 @@ export function useDungeon() {
     const successMsg = activeEvent.value.searchSuccessText || '入念な探索により、隠された報酬を発見した！';
     const failureMsg = activeEvent.value.searchFailureText || '周囲をくまなく探したが、何も見つからなかった。';
 
-    addLog(`🔍 探索判定開始: 【${stat.toUpperCase()}】判定ロール (目標値: ${target})`, 'info');
+    addLog(`🔍 探索判定開始: 【${getCheckStatLabel(stat)}】判定ロール (目標値: ${target})`, 'info');
 
     const roll = await rollD6(true);
     let modifier = 0;
@@ -931,36 +940,35 @@ export function useDungeon() {
     // Determine stat value
     let statVal = 0;
     let isUsingSubStat = false;
+    let usedStatLabel = '技量点';
 
     if (stat === 'skill') {
       statVal = character.value.skillCurrent;
+      usedStatLabel = '技量点';
+      addLog(`技量点を使用して【技量】判定を行います。(現在値: ${statVal})`, 'info');
     } else if (stat === 'life') {
       if (useSubStat) {
         statVal = character.value.lifeCurrent;
-        addLog(`現在の生命点を使用して【生命ロール】を行います。(現在生命点: ${statVal}、消費なし)`, 'success');
+        usedStatLabel = '生命点';
+        addLog(`現在の生命点を使用して【生命】判定を行います。(現在生命点: ${statVal}、消費なし)`, 'success');
       } else {
         statVal = character.value.skillCurrent;
-        addLog(`技量点で代用して【生命ロール】を行います。(現在技量点: ${statVal})`, 'info');
+        usedStatLabel = '技量点';
+        addLog(`技量点で代用して【生命】判定を行います。(現在技量点: ${statVal})`, 'info');
       }
     } else {
       const isSubMatch = character.value.subStatType === stat;
-      if (isSubMatch && useSubStat) {
-        if (character.value.subStatCurrent > 0) {
-          statVal = character.value.subStatCurrent;
-          isUsingSubStat = true;
-          addLog(`得意な副能力値【${stat.toUpperCase()}】を技量点の代わりに使用します。(現在値: ${statVal})`, 'success');
-        } else {
-          statVal = character.value.skillCurrent;
-          addLog(`副能力値が0点以下のため、技量点を使用します。`, 'error');
-        }
-      } else {
-        statVal = character.value.skillCurrent;
-        if (isSubMatch && !useSubStat) {
-          addLog(`副能力値【${stat.toUpperCase()}】を使用せず、技量点を使用して判定を行います。(現在値: ${statVal})`, 'info');
-        } else {
-          addLog(`技量点を使用して判定を行います。(現在値: ${statVal})`, 'info');
-        }
-      }
+      statVal = isSubMatch && useSubStat && character.value.subStatCurrent > 0
+        ? character.value.subStatCurrent
+        : character.value.skillCurrent;
+      const selectionLog = buildSubStatCheckLog(stat, statVal, {
+        isSubMatch,
+        useSubStat,
+        subStatCurrent: character.value.subStatCurrent,
+      });
+      isUsingSubStat = selectionLog.isUsingSubStat;
+      usedStatLabel = selectionLog.usedStatLabel;
+      addLog(selectionLog.text, selectionLog.type);
     }
 
     const total = roll === 6 ? 99 : roll === 1 ? -99 : roll + statVal + modifier;
@@ -972,6 +980,7 @@ export function useDungeon() {
     }
 
     (activeEvent.value as any).isResolved = true;
+    const abilityLine = formatCheckResolutionAbilityLine(stat, usedStatLabel, target);
 
     if (isSuccess) {
       let rewardText = '';
@@ -1020,7 +1029,7 @@ export function useDungeon() {
       addLog(`🎉 探索判定に成功しました！${rewardText ? `(報酬獲得:${rewardText})` : ''} (出目: ${roll})`, 'success');
 
       (activeEvent.value as any).resolutionText = `🎉 探索判定に成功しました！
-判定能力: ${stat.toUpperCase()} (目標値: ${target})
+${abilityLine}
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 6 ? 'クリティカル成功' : total} ]
 
 ${successMsg}
@@ -1029,7 +1038,7 @@ ${rewardText ? `\n【獲得報酬】:${rewardText}` : ''}`;
     } else {
       addLog(`💥 探索判定に失敗しました。(出目: ${roll})`, 'error');
       (activeEvent.value as any).resolutionText = `💥 探索判定に失敗しました。
-判定能力: ${stat.toUpperCase()} (目標値: ${target})
+${abilityLine}
 判定ロール: 🎲出目 [ ${roll} ] + 補正等 [ ${statVal + modifier} ] = [ ${roll === 1 ? 'ファンブル失敗' : total} ]
 
 ${failureMsg}`;
