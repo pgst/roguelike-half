@@ -9,6 +9,12 @@ import type { Weapon, Armor, Shield, GeneralItem } from '../types';
 import MessageWindow from './MessageWindow.vue';
 import FormattedScenarioText from './FormattedScenarioText.vue';
 import { runScenarioHook, type ScenarioPluginContext } from '../composables/scenarioPlugins';
+import {
+  buildBribeCombatEncounter,
+  buildBribePaymentMessages,
+  buildMercenaryResolutionText,
+  buildPriestResolutionText,
+} from '../domain/npcEventText';
 
 const {
   character,
@@ -138,9 +144,10 @@ function payBribeLocal() {
     return;
   }
   character.value.gold -= 5;
-  addLog('ゴブリンの交渉人に金貨5枚のワイロを支払いました。', 'success');
+  const { logText, resolutionText } = buildBribePaymentMessages(activeEvent.value.title);
+  addLog(logText, 'success');
   (activeEvent.value as any).isResolved = true;
-  (activeEvent.value as any).resolutionText = '🪙 ゴブリンの交渉人に金貨5枚のワイロを支払い、穏便に道を通して（見逃して）もらいました。';
+  (activeEvent.value as any).resolutionText = resolutionText;
 }
 
 const depthText = computed(() => {
@@ -301,21 +308,18 @@ async function resolveLootRoom() {
 // Priest NPC heal options
 function resolvePriest(choice: 'heal' | 'holywater') {
   if (!activeEvent.value) return;
-  let text = '';
   if (choice === 'heal') {
     character.value.lifeCurrent = character.value.lifeMax;
     followers.value.forEach(f => f.lifeCurrent = 1);
-    text = '巡礼の僧侶から神聖な癒やしを施され、パーティの生命力が全回復しました！';
   } else {
     character.value.items.push({
       id: generateId(),
       ...DEFAULT_ITEMS.holywater,
       value: 0
     } as GeneralItem);
-    text = '巡礼の僧侶から魔を退ける「聖水」を1つ譲り受けました！';
   }
   (activeEvent.value as any).isResolved = true;
-  (activeEvent.value as any).resolutionText = text;
+  (activeEvent.value as any).resolutionText = buildPriestResolutionText(activeEvent.value.title, choice);
 }
 
 // Jill-Mega Event 23 Option
@@ -587,7 +591,6 @@ function startLeftArmFight() {
 // Wounded mercenary option
 function resolveMercenary(save: boolean) {
   if (!activeEvent.value) return;
-  let text = '';
   if (save) {
     if (character.value.gold < 7) {
       addLog('金貨が足りないため、彼を治療できません。', 'error');
@@ -611,12 +614,9 @@ function resolveMercenary(save: boolean) {
       goldCost: 0,
       description: '助けた傭兵。戦闘に参加する戦う従者。技量1、生命1。',
     });
-    text = '金貨7枚を払い傭兵を治療しました！ 新たに従者「剣士」が仲間に加わりました。';
-  } else {
-    text = '傷ついた傭兵を見捨てて先を急ぎます。アランツァの冷酷な現実です。';
   }
   (activeEvent.value as any).isResolved = true;
-  (activeEvent.value as any).resolutionText = text;
+  (activeEvent.value as any).resolutionText = buildMercenaryResolutionText(activeEvent.value.title, save);
 }
 
 // Goblin Captive option
@@ -776,19 +776,11 @@ function startGoblinFight() {
   combatState.isBribeAllowed = false;
   combatState.reactionResult = null;
 
-  // Generate goblin negotiator enemy
-  combatState.enemies = [{
-    id: generateId(),
-    name: "ゴブリンの交渉人",
-    level: 3,
-    lifeMax: 2,
-    lifeCurrent: 2,
-    attackCount: 1,
-    tags: ["strong"],
-    count: 1
-  }];
+  // Generate negotiator enemy from event title
+  const { enemy, logText } = buildBribeCombatEncounter(activeEvent.value.title, generateId());
+  combatState.enemies = [enemy];
 
-  addLog('⚔️ 交渉決裂！ゴブリンの交渉人が襲いかかってきました！', 'combat');
+  addLog(logText, 'combat');
   currentScreen.value = 'combat';
 }
 
