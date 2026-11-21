@@ -68,6 +68,20 @@ export function useCombat() {
     return enemy.tags.includes(tag as any);
   }
 
+  /** Sum active status effect modifiers for a combat check type and log each once. */
+  function applyStatusEffectModifier(kind: 'attack' | 'defense'): number {
+    let mod = 0;
+    const label = kind === 'attack' ? '攻撃判定' : '防御判定';
+    playerActiveStatusEffectRules.value.forEach(rule => {
+      const value = kind === 'attack' ? rule.modAttack : rule.modDefense;
+      if (value) {
+        mod += value;
+        addLog(`状態異常ペナルティにより${label}に ${value} の修正が入ります。`, 'error');
+      }
+    });
+    return mod;
+  }
+
   function calculateFollowerHit(follower: any, target: Enemy, roll: number, baseModifier: number) {
     let modifier = baseModifier;
     
@@ -361,16 +375,7 @@ export function useCombat() {
     }
 
     // Apply status effect modifiers
-    playerActiveStatusEffectRules.value.forEach(rule => {
-      if (rule.modAttack) {
-        modifier += rule.modAttack;
-        addLog(`状態異常ペナルティにより攻撃判定に ${rule.modAttack} の修正が入ります。`, 'error');
-      }
-      if (rule.modSkill) {
-        modifier += rule.modSkill;
-        addLog(`状態異常ペナルティにより攻撃判定に ${rule.modSkill} の修正が入ります。`, 'error');
-      }
-    });
+    modifier += applyStatusEffectModifier('attack');
 
     // Weapon modifiers
     if (character.value.equippedWeapon) {
@@ -855,16 +860,7 @@ export function useCombat() {
         }
         
         // Apply status effect modifiers
-        playerActiveStatusEffectRules.value.forEach(rule => {
-          if (rule.modDefense) {
-            modifier += rule.modDefense;
-            addLog(`状態異常ペナルティにより防御判定に ${rule.modDefense} の修正が入ります。`, 'error');
-          }
-          if (rule.modSkill) {
-            modifier += rule.modSkill;
-            addLog(`状態異常ペナルティにより防御判定に ${rule.modSkill} の修正が入ります。`, 'error');
-          }
-        });
+        modifier += applyStatusEffectModifier('defense');
       } else {
         const f = followers.value.find(fol => fol.id === defenderId);
         if (f && f.isCombatant) {
@@ -1376,16 +1372,7 @@ export function useCombat() {
     modifier += (combatState.buffs.heroDefenseBonus || 0) + (combatState.buffs.defenseBonus || 0);
 
     // Apply status effect modifiers to cover check
-    playerActiveStatusEffectRules.value.forEach(rule => {
-      if (rule.modDefense) {
-        modifier += rule.modDefense;
-        addLog(`状態異常ペナルティにより防御判定に ${rule.modDefense} の修正が入ります。`, 'error');
-      }
-      if (rule.modSkill) {
-        modifier += rule.modSkill;
-        addLog(`状態異常ペナルティにより防御判定に ${rule.modSkill} の修正が入ります。`, 'error');
-      }
-    });
+    modifier += applyStatusEffectModifier('defense');
     if (!carriesLantern.value) {
       modifier -= 2;
       addLog(`暗闇のため主人公の防御判定に -2 のペナルティ！`, 'error');
